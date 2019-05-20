@@ -146,9 +146,21 @@ about: Implement this and add as a listener to an instance of #TSteamUtils to re
 End Rem
 Interface ISteamUtilsListener
 
+	Rem
+	bbdoc: CallResult for #CheckFileSignature.
+	End Rem
 	Method OnCheckFileSignature(checkFileSignature:ECheckFileSignature)
+	Rem
+	bbdoc: Called when the big picture gamepad text input has been closed.
+	End Rem
 	Method OnGamepadTextInputDismissed(submitted:Int, submittedTextLength:UInt)
+	Rem
+	bbdoc: Called when running on a laptop and less than 10 minutes of battery is left, and then fires then every minute afterwards.
+	End Rem
 	Method OnLowBatteryPower(minutesBatteryLeft:UInt)
+	Rem
+	bbdoc: Called when Steam wants to shutdown.
+	End Rem
 	Method OnSteamShutdown()
 	
 End Interface
@@ -432,16 +444,52 @@ about: Implement this and add as a listener to an instance of #TSteamUserStats t
 End Rem
 Interface ISteamUserStatsListener
 
+	Rem
+	bbdoc: Called when the global achievement percentages have been received from the server.
+	End Rem
 	Method OnGlobalAchievementPercentagesReady(gameID:ULong, result:EResult)
+	Rem
+	bbdoc: Called when the global stats have been received from the server.
+	End Rem
 	Method OnGlobalStatsReceived(gameID:ULong, result:EResult)
-	Method OnLeaderboardFindResult(leaderboardHandle:ULong, leaderboardFound:Int) '
-	Method OnLeaderboardScoresDownloaded(leaderboardHandle:ULong, leaderboardEntriesHandle:ULong, entryCount:Int) '
+	Rem
+	bbdoc: Result when finding a leaderboard.
+	End Rem
+	Method OnLeaderboardFindResult(leaderboardHandle:ULong, leaderboardFound:Int)
+	Rem
+	bbdoc: Called when scores for a leaderboard have been downloaded and are ready to be retrieved.
+	about: After calling you must use #GetDownloadedLeaderboardEntry to retrieve the info for each downloaded entry.
+	End Rem
+	Method OnLeaderboardScoresDownloaded(leaderboardHandle:ULong, leaderboardEntriesHandle:ULong, entryCount:Int)
+	Rem
+	bbdoc: Result indicating that a leaderboard score has been uploaded.
+	End Rem
 	Method OnLeaderboardScoreUploaded(success:Int, leaderboardHandle:ULong, score:UInt, scoreChanged:Int, globalRankNew:Int, globalRankPrevious:Int)
-	Method OnGetNumberOfCurrentPlayers(success:Int, players:Int) '
+	Rem
+	bbdoc: Gets the current number of players for the current AppId.
+	End Rem
+	Method OnGetNumberOfCurrentPlayers(success:Int, players:Int)
+	Rem
+	bbdoc: Result of an achievement icon that has been fetched.
+	End Rem
 	Method OnUserAchievementIconFetched(gameID:ULong, achievementName:String, achieved:Int, iconHandle:Int)
+	Rem
+	bbdoc: Result of a request to store the achievements on the server, or an "indicate progress" call.
+	about: If both @curProgress and @maxProgress are zero, that means the achievement has been fully unlocked.
+	End Rem
 	Method OnUserAchievementStored(gameID:ULong, groupAchievement:Int, achievementName:String, curProgress:UInt, maxProgress:UInt)
-	Method OnUserStatsReceived(gameID:ULong, result:EResult, steamID:ULong) '
-	Method OnUserStatsStored(gameID:ULong, result:EResult) '
+	Rem
+	bbdoc: Called when the latest stats and achievements for a specific user (including the local user) have been received from the server.
+	End Rem
+	Method OnUserStatsReceived(gameID:ULong, result:EResult, steamID:ULong)
+	Rem
+	bbdoc: Result of a request to store the user stats.
+	End Rem
+	Method OnUserStatsStored(gameID:ULong, result:EResult)
+	Rem
+	bbdoc: Callback indicating that a user's stats have been unloaded.
+	about: Call #RequestUserStats again before accessing stats for this user.
+	End Rem
 	Method OnUserStatsUnloaded(userID:ULong)
 
 End Interface
@@ -640,55 +688,106 @@ Type TSteamUserStats Extends TSteamAPI
 	Rem
 	bbdoc: Gets the lifetime totals for an aggregated stat.
 	about: You must have called #RequestGlobalStats and it needs to return successfully via its callback prior to calling this.
+	
+	This method returns #True upon success if all of the following conditions are met; otherwise, #False.
+	* The specified stat exists in App Admin on the Steamworks website, and the changes are published.
+	* #RequestGlobalStats has completed and successfully returned its callback.
+	* The type does not match the type listed in the App Admin panel of the Steamworks website.
+
+	See Also: #GetGlobalStatHistory
 	End Rem
 	Method GetGlobalStat:Int(statName:String, data:Long Var)
 		Return bmx_SteamAPI_ISteamUserStats_GetGlobalStat(instancePtr, statName, data)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets the lifetime totals for an aggregated stat.
+	about: You must have called #RequestGlobalStats and it needs to return successfully via its callback prior to calling this.
+	
+	This method returns #True upon success if all of the following conditions are met; otherwise, #False.
+	* The specified stat exists in App Admin on the Steamworks website, and the changes are published.
+	* #RequestGlobalStats has completed and successfully returned its callback.
+	* The type does not match the type listed in the App Admin panel of the Steamworks website.
+
+	See Also: #GetGlobalStatHistory
 	End Rem
 	Method GetGlobalStat:Int(statName:String, data:Double Var)
 		Return bmx_SteamAPI_ISteamUserStats_GetGlobalStat0(instancePtr, statName, data)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets the daily history for an aggregated stat.
+	returns: The number of elements returned in the @data array.
+	about: @data will be filled with daily values, starting with today.
+	So when called, @data[0] will be today, @data[1] will be yesterday, and @data[2] will be two days ago, etc.
+
+	You must have called #RequestGlobalStats and it needs to return successfully via its callback prior to calling this.
+
+	A return value of `0` indicates failure for one of the following reasons:
+	* The specified stat does not exist in App Admin on the Steamworks website, or the changes aren't published.
+	* #RequestGlobalStats has not been called or returned its callback, with at least 1 day of history.
+	* The type does not match the type listed in the App Admin panel of the Steamworks website.
+	* There is no history available.
 	End Rem
 	Method GetGlobalStatHistory:Int(statName:String, data:Long[])
 		Return bmx_SteamAPI_ISteamUserStats_GetGlobalStatHistory(instancePtr, statName, data, UInt(data.length))
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets the daily history for an aggregated stat.
+	returns: The number of elements returned in the @data array.
+	about: @data will be filled with daily values, starting with today.
+	So when called, @data[0] will be today, @data[1] will be yesterday, and @data[2] will be two days ago, etc.
+
+	You must have called #RequestGlobalStats and it needs to return successfully via its callback prior to calling this.
+
+	A return value of `0` indicates failure for one of the following reasons:
+	* The specified stat does not exist in App Admin on the Steamworks website, or the changes aren't published.
+	* #RequestGlobalStats has not been called or returned its callback, with at least 1 day of history.
+	* The type does not match the type listed in the App Admin panel of the Steamworks website.
+	* There is no history available.
 	End Rem
 	Method GetGlobalStatHistory:Int(statName:String, data:Double[])
 		Return bmx_SteamAPI_ISteamUserStats_GetGlobalStatHistory0(instancePtr, statName, data, UInt(data.length))
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Returns the display type of a leaderboard handle.
+	returns: The display type of the leaderboard. Returns ELeaderboardDisplayType.k_ELeaderboardDisplayTypeNone if the leaderboard handle is invalid.
+	about: 
+	See Also: #GetLeaderboardName, #GetLeaderboardSortMethod, #GetLeaderboardEntryCount
 	End Rem
 	Method GetLeaderboardDisplayType:ELeaderboardDisplayType(leaderboardHandle:ULong)
 		Return bmx_SteamAPI_ISteamUserStats_GetLeaderboardDisplayType(instancePtr, leaderboardHandle)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Returns the total number of entries in a leaderboard.
+	returns: The number of entries in the leaderboard. Returns 0 if the leaderboard handle is invalid.
+	about: This is cached on a per leaderboard basis upon the first call to #FindLeaderboard or #FindOrCreateLeaderboard and
+	is refreshed on each successful call to #DownloadLeaderboardEntries, #DownloadLeaderboardEntriesForUsers, and #UploadLeaderboardScore.
+
+	See Also: #GetLeaderboardName, #GetLeaderboardSortMethod, #GetLeaderboardDisplayType
 	End Rem
 	Method GetLeaderboardEntryCount:Int(leaderboardHandle:ULong)
 		Return bmx_SteamAPI_ISteamUserStats_GetLeaderboardEntryCount(instancePtr, leaderboardHandle)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Returns the name of a leaderboard handle.
+	returns: The name of the leaderboard. Returns #Null if the leaderboard handle is invalid.
+	about:
+	See Also: #GetLeaderboardEntryCount, #GetLeaderboardSortMethod, #GetLeaderboardDisplayType
 	End Rem
 	Method GetLeaderboardName:String(leadboarHandle:ULong)
 		Return bmx_SteamAPI_ISteamUserStats_GetLeaderboardName(instancePtr, leadboarHandle)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Returns the sort order of a leaderboard handle.
+	returns: The sort method of the leaderboard. Returns ELeaderboardSortMethod.k_ELeaderboardSortMethodNone if the leaderboard handle is invalid.
+	about: 
+	See Also: #GetLeaderboardName, #GetLeaderboardDisplayType, #GetLeaderboardEntryCount
 	End Rem
 	Method GetLeaderboardSortMethod:ELeaderboardSortMethod(leaderboardHandle:ULong)
 		Return bmx_SteamAPI_ISteamUserStats_GetLeaderboardSortMethod(instancePtr, leaderboardHandle)
@@ -707,7 +806,10 @@ Type TSteamUserStats Extends TSteamAPI
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets the info on the next most achieved achievement for the game.
+	returns: -1 if #RequestGlobalAchievementPercentages has not been called or if there are no global achievement percentages for this app Id.
+	about: You must have called #RequestGlobalAchievementPercentages and it needs to return successfully via its callback prior to calling this.
+	If the call is successful it returns an iterator which should be used with subsequent calls to this method.
 	End Rem
 	Method GetNextMostAchievedAchievementInfo:Int(previous:Int, name:String Var, percent:Float Var, achieved:Int Var)
 		Return bmx_SteamAPI_ISteamUserStats_GetNextMostAchievedAchievementInfo(instancePtr, previous, name, percent, achieved)
@@ -734,35 +836,75 @@ Type TSteamUserStats Extends TSteamAPI
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets the unlock status of the Achievement.
+	about: The equivalent function for the local user is #GetAchievement.
+	
+	This function returns #True upon success if all of the following conditions are met; otherwise, #False.
+	* #RequestUserStats has completed and successfully returned its callback.
+	* The 'API Name' of the specified achievement exists in App Admin on the Steamworks website, and the changes are published.
+
+	If the call is successful then the unlock status is returned via the @achieved parameter
 	End Rem
 	Method GetUserAchievement:Int(steamID:ULong, name:String, achieved:Int Var)
 		Return bmx_SteamAPI_ISteamGameServerStats_GetUserAchievement(instancePtr, steamID, name, achieved)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets the achievement status, and the time it was unlocked if unlocked.
+	about: If the return value is true, but the unlock time is zero, that means it was unlocked before Steam
+	began tracking achievement unlock times (December 2009). The time is provided in Unix epoch format, seconds since January 1, 1970 UTC.
+	The equivalent method for the local user is #GetAchievementAndUnlockTime.
+
+	This method returns #True upon success if all of the following conditions are met; otherwise, #False.
+	* #RequestUserStats has completed and successfully returned its callback.
+	* The 'API Name' of the specified achievement exists in App Admin on the Steamworks website, and the changes are published.
+
+	If the call is successful then the achieved status and unlock time are provided via the arguments pbAchieved and punUnlockTime.
 	End Rem
 	Method GetUserAchievementAndUnlockTime:Int(steamID:ULong, name:String, achieved:Int Var, unlockTime:UInt Var)
 		Return bmx_SteamAPI_ISteamUserStats_GetUserAchievementAndUnlockTime(instancePtr, steamID, name, achieved, unlockTime)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets the current value of the a stat for the specified user.
+	about: You must have called #RequestUserStats and it needs to return successfully via its callback prior to calling this.
+	The equivalent method for the local user is #GetStat.
+
+	This method returns #True upon success if all of the following conditions are met; otherwise, #False.
+	* The specified stat exists in App Admin on the Steamworks website, and the changes are published.
+	* #RequestUserStats has completed and successfully returned its callback.
+	* The type does not match the type listed in the App Admin panel of the Steamworks website.
 	End Rem
 	Method GetUserStat:Int(steamID:ULong, name:String, data:Int Var)
 		Return bmx_SteamAPI_ISteamGameServerStats_GetUserStat(instancePtr, steamID, name, data)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets the current value of the a stat for the specified user.
+	about: You must have called #RequestUserStats and it needs to return successfully via its callback prior to calling this.
+	The equivalent method for the local user is #GetStat.
+
+	This method returns #True upon success if all of the following conditions are met; otherwise, #False.
+	* The specified stat exists in App Admin on the Steamworks website, and the changes are published.
+	* #RequestUserStats has completed and successfully returned its callback.
+	* The type does not match the type listed in the App Admin panel of the Steamworks website.
 	End Rem
 	Method GetUserStat:Int(steamID:ULong, name:String, data:Float Var)
 		Return bmx_SteamAPI_ISteamGameServerStats_GetUserStat0(instancePtr, steamID, name, data)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Shows the user a pop-up notification with the current progress of an achievement.
+	about: Calling this method will **NOT** set the progress or unlock the achievement, the game must do that manually by calling #SetStat!
+	
+	Triggers an #OnUserStatsStored callback.
+	Triggers an #OnUserAchievementStored callback.
+
+	This method returns true upon success if all of the following conditions are met; otherwise, false.
+	* #RequestCurrentStats has completed and successfully returned its callback.
+	* The specified achievement exists in App Admin on the Steamworks website, and the changes are published.
+	* The specified achievement is not already unlocked.
+	* @curProgress is less than @maxProgress.
 	End Rem
 	Method IndicateAchievementProgress:Int(name:String, curProgress:UInt, maxProgress:UInt)
 		Return bmx_SteamAPI_ISteamUserStats_IndicateAchievementProgress(instancePtr, name, curProgress, maxProgress)
@@ -782,70 +924,184 @@ Type TSteamUserStats Extends TSteamAPI
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Asynchronously fetch the data for the percentage of players who have received each achievement for the current game globally.
+	about: You must have called #RequestCurrentStats and it needs to return successfully via its callback prior to calling this.
+	
+	Triggers an #OnGlobalAchievementPercentagesReady callback.
+	
+	See Also: #GetMostAchievedAchievementInfo, #GetNextMostAchievedAchievementInfo, #GetAchievementAchievedPercent
 	End Rem
 	Method RequestGlobalAchievementPercentages()
 		bmx_SteamAPI_ISteamUserStats_RequestGlobalAchievementPercentages(callbackPtr)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Asynchronously fetches global stats data, which is available for stats marked as "aggregated" in the App Admin panel of the Steamworks website.
+	about: You must have called #RequestCurrentStats and it needs to return successfully via its callback prior to calling this.
+
+	Triggers an #OnGlobalStatsReceived callback.
+
+	See Also: #GetGlobalStat, #GetGlobalStatHistory
 	End Rem
 	Method RequestGlobalStats(historyDays:Int)
 		bmx_SteamAPI_ISteamUserStats_RequestGlobalStats(callbackPtr, historyDays)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Asynchronously downloads stats and achievements for the specified user from the server.
+	about: These stats are not automatically updated; you'll need to call this method again to refresh any data that may have changed.
+	To keep from using too much memory, a least recently used cache (LRU) is maintained and other user's stats will occasionally be
+	unloaded. When this happens an #OnUserStatsUnloaded callback is sent. After receiving this callback the user's stats will be
+	unavailable until this method is called again.
+
+	The equivalent method for the local user is #RequestCurrentStats.
+	
+	Triggers an #OnUserStatsReceived callback.
+	
+	See Also: #GetUserAchievement, #GetUserAchievementAndUnlockTime, #GetUserStat
 	End Rem
 	Method RequestUserStats(steamID:ULong)
 		bmx_SteamAPI_ISteamGameServerStats_RequestUserStats(callbackPtr, steamID)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Resets the current users stats and, optionally achievements.
+	returns: #True indicating success if #RequestCurrentStats has been called and successfully returned its callback; otherwise #False.
+	about: This automatically calls #StoreStats to persist the changes to the server. This should typically only
+	be used for testing purposes during development. Ensure that you sync up your stats with the new default
+	values provided by Steam after calling this by calling #RequestCurrentStats.
 	End Rem
 	Method ResetAllStats:Int(achievementsToo:Int)
 		Return bmx_SteamAPI_ISteamUserStats_ResetAllStats(instancePtr, achievementsToo)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Unlocks an achievement.
+	about: You must have called #RequestCurrentStats and it needs to return successfully via its callback prior to calling this!
+	You can unlock an achievement multiple times so you don't need to worry about only setting achievements that
+	aren't already set. This call only modifies Steam's in-memory state so it is quite cheap. To send the unlock
+	status to the server and to trigger the Steam overlay notification you must call #StoreStats.
+
+	This method returns #True upon success if all of the following conditions are met; otherwise, #False.
+	* The specified achievement "API Name" exists in App Admin on the Steamworks website, and the changes are published.
+	* #RequestCurrentStats has completed and successfully returned its callback.
+
+	See Also: #RequestCurrentStats, #StoreStats, #ResetAllStats, #GetAchievementAndUnlockTime, #GetAchievement
 	End Rem
 	Method SetAchievement:Int(name:String)
 		Return bmx_SteamAPI_ISteamUserStats_SetAchievement(instancePtr, name)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Sets / updates the value of a given stat for the current user.
+	about: You must have called #RequestCurrentStats and it needs to return successfully via its callback prior to calling this!
+
+	This call only modifies Steam's in-memory state and is very cheap. Doing so allows Steam to persist the
+	changes even in the event of a game crash or unexpected shutdown. To submit the stats to the server you must call #StoreStats.
+
+	If this is returning #False and everything appears correct, then check to ensure that your changes in the App Admin
+	panel of the Steamworks website are published.
+
+	This method returns #True upon success if all of the following conditions are met; otherwise, #False.
+	* The specified stat exists in App Admin on the Steamworks website, and the changes are published.
+	* #RequestCurrentStats has completed and successfully returned its callback.
+	* The type passed to this function must match the type listed in the App Admin panel of the Steamworks website.
+	
+	See Also: #GetStat, #UpdateAvgRateStat, #ResetAllStats
 	End Rem
 	Method SetStat:Int(name:String, data:Int)
 		Return bmx_SteamAPI_ISteamUserStats_SetStat(instancePtr, name, data)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Sets / updates the value of a given stat for the current user.
+	about: You must have called #RequestCurrentStats and it needs to return successfully via its callback prior to calling this!
+
+	This call only modifies Steam's in-memory state and is very cheap. Doing so allows Steam to persist the
+	changes even in the event of a game crash or unexpected shutdown. To submit the stats to the server you must call #StoreStats.
+
+	If this is returning #False and everything appears correct, then check to ensure that your changes in the App Admin
+	panel of the Steamworks website are published.
+
+	This method returns #True upon success if all of the following conditions are met; otherwise, #False.
+	* The specified stat exists in App Admin on the Steamworks website, and the changes are published.
+	* #RequestCurrentStats has completed and successfully returned its callback.
+	* The type passed to this function must match the type listed in the App Admin panel of the Steamworks website.
+	
+	See Also: #GetStat, #UpdateAvgRateStat, #ResetAllStats
 	End Rem
 	Method SetStat:Int(name:String, data:Float)
 		Return bmx_SteamAPI_ISteamUserStats_SetStat0(instancePtr, name, data)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Sends the changed stats and achievements data to the server for permanent storage.
+	about: If this fails then nothing is sent to the server. It's advisable to keep trying until the call is successful.
+
+	This call can be rate limited. Call frequency should be on the order of minutes, rather than seconds. You should only 
+	be calling this during major state changes such as the end of a round, the map changing, or the user leaving a server.
+	This call is required to display the achievement unlock notification dialog though, so if you have called #SetAchievement
+	then it's advisable to call this soon after that.
+
+	If you have stats or achievements that you have saved locally but haven't uploaded with this method when your
+	application process ends then this function will automatically be called.
+
+	You can find additional debug information written to the %steam_install%\logs\stats_log.txt file.
+	
+	Triggers an #OnUserStatsStored callback.
+	Triggers an #OnUserAchievementStored callback.
+
+	This method returns #True upon success if all of the following conditions are met; otherwise, #False.
+	* #RequestCurrentStats has completed and successfully returned its callback.
+	* The current game has stats associated with it in the Steamworks Partner backend, and those stats are published.
+
+	If the call is successful you will receive an #OnUserStatsStored callback.
+
+	If @esult has a result of k_EResultInvalidParam, then one or more stats uploaded has been rejected, either because
+	they broke constraints or were out of date. In this case the server sends back updated values and the stats
+	should be updated locally to keep in sync.
+
+	If one or more achievements has been unlocked then this will also trigger an #OnUserAchievementStored callback.
+
+	See Also: #SetStat, #SetAchievement
 	End Rem
 	Method StoreStats:Int()
 		Return bmx_SteamAPI_ISteamUserStats_StoreStats(instancePtr)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Updates an AVGRATE stat with new values.
+	about: You must have called #RequestCurrentStats and it needs to return successfully via its callback prior to calling this!
+
+	This call only modifies Steam's in-memory state and is very cheap. Doing so allows Steam to
+	persist the changes even in the event of a game crash or unexpected shutdown.
+	To submit the stats to the server you must call #StoreStats.
+
+	If this is returning false and everything appears correct, then check to ensure that your changes in
+	the App Admin panel of the Steamworks website are published.
+
+	This method returns #True upon success if all of the following conditions are met; otherwise, #False.
+	* The specified stat exists in App Admin on the Steamworks website, and the changes are published.
+	* #RequestCurrentStats has completed and successfully returned its callback.
+	* The type must be AVGRATE in the Steamworks Partner backend.
 	End Rem
 	Method UpdateAvgRateStat:Int(name:String, countThisSession:Float, sessionLength:Double)
 		Return bmx_SteamAPI_ISteamUserStats_UpdateAvgRateStat(instancePtr, name, countThisSession, sessionLength)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Uploads a user score to a specified leaderboard.
+	about: Details are optional game-defined information which outlines how the user got that score.
+	For example if it's a racing style time based leaderboard you could store the timestamps when the
+	player hits each checkpoint. If you have collectibles along the way you could use bit fields as
+	booleans to store the items the player picked up in the playthrough.
+
+	Uploading scores to Steam is rate limited to 10 uploads per 10 minutes and you may only
+	have one outstanding call to this function at a time.
+
+	Triggers an #OnLeaderboardScoreUploaded callback.
+	
+	See Also: #DownloadLeaderboardEntries, #AttachLeaderboardUGC
 	End Rem
 	Method UploadLeaderboardScore(leaderboardHandle:ULong, uploadScoreMethod:ELeaderboardUploadScoreMethod, score:Int, scoreDetails:Int[])
 		bmx_SteamAPI_ISteamUserStats_UploadLeaderboardScore(callbackPtr, leaderboardHandle, uploadScoreMethod, score, scoreDetails, scoreDetails.length)
