@@ -20,6 +20,8 @@ SuperStrict
 
 ?win32x64
 Import "-l:steam_api64.dll"
+?linuxx64
+Import "-lsteam_api"
 ?
 
 Import "glue/glue.cpp"
