@@ -43,6 +43,7 @@ Extern
 	Function bmx_SteamAPI_ISteamClient_GetISteamUtils:Byte Ptr(inst:Byte Ptr, pipe:UInt, version:String)
 	Function bmx_SteamAPI_ISteamClient_ConnectToGlobalUser:Int(inst:Byte Ptr, pipe:UInt)
 	Function bmx_SteamAPI_ISteamClient_GetISteamUserStats:Byte Ptr(inst:Byte Ptr, user:Int, pipe:UInt, version:String)
+	Function bmx_SteamAPI_ISteamClient_GetISteamUGC:Byte Ptr(inst:Byte Ptr, user:Int, pipe:UInt, version:String)
 
 	Function bmx_steamsdk_register_steamuutils:Byte Ptr(inst:Byte Ptr, obj:Object)
 	Function bmx_steamsdk_unregister_steamutils(callbackPtr:Byte Ptr)
@@ -109,8 +110,106 @@ Extern
 	Function bmx_SteamAPI_ISteamUserStats_UpdateAvgRateStat:Int(inst:Byte Ptr, name:String, countThisSession:Float, sessionLength:Double)
 	Function bmx_SteamAPI_ISteamUserStats_UploadLeaderboardScore(callback:Byte Ptr, leaderboardHandle:ULong, uploadScoreMethod:ELeaderboardUploadScoreMethod, score:Int, scoreDetails:Int Ptr, count:Int)
 
+	Function bmx_steamsdk_register_steamugc:Byte Ptr(inst:Byte Ptr, obj:Object)
+	Function bmx_steamsdk_unregister_steamugc(callbackPtr:Byte Ptr)
+	
+	Function bmx_SteamAPI_ISteamUGC_AddAppDependency(callback:Byte Ptr, publishedFileID:ULong, appID:UInt)
+	Function bmx_SteamAPI_ISteamUGC_AddDependency(callback:Byte Ptr, publishedFileId:ULong, childPublishedFileId:ULong)
+	Function bmx_SteamAPI_ISteamUGC_AddExcludedTag:Int(inst:Byte Ptr, queryHandle:ULong, tagName:String)
+	Function bmx_SteamAPI_ISteamUGC_AddItemKeyValueTag:Int(inst:Byte Ptr, queryHandle:ULong, key:String, value:String)
+	Function bmx_SteamAPI_ISteamUGC_AddItemPreviewFile:Int(inst:Byte Ptr, queryHandle:ULong, previewFile:String, previewType:EItemPreviewType)
+	Function bmx_SteamAPI_ISteamUGC_AddItemPreviewVideo:Int(inst:Byte Ptr, queryHandle:ULong, videoID:String)
+	Function bmx_SteamAPI_ISteamUGC_AddItemToFavorites(callback:Byte Ptr, appId:UInt, publishedFileID:ULong)
+	Function bmx_SteamAPI_ISteamUGC_AddRequiredKeyValueTag:Int(inst:Byte Ptr, queryHandle:ULong, key:String, value:String)
+	Function bmx_SteamAPI_ISteamUGC_AddRequiredTag:Int(inst:Byte Ptr, queryHandle:ULong, tagName:String)
+	Function bmx_SteamAPI_ISteamUGC_InitWorkshopForGameServer:Int(inst:Byte Ptr, workshopDepotID:ULong, folder:String)
+	Function bmx_SteamAPI_ISteamUGC_CreateItem(callback:Byte Ptr, consumerAppId:UInt, FileType:EWorkshopFileType)
+	Function bmx_SteamAPI_ISteamUGC_CreateQueryAllUGCRequest:ULong(inst:Byte Ptr, queryType:EUGCQuery, matchingeMatchingUGCTypeFileType:EUGCMatchingUGCType, creatorAppID:UInt, consumerAppID:UInt, page:UInt)
+	Function bmx_SteamAPI_ISteamUGC_CreateQueryUGCDetailsRequest:ULong(inst:Byte Ptr, publishedFileIDs:ULong Ptr, numPublishedFileIDs:Int)
+	Function bmx_SteamAPI_ISteamUGC_CreateQueryUserUGCRequest:ULong(inst:Byte Ptr, accountID:UInt, listType:EUserUGCList, matchingUGCType:EUGCMatchingUGCType, sortOrder:EUserUGCListSortOrder, creatorAppID:UInt, consumerAppID:UInt, page:UInt)
+	Function bmx_SteamAPI_ISteamUGC_DeleteItem(callback:Byte Ptr, publishedFileID:ULong)
+	Function bmx_SteamAPI_ISteamUGC_DownloadItem:Int(inst:Byte Ptr, publishedFileID:ULong, highPriority:Int)
+	Function bmx_SteamAPI_ISteamUGC_GetAppDependencies(callback:Byte Ptr, publishedFileID:ULong)
+	Function bmx_SteamAPI_ISteamUGC_GetItemDownloadInfo:Int(inst:Byte Ptr, publishedFileID:ULong, bytesDownloaded:ULong Var, bytesTotal:ULong Var)
+	Function bmx_SteamAPI_ISteamUGC_GetItemInstallInfo:Int(inst:Byte Ptr, publishedFileID:ULong, sizeOnDisk:ULong Var, folder:String Var, timestamp:UInt Var)
+	Function bmx_SteamAPI_ISteamUGC_GetItemState:EItemState(inst:Byte Ptr, publishedFileID:ULong)
+	Function bmx_SteamAPI_ISteamUGC_GetItemUpdateProgress:EItemUpdateStatus(inst:Byte Ptr, queryHandle:ULong, bytesProcessed:ULong Var, bytesTotal:ULong Var)
+	Function bmx_SteamAPI_ISteamUGC_GetNumSubscribedItems:UInt(inst:Byte Ptr)
+	Function bmx_SteamAPI_ISteamUGC_GetQueryUGCAdditionalPreview:Int(inst:Byte Ptr, queryHandle:ULong, index:UInt, previewIndex:UInt, URLOrVideoID:String Var, originalFileName:String Var, previewType:EItemPreviewType Var)
+	Function bmx_SteamAPI_ISteamUGC_GetQueryUGCChildren:Int(inst:Byte Ptr, queryHandle:ULong, index:UInt, publishedFileIDs:ULong Ptr, maxEntries:UInt)
+	Function bmx_SteamAPI_ISteamUGC_GetQueryUGCKeyValueTag:Int(inst:Byte Ptr, queryHandle:ULong, index:UInt, keyValueTagIndex:UInt, key:String Var, value:String Var)
+	Function bmx_SteamAPI_ISteamUGC_GetQueryUGCMetadata:Int(inst:Byte Ptr, queryHandle:ULong, index:UInt, metadata:String Var)
+	Function bmx_SteamAPI_ISteamUGC_GetQueryUGCNumAdditionalPreviews:UInt(inst:Byte Ptr, queryHandle:ULong, index:UInt)
+	Function bmx_SteamAPI_ISteamUGC_GetQueryUGCNumKeyValueTags:UInt(inst:Byte Ptr, queryHandle:ULong, index:UInt)
+	Function bmx_SteamAPI_ISteamUGC_GetQueryUGCPreviewURL:Int(inst:Byte Ptr, queryHandle:ULong, index:UInt, URL:String Var)
+	Function bmx_SteamAPI_ISteamUGC_GetQueryUGCStatistic:Int(inst:Byte Ptr, queryHandle:ULong, index:UInt, statType:EItemStatistic, statValue:ULong Var)
+	Function bmx_SteamAPI_ISteamUGC_GetSubscribedItems:UInt(inst:Byte Ptr, publishedFileIDs:ULong Ptr, maxEntries:UInt)
+	Function bmx_SteamAPI_ISteamUGC_GetUserItemVote(callback:Byte Ptr, publishedFileID:ULong)
+	Function bmx_SteamAPI_ISteamUGC_ReleaseQueryUGCRequest:Int(inst:Byte Ptr, queryHandle:ULong)
+	Function bmx_SteamAPI_ISteamUGC_RemoveAppDependency(callback:Byte Ptr, publishedFileID:ULong, appID:UInt)
+	Function bmx_SteamAPI_ISteamUGC_RemoveDependency(callback:Byte Ptr, parentPublishedFileID:ULong, childPublishedFileID:ULong)
+	Function bmx_SteamAPI_ISteamUGC_RemoveItemFromFavorites(callback:Byte Ptr, appId:UInt, publishedFileID:ULong)
+	Function bmx_SteamAPI_ISteamUGC_RemoveItemKeyValueTags:Int(inst:Byte Ptr, queryHandle:ULong, key:String)
+	Function bmx_SteamAPI_ISteamUGC_RemoveItemPreview:Int(inst:Byte Ptr, queryHandle:ULong, index:UInt)
+	Function bmx_SteamAPI_ISteamUGC_SendQueryUGCRequest(callback:Byte Ptr, queryHandle:ULong)
+	Function bmx_SteamAPI_ISteamUGC_SetAllowCachedResponse:Int(inst:Byte Ptr, queryHandle:ULong, maxAgeSeconds:UInt)
+	Function bmx_SteamAPI_ISteamUGC_SetCloudFileNameFilter:Int(inst:Byte Ptr, queryHandle:ULong, matchCloudFileName:String)
+	Function bmx_SteamAPI_ISteamUGC_SetItemContent:Int(inst:Byte Ptr, updateHandle:ULong, contentFolder:String)
+	Function bmx_SteamAPI_ISteamUGC_SetItemDescription:Int(inst:Byte Ptr, updateHandle:ULong, description:String)
+	Function bmx_SteamAPI_ISteamUGC_SetItemMetadata:Int(inst:Byte Ptr, updateHandle:ULong, metaData:String)
+	Function bmx_SteamAPI_ISteamUGC_SetItemPreview:Int(inst:Byte Ptr, updateHandle:ULong, previewFile:String)
+	Function bmx_SteamAPI_ISteamUGC_SetItemTags:Int(inst:Byte Ptr, updateHandle:ULong, tags:String[])
+	Function bmx_SteamAPI_ISteamUGC_SetItemTitle:Int(inst:Byte Ptr, updateHandle:ULong, title:String)
+	Function bmx_SteamAPI_ISteamUGC_SetItemUpdateLanguage:Int(inst:Byte Ptr, updateHandle:ULong, language:String)
+	Function bmx_SteamAPI_ISteamUGC_SetItemVisibility:Int(inst:Byte Ptr, updateHandle:ULong, visibility:ERemoteStoragePublishedFileVisibility)
+	Function bmx_SteamAPI_ISteamUGC_SetLanguage:Int(inst:Byte Ptr, queryHandle:ULong, language:String)
+	Function bmx_SteamAPI_ISteamUGC_SetMatchAnyTag:Int(inst:Byte Ptr, queryHandle:ULong, matchAnyTag:Int)
+	Function bmx_SteamAPI_ISteamUGC_SetRankedByTrendDays:Int(inst:Byte Ptr, queryHandle:ULong, days:UInt)
+	Function bmx_SteamAPI_ISteamUGC_SetReturnAdditionalPreviews:Int(inst:Byte Ptr, queryHandle:ULong, returnAdditionalPreviews:Int)
+	Function bmx_SteamAPI_ISteamUGC_SetReturnChildren:Int(inst:Byte Ptr, queryHandle:ULong, returnChildren:Int)
+	Function bmx_SteamAPI_ISteamUGC_SetReturnKeyValueTags:Int(inst:Byte Ptr, queryHandle:ULong, returnKeyValueTags:Int)
+	Function bmx_SteamAPI_ISteamUGC_SetReturnLongDescription:Int(inst:Byte Ptr, queryHandle:ULong, returnLongDescription:Int)
+	Function bmx_SteamAPI_ISteamUGC_SetReturnMetadata:Int(inst:Byte Ptr, queryHandle:ULong, returnMetadata:Int)
+	Function bmx_SteamAPI_ISteamUGC_SetReturnOnlyIDs:Int(inst:Byte Ptr, queryHandle:ULong, returnOnlyIDs:Int)
+	Function bmx_SteamAPI_ISteamUGC_SetReturnPlaytimeStats:Int(inst:Byte Ptr, queryHandle:ULong, days:UInt)
+	Function bmx_SteamAPI_ISteamUGC_SetReturnTotalOnly:Int(inst:Byte Ptr, queryHandle:ULong, returnTotalOnly:Int)
+	Function bmx_SteamAPI_ISteamUGC_SetSearchText:Int(inst:Byte Ptr, queryHandle:ULong, searchText:String)
+	Function bmx_SteamAPI_ISteamUGC_SetUserItemVote(callback:Byte Ptr, publishedFileID:ULong, voteUp:Int)
+	Function bmx_SteamAPI_ISteamUGC_StartItemUpdate:ULong(inst:Byte Ptr, consumerAppId:UInt, publishedFileID:ULong)
+	Function bmx_SteamAPI_ISteamUGC_StartPlaytimeTracking(callback:Byte Ptr, publishedFileIDs:ULong Ptr, numPublishedFileIDs:UInt)
+	Function bmx_SteamAPI_ISteamUGC_StopPlaytimeTracking(callback:Byte Ptr, publishedFileIDs:ULong Ptr, numPublishedFileIDs:UInt)
+	Function bmx_SteamAPI_ISteamUGC_StopPlaytimeTrackingForAllItems(callback:Byte Ptr)
+	Function bmx_SteamAPI_ISteamUGC_SubmitItemUpdate(callback:Byte Ptr, updateHandle:ULong, changeNote:String)
+	Function bmx_SteamAPI_ISteamUGC_SubscribeItem(callback:Byte Ptr, publishedFileID:ULong)
+	Function bmx_SteamAPI_ISteamUGC_SuspendDownloads(inst:Byte Ptr, suspend:Int)
+	Function bmx_SteamAPI_ISteamUGC_UnsubscribeItem(callback:Byte Ptr, publishedFileID:ULong)
+	Function bmx_SteamAPI_ISteamUGC_UpdateItemPreviewFile:Int(inst:Byte Ptr, updateHandle:ULong, index:UInt, previewFile:String)
+	Function bmx_SteamAPI_ISteamUGC_UpdateItemPreviewVideo:Int(inst:Byte Ptr, updateHandle:ULong, index:UInt, videoID:String)
+	
 End Extern
 
+Rem
+bbdoc: Used to specify an invalid query handle.
+about: This is frequently returned if a call fails.
+End Rem
+Const k_UGCQueryHandleInvalid:ULong = $ffffffffffffffff:ULong
+Rem
+bbdoc: Used to specify an invalid item update handle.
+about: This is frequently returned if a call fails.
+End Rem
+Const k_UGCUpdateHandleInvalid:ULong = $ffffffffffffffff:ULong
+Rem
+bbdoc: The maximum size in bytes that a Workshop item description can be.
+End Rem
+Const k_cchPublishedDocumentDescriptionMax:UInt = 8000
+Rem
+bbdoc: The maximum amount of bytes you can set with #SetItemMetadata.
+End Rem
+Const k_cchDeveloperMetadataMax:UInt = 5000
+Rem
+bbdoc: The maximum size in bytes that a Workshop item title can be.
+End Rem
+Const k_cchPublishedDocumentTitleMax:UInt = 128 + 1
 
 ' // GENERATED
 
@@ -731,12 +830,18 @@ Enum ERemoteStoragePlatform Flags
 	k_ERemoteStoragePlatformAll = -1
 End Enum
 
+Rem
+bbdoc: Possible visibility states that a Workshop item can be in.
+End Rem
 Enum ERemoteStoragePublishedFileVisibility
 	k_ERemoteStoragePublishedFileVisibilityPublic = 0
 	k_ERemoteStoragePublishedFileVisibilityFriendsOnly = 1
 	k_ERemoteStoragePublishedFileVisibilityPrivate = 2
 End Enum
 
+Rem
+bbdoc: The way that a shared file will be shared with the community.
+End Rem
 Enum EWorkshopFileType
 	k_EWorkshopFileTypeFirst = 0
 	k_EWorkshopFileTypeCommunity = 0
@@ -1591,6 +1696,9 @@ Enum ESteamControllerLEDFlag
 	k_ESteamControllerLEDFlag_RestoreUserDefault = 1
 End Enum
 
+Rem
+bbdoc: Specifies the types of UGC to obtain from a call to #CreateQueryUserUGCRequest or #CreateQueryAllUGCRequest.
+End Rem
 Enum EUGCMatchingUGCType
 	k_EUGCMatchingUGCType_Items = 0
 	k_EUGCMatchingUGCType_Items_Mtx = 1
@@ -1608,6 +1716,9 @@ Enum EUGCMatchingUGCType
 	k_EUGCMatchingUGCType_All = -1
 End Enum
 
+Rem
+bbdoc: Used with #CreateQueryUserUGCRequest to obtain different lists of published UGC for a user.
+End Rem
 Enum EUserUGCList
 	k_EUserUGCList_Published = 0
 	k_EUserUGCList_VotedOn = 1
@@ -1630,6 +1741,9 @@ Enum EUserUGCListSortOrder
 	k_EUserUGCListSortOrder_ForModeration = 6
 End Enum
 
+Rem
+bbdoc: Used with #CreateQueryAllUGCRequest to specify the sorting and filtering for queries across all available UGC.
+End Rem
 Enum EUGCQuery
 	k_EUGCQuery_RankedByVote = 0
 	k_EUGCQuery_RankedByPublicationDate = 1
@@ -1661,7 +1775,7 @@ Enum EItemUpdateStatus
 	k_EItemUpdateStatusCommittingChanges = 5
 End Enum
 
-Enum EItemState
+Enum EItemState Flags
 	k_EItemStateNone = 0
 	k_EItemStateSubscribed = 1
 	k_EItemStateLegacyItem = 2
@@ -1687,6 +1801,10 @@ Enum EItemStatistic
 	k_EItemStatistic_NumPlaytimeSessionsDuringTimePeriod = 12
 End Enum
 
+Rem
+bbdoc: Flags that specify the type of preview an item has. 
+about: Set with #AddItemPreviewFile, and received with #GetQueryUGCAdditionalPreview.
+End Rem
 Enum EItemPreviewType
 	k_EItemPreviewType_Image = 0
 	k_EItemPreviewType_YouTubeVideo = 1
