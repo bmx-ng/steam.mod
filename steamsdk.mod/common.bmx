@@ -44,8 +44,9 @@ Extern
 	Function bmx_SteamAPI_ISteamClient_ConnectToGlobalUser:Int(inst:Byte Ptr, pipe:UInt)
 	Function bmx_SteamAPI_ISteamClient_GetISteamUserStats:Byte Ptr(inst:Byte Ptr, user:Int, pipe:UInt, version:String)
 	Function bmx_SteamAPI_ISteamClient_GetISteamUGC:Byte Ptr(inst:Byte Ptr, user:Int, pipe:UInt, version:String)
+	Function bmx_SteamAPI_ISteamClient_GetISteamFriends:Byte Ptr(inst:Byte Ptr, user:Int, pipe:UInt, version:String)
 
-	Function bmx_steamsdk_register_steamuutils:Byte Ptr(inst:Byte Ptr, obj:Object)
+	Function bmx_steamsdk_register_steamutils:Byte Ptr(inst:Byte Ptr, obj:Object)
 	Function bmx_steamsdk_unregister_steamutils(callbackPtr:Byte Ptr)
 
 	Function bmx_SteamAPI_ISteamUtils_GetSecondsSinceAppActive:UInt(inst:Byte Ptr)
@@ -185,6 +186,82 @@ Extern
 	Function bmx_SteamAPI_ISteamUGC_UnsubscribeItem(callback:Byte Ptr, publishedFileID:ULong)
 	Function bmx_SteamAPI_ISteamUGC_UpdateItemPreviewFile:Int(inst:Byte Ptr, updateHandle:ULong, index:UInt, previewFile:String)
 	Function bmx_SteamAPI_ISteamUGC_UpdateItemPreviewVideo:Int(inst:Byte Ptr, updateHandle:ULong, index:UInt, videoID:String)
+
+	Function bmx_steamsdk_register_steamfriends:Byte Ptr(inst:Byte Ptr, obj:Object)
+	Function bmx_steamsdk_unregister_steamfriends(callbackPtr:Byte Ptr)
+
+	Function bmx_SteamAPI_ISteamFriends_ActivateGameOverlay(inst:Byte Ptr, dialog:String)
+	Function bmx_SteamAPI_ISteamFriends_ActivateGameOverlayInviteDialog(inst:Byte Ptr, steamIDLobby:ULong)
+	Function bmx_SteamAPI_ISteamFriends_ActivateGameOverlayToStore(inst:Byte Ptr, appID:UInt, flag:EOverlayToStoreFlag)
+	Function bmx_SteamAPI_ISteamFriends_ActivateGameOverlayToUser(inst:Byte Ptr, dialog:String, steamID:ULong)
+	Function bmx_SteamAPI_ISteamFriends_ActivateGameOverlayToWebPage(inst:Byte Ptr, url:String)
+	Function bmx_SteamAPI_ISteamFriends_ClearRichPresence(inst:Byte Ptr)
+	Function bmx_SteamAPI_ISteamFriends_CloseClanChatWindowInSteam:Int(inst:Byte Ptr, steamIDClanChat:ULong)
+	Function bmx_SteamAPI_ISteamFriends_DownloadClanActivityCounts(callback:Byte Ptr, steamIDClans:ULong Ptr, clansToRequest:Int)
+	Function bmx_SteamAPI_ISteamFriends_EnumerateFollowingList(callback:Byte Ptr, startIndex:UInt)
+	Function bmx_SteamAPI_ISteamFriends_GetChatMemberByIndex:ULong(inst:Byte Ptr, steamIDClan:ULong, user:Int)
+	Function bmx_SteamAPI_ISteamFriends_GetClanActivityCounts:Int(inst:Byte Ptr, steamIDClan:ULong, online:Int Var, inGame:Int Var, chatting:Int Var)
+	Function bmx_SteamAPI_ISteamFriends_GetClanByIndex:ULong(inst:Byte Ptr, clan:Int)
+	Function bmx_SteamAPI_ISteamFriends_GetClanChatMemberCount:Int(inst:Byte Ptr, steamIDClan:ULong)
+	Function bmx_SteamAPI_ISteamFriends_GetClanChatMessage:Int(inst:Byte Ptr, steamIDClanChat:ULong, message:Int, txt:String Var, chatEntryType:EChatEntryType Var, steamidChatter:ULong Var)
+	Function bmx_SteamAPI_ISteamFriends_GetClanCount:Int(inst:Byte Ptr)
+	Function bmx_SteamAPI_ISteamFriends_GetClanName:String(inst:Byte Ptr, steamIDClan:ULong)
+	Function bmx_SteamAPI_ISteamFriends_GetClanOfficerByIndex:ULong(inst:Byte Ptr, steamIDClan:ULong, officer:Int)
+	Function bmx_SteamAPI_ISteamFriends_GetClanOfficerCount:Int(inst:Byte Ptr, steamIDClan:ULong)
+	Function bmx_SteamAPI_ISteamFriends_GetClanOwner:ULong(inst:Byte Ptr, steamIDClan:ULong)
+	Function bmx_SteamAPI_ISteamFriends_GetClanTag:String(inst:Byte Ptr, steamIDClan:ULong)
+	Function bmx_SteamAPI_ISteamFriends_GetCoplayFriend:ULong(inst:Byte Ptr, coplayFriend:Int)
+	Function bmx_SteamAPI_ISteamFriends_GetCoplayFriendCount:Int(inst:Byte Ptr)
+	Function bmx_SteamAPI_ISteamFriends_GetFollowerCount(callback:Byte Ptr, steamID:ULong)
+	Function bmx_SteamAPI_ISteamFriends_GetFriendByIndex:ULong(inst:Byte Ptr, friend:Int, friendFlags:Int)
+	Function bmx_SteamAPI_ISteamFriends_GetFriendCoplayGame:UInt(inst:Byte Ptr, steamIDFriend:ULong)
+	Function bmx_SteamAPI_ISteamFriends_GetFriendCoplayTime:Int(inst:Byte Ptr, steamIDFriend:ULong)
+	Function bmx_SteamAPI_ISteamFriends_GetFriendCount:Int(inst:Byte Ptr, friendFlags:Int)
+	Function bmx_SteamAPI_ISteamFriends_GetFriendCountFromSource:Int(inst:Byte Ptr, steamIDSource:ULong)
+	Function bmx_SteamAPI_ISteamFriends_GetFriendFromSourceByIndex:ULong(inst:Byte Ptr, steamIDSource:ULong, friend:Int)
+	Function bmx_SteamAPI_ISteamFriends_GetFriendGamePlayed:Int(inst:Byte Ptr, steamIDFriend:ULong, gameID:ULong Var, gameIP:UInt Var, gamePort:Short Var, queryPort:Short Var, steamIDLobby:ULong Var)
+	Function bmx_SteamAPI_ISteamFriends_GetFriendMessage:Int(inst:Byte Ptr, steamIDFriend:ULong, messageID:Int, txt:String Var, chatEntryType:EChatEntryType Var)
+	Function bmx_SteamAPI_ISteamFriends_GetFriendPersonaName:String(inst:Byte Ptr, steamIDFriend:ULong)
+	Function bmx_SteamAPI_ISteamFriends_GetFriendPersonaNameHistory:String(inst:Byte Ptr, steamIDFriend:ULong, personaName:Int)
+	Function bmx_SteamAPI_ISteamFriends_GetFriendPersonaState:EPersonaState(inst:Byte Ptr, steamIDFriend:ULong)
+	Function bmx_SteamAPI_ISteamFriends_GetFriendRelationship:EFriendRelationship(inst:Byte Ptr, steamIDFriend:ULong)
+	Function bmx_SteamAPI_ISteamFriends_GetFriendRichPresence:String(inst:Byte Ptr, steamIDFriend:ULong, key:String)
+	Function bmx_SteamAPI_ISteamFriends_GetFriendRichPresenceKeyByIndex:String(inst:Byte Ptr, steamIDFriend:ULong, key:Int)
+	Function bmx_SteamAPI_ISteamFriends_GetFriendRichPresenceKeyCount:Int(inst:Byte Ptr, steamIDFriend:ULong)
+	Function bmx_SteamAPI_ISteamFriends_GetFriendsGroupCount:Int(inst:Byte Ptr)
+	Function bmx_SteamAPI_ISteamFriends_GetFriendsGroupIDByIndex:Short(inst:Byte Ptr, fg:Int)
+	Function bmx_SteamAPI_ISteamFriends_GetFriendsGroupMembersCount:Int(inst:Byte Ptr, friendsGroupID:Short)
+	Function bmx_SteamAPI_ISteamFriends_GetFriendsGroupMembersList(inst:Byte Ptr, friendsGroupID:Short, outSteamIDMembers:ULong Ptr, membersCount:Int)
+	Function bmx_SteamAPI_ISteamFriends_GetFriendsGroupName:String(inst:Byte Ptr, friendsGroupID:Short)
+	Function bmx_SteamAPI_ISteamFriends_GetFriendSteamLevel:Int(inst:Byte Ptr, steamIDFriend:ULong)
+	Function bmx_SteamAPI_ISteamFriends_GetLargeFriendAvatar:Int(inst:Byte Ptr, steamIDFriend:ULong)
+	Function bmx_SteamAPI_ISteamFriends_GetMediumFriendAvatar:Int(inst:Byte Ptr, steamIDFriend:ULong)
+	Function bmx_SteamAPI_ISteamFriends_GetPersonaName:String(inst:Byte Ptr)
+	Function bmx_SteamAPI_ISteamFriends_GetPersonaState:EPersonaState(inst:Byte Ptr)
+	Function bmx_SteamAPI_ISteamFriends_GetPlayerNickname:String(inst:Byte Ptr, steamIDPlayer:ULong)
+	Function bmx_SteamAPI_ISteamFriends_GetSmallFriendAvatar:Int(inst:Byte Ptr, steamIDFriend:ULong)
+	Function bmx_SteamAPI_ISteamFriends_GetUserRestrictions:UInt(inst:Byte Ptr)
+	Function bmx_SteamAPI_ISteamFriends_HasFriend:Int(inst:Byte Ptr, steamIDFriend:ULong, friendFlags:Int)
+	Function bmx_SteamAPI_ISteamFriends_InviteUserToGame:Int(inst:Byte Ptr, steamIDFriend:ULong, connectString:String)
+	Function bmx_SteamAPI_ISteamFriends_IsClanChatAdmin:Int(inst:Byte Ptr, steamIDClanChat:ULong, steamIDUser:ULong)
+	Function bmx_SteamAPI_ISteamFriends_IsClanPublic:Int(inst:Byte Ptr, steamIDClan:ULong)
+	Function bmx_SteamAPI_ISteamFriends_IsClanOfficialGameGroup:Int(inst:Byte Ptr, steamIDClan:ULong)
+	Function bmx_SteamAPI_ISteamFriends_IsClanChatWindowOpenInSteam:Int(inst:Byte Ptr, steamIDClanChat:ULong)
+	Function bmx_SteamAPI_ISteamFriends_IsFollowing(callback:Byte Ptr, steamID:ULong)
+	Function bmx_SteamAPI_ISteamFriends_IsUserInSource:Int(inst:Byte Ptr, steamIDUser:ULong, steamIDSource:ULong)
+	Function bmx_SteamAPI_ISteamFriends_JoinClanChatRoom(callback:Byte Ptr, steamIDClan:ULong)
+	Function bmx_SteamAPI_ISteamFriends_LeaveClanChatRoom:Int(inst:Byte Ptr, steamIDClan:ULong)
+	Function bmx_SteamAPI_ISteamFriends_OpenClanChatWindowInSteam:Int(inst:Byte Ptr, steamIDClanChat:ULong)
+	Function bmx_SteamAPI_ISteamFriends_ReplyToFriendMessage:Int(inst:Byte Ptr, steamIDFriend:ULong, msgToSend:String)
+	Function bmx_SteamAPI_ISteamFriends_RequestClanOfficerList(callback:Byte Ptr, steamIDClan:ULong)
+	Function bmx_SteamAPI_ISteamFriends_RequestFriendRichPresence(inst:Byte Ptr, steamIDFriend:ULong)
+	Function bmx_SteamAPI_ISteamFriends_RequestUserInformation:Int(inst:Byte Ptr, steamIDUser:ULong, requireNameOnly:Int)
+	Function bmx_SteamAPI_ISteamFriends_SendClanChatMessage:Int(inst:Byte Ptr, steamIDClanChat:ULong, txt:String)
+	Function bmx_SteamAPI_ISteamFriends_SetInGameVoiceSpeaking(inst:Byte Ptr, steamIDUser:ULong, speaking:Int)
+	Function bmx_SteamAPI_ISteamFriends_SetListenForFriendsMessages:Int(inst:Byte Ptr, interceptEnabled:Int)
+	Function bmx_SteamAPI_ISteamFriends_SetPersonaName(callback:Byte Ptr, personaName:String)
+	Function bmx_SteamAPI_ISteamFriends_SetPlayedWith(inst:Byte Ptr, steamIDUserPlayedWith:ULong)
+	Function bmx_SteamAPI_ISteamFriends_SetRichPresence:Int(inst:Byte Ptr, key:String, value:String)
 	
 End Extern
 
@@ -669,6 +746,9 @@ Enum EFriendRelationship
 	k_EFriendRelationshipMax = 8
 End Enum
 
+Rem
+bbdoc: List of states a Steam friend can be in.
+End Rem
 Enum EPersonaState
 	k_EPersonaStateOffline = 0
 	k_EPersonaStateOnline = 1
@@ -696,6 +776,10 @@ Enum EFriendFlags Flags
 	k_EFriendFlagAll = 65535
 End Enum
 
+Rem
+bbdoc: User restriction flags.
+about: These are returned by #GetUserRestrictions.
+End Rem
 Enum EUserRestriction Flags
 	k_nUserRestrictionNone = 0
 	k_nUserRestrictionUnknown = 1
@@ -718,6 +802,10 @@ Enum EActivateGameOverlayToWebPageMode
 	k_EActivateGameOverlayToWebPageMode_Modal = 1
 End Enum
 
+Rem
+bbdoc: Used in #OnPersonaStateChange, @changeFlags to describe what's changed about a user.
+These flags describe what the client has learned has changed recently, so on startup you'll see a name, avatar and relationship change for every friend
+End Rem
 Enum EPersonaChange Flags
 	k_EPersonaChangeName = 1
 	k_EPersonaChangeStatus = 2

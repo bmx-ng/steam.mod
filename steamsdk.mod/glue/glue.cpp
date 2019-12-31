@@ -32,6 +32,7 @@
 class MaxUtils;
 class MaxUserStats;
 class MaxUGC;
+class MaxFriends;
 
 #define BUFFER_SIZE 2048
 #define VALUE_SIZE 16384
@@ -74,6 +75,25 @@ extern "C" {
 	void steam_steamsdk_TSteamUGC__OnRemoteStorageSubscribePublishedFile(BBObject * maxHandle, EResult result, uint64 publishedFileId);
 	void steam_steamsdk_TSteamUGC__OnRemoteStorageUnsubscribePublishedFile(BBObject * maxHandle, EResult result, uint64 publishedFileId);
 
+	void steam_steamsdk_TSteamFriends__OnAvatarImageLoaded(BBObject * maxHandle, uint64 steamID, int image, int width, int height);
+	void steam_steamsdk_TSteamFriends__OnFriendRichPresenceUpdated(BBObject * maxHandle, uint64 steamIDFriend, uint32 appID);
+	void steam_steamsdk_TSteamFriends__OnGameConnectedChatLeave(BBObject * maxHandle, uint64 steamIDClanChat, uint64 steamIDUser, int kicked, int dropped);
+	void steam_steamsdk_TSteamFriends__OnGameConnectedFriendChatMsg(BBObject * maxHandle, uint64 steamIDUser, int messageID);
+	void steam_steamsdk_TSteamFriends__OnGameLobbyJoinRequested(BBObject * maxHandle, uint64 steamIDLobby, uint64 steamIDFriend);
+	void steam_steamsdk_TSteamFriends__OnGameOverlayActivated(BBObject * maxHandle, int active);
+	void steam_steamsdk_TSteamFriends__OnGameRichPresenceJoinRequested(BBObject * maxHandle, uint64 steamIDFriend, BBString * connect);
+	void steam_steamsdk_TSteamFriends__OnGameServerChangeRequested(BBObject * maxHandle, BBString * server, BBString * pass);
+	void steam_steamsdk_TSteamFriends__OnPersonaStateChanged(BBObject * maxHandle, uint64 steamID, int changeFlags);
+	void steam_steamsdk_TSteamFriends__OnClanOfficerList(BBObject * maxHandle, uint64 steamIDClan, int officers, int success);
+	void steam_steamsdk_TSteamFriends__OnDownloadClanActivityCounts(BBObject * maxHandle, int success);
+	void steam_steamsdk_TSteamFriends__OnFriendsEnumerateFollowingList(BBObject * maxHandle, EResult result, uint64 * steamIDs, int resultsReturned, int totalResultCount);
+	void steam_steamsdk_TSteamFriends__OnFriendsGetFollowerCount(BBObject * maxHandle, EResult result, uint64 steamID, int count);
+	void steam_steamsdk_TSteamFriends__OnFriendsIsFollowing(BBObject * maxHandle, EResult result, uint64 steamID, int isFollowing);
+	void steam_steamsdk_TSteamFriends__OnGameConnectedChatJoined(BBObject * maxHandle, uint64 steamIDUser, uint64 steamIDClanChat);
+	void steam_steamsdk_TSteamFriends__OnGameConnectedClanChatMsg(BBObject * maxHandle, uint64 steamIDUser, uint64 steamIDClanChat, int messageID);
+	void steam_steamsdk_TSteamFriends__OnJoinClanChatRoomCompletion(BBObject * maxHandle, uint64 steamIDClanChat, EChatRoomEnterResponse chatRoomEnterResponse);
+	void steam_steamsdk_TSteamFriends__OnSetPersonaName(BBObject * maxHandle, EResult result, int success, int localSuccess);
+
 	int bmx_SteamAPI_Init();
 	void bmx_SteamAPI_Shutdown();
 	void bmx_SteamAPI_startBackgroundTimer();
@@ -84,13 +104,14 @@ extern "C" {
 
 	void * bmx_SteamInternal_CreateInterface(BBString * version);
 
-	void *  bmx_steamsdk_register_steamuutils(intptr_t instancePtr, BBObject * obj);
+	void *  bmx_steamsdk_register_steamutils(intptr_t instancePtr, BBObject * obj);
 	void bmx_steamsdk_unregister_steamutils(void * callbackPtr);
 
 	void * bmx_SteamAPI_ISteamClient_GetISteamUtils(intptr_t instancePtr, HSteamPipe pipe, BBString * version);
 	HSteamUser bmx_SteamAPI_ISteamClient_ConnectToGlobalUser(intptr_t instancePtr, HSteamPipe pipe);
 	void * bmx_SteamAPI_ISteamClient_GetISteamUserStats(intptr_t instancePtr, HSteamUser user, HSteamPipe pipe, BBString * version);
 	void * bmx_SteamAPI_ISteamClient_GetISteamUGC(intptr_t instancePtr, HSteamUser user, HSteamPipe pipe, BBString * version);
+	void * bmx_SteamAPI_ISteamClient_GetISteamFriends(intptr_t instancePtr, HSteamUser user, HSteamPipe pipe, BBString * version);
 
 
 	uint32 bmx_SteamAPI_ISteamUtils_GetSecondsSinceAppActive(intptr_t instancePtr);
@@ -233,6 +254,83 @@ extern "C" {
 	void bmx_SteamAPI_ISteamUGC_UnsubscribeItem(MaxUGC * ugc, uint64 publishedFileID);
 	int bmx_SteamAPI_ISteamUGC_UpdateItemPreviewFile(intptr_t instancePtr, uint64 updateHandle, uint32 index, BBString * previewFile);
 	int bmx_SteamAPI_ISteamUGC_UpdateItemPreviewVideo(intptr_t instancePtr, uint64 updateHandle, uint32 index, BBString * videoID);
+
+	void * bmx_steamsdk_register_steamfriends(intptr_t instancePtr, BBObject * obj);
+	void bmx_steamsdk_unregister_steamfriends(void * callbackPtr);
+
+	void bmx_SteamAPI_ISteamFriends_ActivateGameOverlay(intptr_t instancePtr, BBString * dialog);
+	void bmx_SteamAPI_ISteamFriends_ActivateGameOverlayInviteDialog(intptr_t instancePtr, uint64 steamIDLobby);
+	void bmx_SteamAPI_ISteamFriends_ActivateGameOverlayToStore(intptr_t instancePtr, uint32 appID, EOverlayToStoreFlag flag);
+	void bmx_SteamAPI_ISteamFriends_ActivateGameOverlayToUser(intptr_t instancePtr, BBString * dialog, uint64 steamID);
+	void bmx_SteamAPI_ISteamFriends_ActivateGameOverlayToWebPage(intptr_t instancePtr, BBString * url);
+	void bmx_SteamAPI_ISteamFriends_ClearRichPresence(intptr_t instancePtr);
+	int bmx_SteamAPI_ISteamFriends_CloseClanChatWindowInSteam(intptr_t instancePtr, uint64 steamIDClanChat);
+	void bmx_SteamAPI_ISteamFriends_DownloadClanActivityCounts(MaxFriends * friends, uint64 * steamIDClans, int clansToRequest);
+	void bmx_SteamAPI_ISteamFriends_EnumerateFollowingList(MaxFriends * friends, uint32 startIndex);
+	uint64 bmx_SteamAPI_ISteamFriends_GetChatMemberByIndex(intptr_t instancePtr, uint64 steamIDClan, int user);
+	int bmx_SteamAPI_ISteamFriends_GetClanActivityCounts(intptr_t instancePtr, uint64 steamIDClan, int * online, int * inGame, int * chatting);
+	uint64 bmx_SteamAPI_ISteamFriends_GetClanByIndex(intptr_t instancePtr, int clan);
+	int bmx_SteamAPI_ISteamFriends_GetClanChatMemberCount(intptr_t instancePtr, uint64 steamIDClan);
+	int bmx_SteamAPI_ISteamFriends_GetClanChatMessage(intptr_t instancePtr, uint64 steamIDClanChat, int message, BBString ** txt, EChatEntryType * chatEntryType, uint64 * steamidChatter);
+	int bmx_SteamAPI_ISteamFriends_GetClanCount(intptr_t instancePtr);
+	BBString * bmx_SteamAPI_ISteamFriends_GetClanName(intptr_t instancePtr, uint64 steamIDClan);
+	uint64 bmx_SteamAPI_ISteamFriends_GetClanOfficerByIndex(intptr_t instancePtr, uint64 steamIDClan, int officer);
+	int bmx_SteamAPI_ISteamFriends_GetClanOfficerCount(intptr_t instancePtr, uint64 steamIDClan);
+	uint64 bmx_SteamAPI_ISteamFriends_GetClanOwner(intptr_t instancePtr, uint64 steamIDClan);
+	BBString * bmx_SteamAPI_ISteamFriends_GetClanTag(intptr_t instancePtr, uint64 steamIDClan);
+	uint64 bmx_SteamAPI_ISteamFriends_GetCoplayFriend(intptr_t instancePtr, int coplayFriend);
+	int bmx_SteamAPI_ISteamFriends_GetCoplayFriendCount(intptr_t instancePtr);
+	void bmx_SteamAPI_ISteamFriends_GetFollowerCount(MaxFriends * friends, uint64 steamID);
+	uint64 bmx_SteamAPI_ISteamFriends_GetFriendByIndex(intptr_t instancePtr, int friendIndex, int friendFlags);
+	uint32 bmx_SteamAPI_ISteamFriends_GetFriendCoplayGame(intptr_t instancePtr, uint64 steamIDFriend);
+	int bmx_SteamAPI_ISteamFriends_GetFriendCoplayTime(intptr_t instancePtr, uint64 steamIDFriend);
+	int bmx_SteamAPI_ISteamFriends_GetFriendCount(intptr_t instancePtr, int friendFlags);
+	int bmx_SteamAPI_ISteamFriends_GetFriendCountFromSource(intptr_t instancePtr, uint64 steamIDSource);
+	uint64 bmx_SteamAPI_ISteamFriends_GetFriendFromSourceByIndex(intptr_t instancePtr, uint64 steamIDSource, int friendIndex);
+	int bmx_SteamAPI_ISteamFriends_GetFriendGamePlayed(intptr_t instancePtr, uint64 steamIDFriend, uint64 * gameID, uint32 * gameIP, BBSHORT * gamePort, BBSHORT * queryPort, uint64 * steamIDLobby);
+	int bmx_SteamAPI_ISteamFriends_GetFriendMessage(intptr_t instancePtr, uint64 steamIDFriend, int messageID, BBString ** txt, EChatEntryType * chatEntryType);
+	BBString * bmx_SteamAPI_ISteamFriends_GetFriendPersonaName(intptr_t instancePtr, uint64 steamIDFriend);
+	BBString * bmx_SteamAPI_ISteamFriends_GetFriendPersonaNameHistory(intptr_t instancePtr, uint64 steamIDFriend, int personaName);
+	EPersonaState bmx_SteamAPI_ISteamFriends_GetFriendPersonaState(intptr_t instancePtr, uint64 steamIDFriend);
+	EFriendRelationship bmx_SteamAPI_ISteamFriends_GetFriendRelationship(intptr_t instancePtr, uint64 steamIDFriend);
+	BBString * bmx_SteamAPI_ISteamFriends_GetFriendRichPresence(intptr_t instancePtr, uint64 steamIDFriend, BBString * key);
+	BBString * bmx_SteamAPI_ISteamFriends_GetFriendRichPresenceKeyByIndex(intptr_t instancePtr, uint64 steamIDFriend, int key);
+	int bmx_SteamAPI_ISteamFriends_GetFriendRichPresenceKeyCount(intptr_t instancePtr, uint64 steamIDFriend);
+	int bmx_SteamAPI_ISteamFriends_GetFriendsGroupCount(intptr_t instancePtr);
+	BBSHORT bmx_SteamAPI_ISteamFriends_GetFriendsGroupIDByIndex(intptr_t instancePtr, int fg);
+	int bmx_SteamAPI_ISteamFriends_GetFriendsGroupMembersCount(intptr_t instancePtr, BBSHORT friendsGroupID);
+	void bmx_SteamAPI_ISteamFriends_GetFriendsGroupMembersList(intptr_t instancePtr, BBSHORT friendsGroupID, uint64 * outSteamIDMembers, int membersCount);
+	BBString * bmx_SteamAPI_ISteamFriends_GetFriendsGroupName(intptr_t instancePtr, BBSHORT friendsGroupID);
+	int bmx_SteamAPI_ISteamFriends_GetFriendSteamLevel(intptr_t instancePtr, uint64 steamIDFriend);
+	int bmx_SteamAPI_ISteamFriends_GetLargeFriendAvatar(intptr_t instancePtr, uint64 steamIDFriend);
+	int bmx_SteamAPI_ISteamFriends_GetMediumFriendAvatar(intptr_t instancePtr, uint64 steamIDFriend);
+	BBString * bmx_SteamAPI_ISteamFriends_GetPersonaName(intptr_t instancePtr);
+	EPersonaState bmx_SteamAPI_ISteamFriends_GetPersonaState(intptr_t instancePtr);
+	BBString * bmx_SteamAPI_ISteamFriends_GetPlayerNickname(intptr_t instancePtr, uint64 steamIDPlayer);
+	int bmx_SteamAPI_ISteamFriends_GetSmallFriendAvatar(intptr_t instancePtr, uint64 steamIDFriend);
+	uint32 bmx_SteamAPI_ISteamFriends_GetUserRestrictions(intptr_t instancePtr);
+	int bmx_SteamAPI_ISteamFriends_HasFriend(intptr_t instancePtr, uint64 steamIDFriend, int friendFlags);
+	int bmx_SteamAPI_ISteamFriends_InviteUserToGame(intptr_t instancePtr, uint64 steamIDFriend, BBString * connectString);
+	int bmx_SteamAPI_ISteamFriends_IsClanChatAdmin(intptr_t instancePtr, uint64 steamIDClanChat, uint64 steamIDUser);
+	int bmx_SteamAPI_ISteamFriends_IsClanPublic(intptr_t instancePtr, uint64 steamIDClan);
+	int bmx_SteamAPI_ISteamFriends_IsClanOfficialGameGroup(intptr_t instancePtr, uint64 steamIDClan);
+	int bmx_SteamAPI_ISteamFriends_IsClanChatWindowOpenInSteam(intptr_t instancePtr, uint64 steamIDClanChat);
+	void bmx_SteamAPI_ISteamFriends_IsFollowing(MaxFriends * friends, uint64 steamID);
+	int bmx_SteamAPI_ISteamFriends_IsUserInSource(intptr_t instancePtr, uint64 steamIDUser, uint64 steamIDSource);
+	void bmx_SteamAPI_ISteamFriends_JoinClanChatRoom(MaxFriends * friends, uint64 steamIDClan);
+	int bmx_SteamAPI_ISteamFriends_LeaveClanChatRoom(intptr_t instancePtr, uint64 steamIDClan);
+	int bmx_SteamAPI_ISteamFriends_OpenClanChatWindowInSteam(intptr_t instancePtr, uint64 steamIDClanChat);
+	int bmx_SteamAPI_ISteamFriends_ReplyToFriendMessage(intptr_t instancePtr, uint64 steamIDFriend, BBString * msgToSend);
+	void bmx_SteamAPI_ISteamFriends_RequestClanOfficerList(MaxFriends * friends, uint64 steamIDClan);
+	void bmx_SteamAPI_ISteamFriends_RequestFriendRichPresence(intptr_t instancePtr, uint64 steamIDFriend);
+	int bmx_SteamAPI_ISteamFriends_RequestUserInformation(intptr_t instancePtr, uint64 steamIDUser, int requireNameOnly);
+	int bmx_SteamAPI_ISteamFriends_SendClanChatMessage(intptr_t instancePtr, uint64 steamIDClanChat, BBString * txt);
+	void bmx_SteamAPI_ISteamFriends_SetInGameVoiceSpeaking(intptr_t instancePtr, uint64 steamIDUser, int speaking);
+	int bmx_SteamAPI_ISteamFriends_SetListenForFriendsMessages(intptr_t instancePtr, int interceptEnabled);
+	void bmx_SteamAPI_ISteamFriends_SetPersonaName(MaxFriends * friends, BBString * personaName);
+	void bmx_SteamAPI_ISteamFriends_SetPlayedWith(intptr_t instancePtr, uint64 steamIDUserPlayedWith);
+	int bmx_SteamAPI_ISteamFriends_SetRichPresence(intptr_t instancePtr, BBString * key, BBString * value);
+
 }
 
 
@@ -328,6 +426,13 @@ void * bmx_SteamAPI_ISteamClient_GetISteamUGC(intptr_t instancePtr, HSteamUser u
 	return inst;
 }
 
+void * bmx_SteamAPI_ISteamClient_GetISteamFriends(intptr_t instancePtr, HSteamUser user, HSteamPipe pipe, BBString * version) {
+	char * v = bbStringToUTF8String(version);
+	void * inst = SteamAPI_ISteamClient_GetISteamFriends(instancePtr, user, pipe, v);
+	bbMemFree(v);
+	return inst;
+}
+
 // ISteamUtils --------------------------------------------
 
 class MaxUtils
@@ -373,7 +478,7 @@ void MaxUtils::OnSteamShutdown( SteamShutdown_t * result ) {
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-void *  bmx_steamsdk_register_steamuutils(intptr_t instancePtr, BBObject * obj) {
+void *  bmx_steamsdk_register_steamutils(intptr_t instancePtr, BBObject * obj) {
 	return new MaxUtils(instancePtr, obj);
 }
 
@@ -1532,4 +1637,581 @@ int bmx_SteamAPI_ISteamUGC_UpdateItemPreviewVideo(intptr_t instancePtr, uint64 u
 	bool res = SteamAPI_ISteamUGC_UpdateItemPreviewVideo(instancePtr, updateHandle, index, v);
 	bbMemFree(v);
 	return res;		
+}
+
+// ISteamFriends --------------------------------------------
+
+class MaxFriends
+{
+private:
+	intptr_t instancePtr;
+	BBObject * maxHandle;
+
+	CCallResult< MaxFriends, ClanOfficerListResponse_t > m_ClanOfficerListResponseCallResult;
+	CCallResult< MaxFriends, DownloadClanActivityCountsResult_t > m_DownloadClanActivityCountsCallResult;
+	CCallResult< MaxFriends, FriendsEnumerateFollowingList_t > m_FriendsEnumerateFollowingListCallResult;
+	CCallResult< MaxFriends, FriendsGetFollowerCount_t > m_FriendsGetFollowerCountCallResult;
+	CCallResult< MaxFriends, FriendsIsFollowing_t > m_FriendsIsFollowingCallResult;
+	CCallResult< MaxFriends, GameConnectedChatJoin_t > m_GameConnectedChatJoinCallResult;
+	CCallResult< MaxFriends, GameConnectedClanChatMsg_t > m_GameConnectedClanChatMsgCallResult;
+	CCallResult< MaxFriends, JoinClanChatRoomCompletionResult_t > m_JoinClanChatRoomCompletionCallResult;
+	CCallResult< MaxFriends, SetPersonaNameResponse_t > m_SetPersonaNameResponseCallResult;
+
+public:
+	STEAM_CALLBACK( MaxFriends, OnAvatarImageLoaded, AvatarImageLoaded_t, m_CallbackAvatarImageLoaded );
+	STEAM_CALLBACK( MaxFriends, OnFriendRichPresenceUpdated, FriendRichPresenceUpdate_t, m_CallbackFriendRichPresenceUpdated );
+	STEAM_CALLBACK( MaxFriends, OnGameConnectedChatLeave, GameConnectedChatLeave_t, m_CallbackGameConnectedChatLeave );
+	STEAM_CALLBACK( MaxFriends, OnGameConnectedFriendChatMsg, GameConnectedFriendChatMsg_t, m_CallbackGameConnectedFriendChatMsg );
+	STEAM_CALLBACK( MaxFriends, OnGameLobbyJoinRequested, GameLobbyJoinRequested_t, m_CallbackGameLobbyJoinRequested );
+	STEAM_CALLBACK( MaxFriends, OnGameOverlayActivated, GameOverlayActivated_t, m_CallbackGameOverlayActivated );
+	STEAM_CALLBACK( MaxFriends, OnGameRichPresenceJoinRequested, GameRichPresenceJoinRequested_t, m_CallbackGameRichPresenceJoinRequested );
+	STEAM_CALLBACK( MaxFriends, OnGameServerChangeRequested, GameServerChangeRequested_t, m_CallbackGameServerChangeRequested );
+	STEAM_CALLBACK( MaxFriends, OnPersonaStateChanged, PersonaStateChange_t, m_CallbackPersonaStateChanged );
+
+	MaxFriends(intptr_t instancePtr, BBObject * handle);
+	~MaxFriends();
+
+	// calls
+	void RequestClanOfficerList(uint64 steamIDClan);
+	void DownloadClanActivityCounts(uint64 * steamIDClans, int clansToRequest);
+	void EnumerateFollowingList(uint32 startIndex);
+	void GetFollowerCount(uint64 steamID);
+	void IsFollowing(uint64 steamID);
+	void JoinClanChatRoom(uint64 steamIDClan);
+	void SetPersonaName(char * personaName);
+
+	// Callbacks
+	void OnClanOfficerList(ClanOfficerListResponse_t * result, bool failure);
+	void OnDownloadClanActivityCounts(DownloadClanActivityCountsResult_t * result, bool failure);
+	void OnFriendsEnumerateFollowingList(FriendsEnumerateFollowingList_t * result, bool failure);
+	void OnFriendsGetFollowerCount(FriendsGetFollowerCount_t * result, bool failure);
+	void OnFriendsIsFollowing(FriendsIsFollowing_t * result, bool failure);
+	void OnGameConnectedChatJoined(GameConnectedChatJoin_t * result, bool failure);
+	void OnGameConnectedClanChatMsg(GameConnectedClanChatMsg_t * result, bool failure);
+	void OnJoinClanChatRoomCompletion(JoinClanChatRoomCompletionResult_t * result, bool failure);
+	void OnSetPersonaName(SetPersonaNameResponse_t * result, bool failure);
+};
+
+MaxFriends::MaxFriends(intptr_t instancePtr, BBObject * handle) :
+	instancePtr(instancePtr), maxHandle(handle),
+	m_CallbackAvatarImageLoaded( this, &MaxFriends::OnAvatarImageLoaded ),
+	m_CallbackFriendRichPresenceUpdated( this, &MaxFriends::OnFriendRichPresenceUpdated ),
+	m_CallbackGameConnectedChatLeave( this, &MaxFriends::OnGameConnectedChatLeave ),
+	m_CallbackGameConnectedFriendChatMsg( this, &MaxFriends::OnGameConnectedFriendChatMsg ),
+	m_CallbackGameLobbyJoinRequested( this, &MaxFriends::OnGameLobbyJoinRequested ),
+	m_CallbackGameOverlayActivated( this, &MaxFriends::OnGameOverlayActivated ),
+	m_CallbackGameRichPresenceJoinRequested( this, &MaxFriends::OnGameRichPresenceJoinRequested ),
+	m_CallbackGameServerChangeRequested( this, &MaxFriends::OnGameServerChangeRequested ),
+	m_CallbackPersonaStateChanged( this, &MaxFriends::OnPersonaStateChanged )
+{
+}
+
+void MaxFriends::OnAvatarImageLoaded(AvatarImageLoaded_t * result) {
+	steam_steamsdk_TSteamFriends__OnAvatarImageLoaded(maxHandle, result->m_steamID.ConvertToUint64(), result->m_iImage, result->m_iWide, result->m_iTall);
+}
+
+void MaxFriends::OnFriendRichPresenceUpdated(FriendRichPresenceUpdate_t * result) {
+	steam_steamsdk_TSteamFriends__OnFriendRichPresenceUpdated(maxHandle, result->m_steamIDFriend.ConvertToUint64(), result->m_nAppID);
+}
+
+void MaxFriends::OnGameConnectedChatLeave(GameConnectedChatLeave_t * result) {
+	steam_steamsdk_TSteamFriends__OnGameConnectedChatLeave(maxHandle, result->m_steamIDClanChat.ConvertToUint64(), result->m_steamIDUser.ConvertToUint64(), result->m_bKicked, result->m_bDropped);
+}
+
+void MaxFriends::OnGameConnectedFriendChatMsg(GameConnectedFriendChatMsg_t * result) {
+	steam_steamsdk_TSteamFriends__OnGameConnectedFriendChatMsg(maxHandle, result->m_steamIDUser.ConvertToUint64(), result->m_iMessageID);
+}
+
+void MaxFriends::OnGameLobbyJoinRequested(GameLobbyJoinRequested_t * result) {
+	steam_steamsdk_TSteamFriends__OnGameLobbyJoinRequested(maxHandle, result->m_steamIDLobby.ConvertToUint64(), result->m_steamIDFriend.ConvertToUint64());
+}
+
+void MaxFriends::OnGameOverlayActivated(GameOverlayActivated_t * result) {
+	steam_steamsdk_TSteamFriends__OnGameOverlayActivated(maxHandle, result->m_bActive);
+}
+
+void MaxFriends::OnGameRichPresenceJoinRequested(GameRichPresenceJoinRequested_t * result) {
+	steam_steamsdk_TSteamFriends__OnGameRichPresenceJoinRequested(maxHandle, result->m_steamIDFriend.ConvertToUint64(), bbStringFromUTF8String(result->m_rgchConnect));
+}
+
+void MaxFriends::OnGameServerChangeRequested(GameServerChangeRequested_t * result) {
+	BBString * s = bbStringFromUTF8String(result->m_rgchServer);
+	BBString * p = &bbEmptyString;
+	if (strlen(result->m_rgchPassword) > 0) {
+		p = bbStringFromUTF8String(result->m_rgchPassword);
+	}
+	steam_steamsdk_TSteamFriends__OnGameServerChangeRequested(maxHandle, s, p);
+}
+
+void MaxFriends::OnPersonaStateChanged(PersonaStateChange_t * result) {
+	steam_steamsdk_TSteamFriends__OnPersonaStateChanged(maxHandle, result->m_ulSteamID, result->m_nChangeFlags);
+}
+
+void MaxFriends::RequestClanOfficerList(uint64 steamIDClan) {
+	SteamAPICall_t apiCall = SteamFriends()->RequestClanOfficerList(steamIDClan);
+	m_JoinClanChatRoomCompletionCallResult.Set(apiCall, this, &MaxFriends::OnJoinClanChatRoomCompletion);
+}
+
+void MaxFriends::DownloadClanActivityCounts(uint64 * steamIDClans, int clansToRequest) {
+	SteamAPICall_t apiCall = SteamFriends()->DownloadClanActivityCounts((CSteamID*)steamIDClans, clansToRequest);
+	m_DownloadClanActivityCountsCallResult.Set(apiCall, this, &MaxFriends::OnDownloadClanActivityCounts);
+}
+
+void MaxFriends::EnumerateFollowingList(uint32 startIndex) {
+	SteamAPICall_t apiCall = SteamFriends()->EnumerateFollowingList(startIndex);
+	m_FriendsEnumerateFollowingListCallResult.Set(apiCall, this, &MaxFriends::OnFriendsEnumerateFollowingList);
+}
+
+void MaxFriends::GetFollowerCount(uint64 steamID) {
+	SteamAPICall_t apiCall = SteamFriends()->GetFollowerCount(steamID);
+	m_JoinClanChatRoomCompletionCallResult.Set(apiCall, this, &MaxFriends::OnJoinClanChatRoomCompletion);
+}
+
+void MaxFriends::IsFollowing(uint64 steamID) {
+	SteamAPICall_t apiCall = SteamFriends()->IsFollowing(steamID);
+	m_FriendsIsFollowingCallResult.Set(apiCall, this, &MaxFriends::OnFriendsIsFollowing);
+}
+
+void MaxFriends::JoinClanChatRoom(uint64 steamIDClan) {
+	SteamAPICall_t apiCall = SteamFriends()->JoinClanChatRoom(steamIDClan);
+	m_JoinClanChatRoomCompletionCallResult.Set(apiCall, this, &MaxFriends::OnJoinClanChatRoomCompletion);
+	m_GameConnectedChatJoinCallResult.Set(apiCall, this, &MaxFriends::OnGameConnectedChatJoined);
+	m_GameConnectedClanChatMsgCallResult.Set(apiCall, this, &MaxFriends::OnGameConnectedClanChatMsg);
+}
+
+void MaxFriends::SetPersonaName(char * personaName) {
+	SteamAPICall_t apiCall = SteamFriends()->SetPersonaName(personaName);
+	m_SetPersonaNameResponseCallResult.Set(apiCall, this, &MaxFriends::OnSetPersonaName);
+}
+
+
+void MaxFriends::OnClanOfficerList(ClanOfficerListResponse_t * result, bool failure) {
+	steam_steamsdk_TSteamFriends__OnClanOfficerList(maxHandle, result->m_steamIDClan.ConvertToUint64(), result->m_cOfficers, result->m_bSuccess);
+}
+
+void MaxFriends::OnDownloadClanActivityCounts(DownloadClanActivityCountsResult_t * result, bool failure) {
+	steam_steamsdk_TSteamFriends__OnDownloadClanActivityCounts(maxHandle, result->m_bSuccess);
+}
+
+void MaxFriends::OnFriendsEnumerateFollowingList(FriendsEnumerateFollowingList_t * result, bool failure) {
+	steam_steamsdk_TSteamFriends__OnFriendsEnumerateFollowingList(maxHandle, result->m_eResult, (uint64*)result->m_rgSteamID, result->m_nResultsReturned, result->m_nTotalResultCount);
+}
+
+void MaxFriends::OnFriendsGetFollowerCount(FriendsGetFollowerCount_t * result, bool failure) {
+	steam_steamsdk_TSteamFriends__OnFriendsGetFollowerCount(maxHandle, result->m_eResult, result->m_steamID.ConvertToUint64(), result->m_nCount);
+}
+
+void MaxFriends::OnFriendsIsFollowing(FriendsIsFollowing_t * result, bool failure) {
+	steam_steamsdk_TSteamFriends__OnFriendsIsFollowing(maxHandle, result->m_eResult, result->m_steamID.ConvertToUint64(), result->m_bIsFollowing);
+}
+
+void MaxFriends::OnGameConnectedChatJoined(GameConnectedChatJoin_t * result, bool failure) {
+	steam_steamsdk_TSteamFriends__OnGameConnectedChatJoined(maxHandle, result->m_steamIDUser.ConvertToUint64(), result->m_steamIDClanChat.ConvertToUint64());
+}
+
+void MaxFriends::OnGameConnectedClanChatMsg(GameConnectedClanChatMsg_t * result, bool failure) {
+	steam_steamsdk_TSteamFriends__OnGameConnectedClanChatMsg(maxHandle, result->m_steamIDUser.ConvertToUint64(), result->m_steamIDClanChat.ConvertToUint64(), result->m_iMessageID);
+}
+
+void MaxFriends::OnJoinClanChatRoomCompletion(JoinClanChatRoomCompletionResult_t * result, bool failure) {
+	steam_steamsdk_TSteamFriends__OnJoinClanChatRoomCompletion(maxHandle, result->m_steamIDClanChat.ConvertToUint64(), result->m_eChatRoomEnterResponse);
+}
+
+void MaxFriends::OnSetPersonaName(SetPersonaNameResponse_t * result, bool failure) {
+	steam_steamsdk_TSteamFriends__OnSetPersonaName(maxHandle, result->m_result, result->m_bSuccess, result->m_bLocalSuccess);
+}
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+void * bmx_steamsdk_register_steamfriends(intptr_t instancePtr, BBObject * obj) {
+	return new MaxFriends(instancePtr, obj);
+}
+
+void bmx_steamsdk_unregister_steamfriends(void * callbackPtr) {
+	delete(callbackPtr);
+}
+
+void bmx_SteamAPI_ISteamFriends_ActivateGameOverlay(intptr_t instancePtr, BBString * dialog) {
+	char * d = bbStringToUTF8String(dialog);
+	SteamAPI_ISteamFriends_ActivateGameOverlay(instancePtr, d);
+	bbMemFree(d);
+}
+
+void bmx_SteamAPI_ISteamFriends_ActivateGameOverlayInviteDialog(intptr_t instancePtr, uint64 steamIDLobby) {
+	SteamAPI_ISteamFriends_ActivateGameOverlayInviteDialog(instancePtr, steamIDLobby);
+}
+
+void bmx_SteamAPI_ISteamFriends_ActivateGameOverlayToStore(intptr_t instancePtr, uint32 appID, EOverlayToStoreFlag flag) {
+	SteamAPI_ISteamFriends_ActivateGameOverlayToStore(instancePtr, appID, flag);
+}
+
+void bmx_SteamAPI_ISteamFriends_ActivateGameOverlayToUser(intptr_t instancePtr, BBString * dialog, uint64 steamID) {
+	char * d = bbStringToUTF8String(dialog);
+	SteamAPI_ISteamFriends_ActivateGameOverlayToUser(instancePtr, d, steamID);
+	bbMemFree(d);
+}
+
+void bmx_SteamAPI_ISteamFriends_ActivateGameOverlayToWebPage(intptr_t instancePtr, BBString * url) {
+	char * u = bbStringToUTF8String(url);
+	SteamAPI_ISteamFriends_ActivateGameOverlayToWebPage(instancePtr, u, k_EActivateGameOverlayToWebPageMode_Default);
+	bbMemFree(u);
+}
+
+void bmx_SteamAPI_ISteamFriends_ClearRichPresence(intptr_t instancePtr) {
+	SteamAPI_ISteamFriends_ClearRichPresence(instancePtr);
+}
+
+int bmx_SteamAPI_ISteamFriends_CloseClanChatWindowInSteam(intptr_t instancePtr, uint64 steamIDClanChat) {
+	return SteamAPI_ISteamFriends_CloseClanChatWindowInSteam(instancePtr, steamIDClanChat);
+}
+
+void bmx_SteamAPI_ISteamFriends_DownloadClanActivityCounts(MaxFriends * friends, uint64 * steamIDClans, int clansToRequest) {
+	friends->DownloadClanActivityCounts(steamIDClans, clansToRequest);
+}
+
+void bmx_SteamAPI_ISteamFriends_EnumerateFollowingList(MaxFriends * friends, uint32 startIndex) {
+	friends->EnumerateFollowingList(startIndex);
+}
+
+uint64 bmx_SteamAPI_ISteamFriends_GetChatMemberByIndex(intptr_t instancePtr, uint64 steamIDClan, int user) {
+	return SteamAPI_ISteamFriends_GetChatMemberByIndex(instancePtr, steamIDClan, user);
+}
+
+int bmx_SteamAPI_ISteamFriends_GetClanActivityCounts(intptr_t instancePtr, uint64 steamIDClan, int * online, int * inGame, int * chatting) {
+	return SteamAPI_ISteamFriends_GetClanActivityCounts(instancePtr, steamIDClan, online, inGame, chatting);
+}
+
+uint64 bmx_SteamAPI_ISteamFriends_GetClanByIndex(intptr_t instancePtr, int clan) {
+	return SteamAPI_ISteamFriends_GetClanByIndex(instancePtr, clan);
+}
+
+int bmx_SteamAPI_ISteamFriends_GetClanChatMemberCount(intptr_t instancePtr, uint64 steamIDClan) {
+	return SteamAPI_ISteamFriends_GetClanChatMemberCount(instancePtr, steamIDClan);
+}
+
+int bmx_SteamAPI_ISteamFriends_GetClanChatMessage(intptr_t instancePtr, uint64 steamIDClanChat, int message, BBString ** txt, EChatEntryType * chatEntryType, uint64 * steamidChatter) {
+	char txtbuf[VALUE_SIZE];
+	CSteamID chatter;
+	bool res = SteamAPI_ISteamFriends_GetClanChatMessage(instancePtr, steamIDClanChat, message, txtbuf, VALUE_SIZE, chatEntryType, &chatter);
+	if (strlen(txtbuf) == 0) {
+		*txt = &bbEmptyString;
+	} else {
+		*txt = bbStringFromUTF8String(txtbuf);
+	}
+	*steamidChatter = chatter.ConvertToUint64();
+	return res;
+}
+
+int bmx_SteamAPI_ISteamFriends_GetClanCount(intptr_t instancePtr) {
+	return SteamAPI_ISteamFriends_GetClanCount(instancePtr);
+}
+
+BBString * bmx_SteamAPI_ISteamFriends_GetClanName(intptr_t instancePtr, uint64 steamIDClan) {
+	BBString * n = &bbEmptyString;
+	const char * name = SteamAPI_ISteamFriends_GetClanName(instancePtr, steamIDClan);
+	if (strlen(name) > 0) {
+		n = bbStringFromUTF8String(name);
+	}
+	return n;
+}
+
+uint64 bmx_SteamAPI_ISteamFriends_GetClanOfficerByIndex(intptr_t instancePtr, uint64 steamIDClan, int officer) {
+	return SteamAPI_ISteamFriends_GetClanOfficerByIndex(instancePtr, steamIDClan, officer);
+}
+
+int bmx_SteamAPI_ISteamFriends_GetClanOfficerCount(intptr_t instancePtr, uint64 steamIDClan) {
+	return SteamAPI_ISteamFriends_GetClanOfficerCount(instancePtr, steamIDClan);
+}
+
+uint64 bmx_SteamAPI_ISteamFriends_GetClanOwner(intptr_t instancePtr, uint64 steamIDClan) {
+	return SteamAPI_ISteamFriends_GetClanOwner(instancePtr, steamIDClan);
+}
+
+BBString * bmx_SteamAPI_ISteamFriends_GetClanTag(intptr_t instancePtr, uint64 steamIDClan) {
+	BBString * t = &bbEmptyString;
+	const char * tag = SteamAPI_ISteamFriends_GetClanTag(instancePtr, steamIDClan);
+	if (strlen(tag) > 0) {
+		t = bbStringFromUTF8String(tag);
+	}
+	return t;
+}
+
+uint64 bmx_SteamAPI_ISteamFriends_GetCoplayFriend(intptr_t instancePtr, int coplayFriend) {
+	return SteamAPI_ISteamFriends_GetCoplayFriend(instancePtr, coplayFriend);
+}
+
+int bmx_SteamAPI_ISteamFriends_GetCoplayFriendCount(intptr_t instancePtr) {
+	return SteamAPI_ISteamFriends_GetCoplayFriendCount(instancePtr);
+}
+
+void bmx_SteamAPI_ISteamFriends_GetFollowerCount(MaxFriends * friends, uint64 steamID) {
+	friends->GetFollowerCount(steamID);
+}
+
+uint64 bmx_SteamAPI_ISteamFriends_GetFriendByIndex(intptr_t instancePtr, int friendIndex, int friendFlags) {
+	return SteamAPI_ISteamFriends_GetFriendByIndex(instancePtr, friendIndex, friendFlags);
+}
+
+uint32 bmx_SteamAPI_ISteamFriends_GetFriendCoplayGame(intptr_t instancePtr, uint64 steamIDFriend) {
+	return SteamAPI_ISteamFriends_GetFriendCoplayGame(instancePtr, steamIDFriend);
+}
+
+int bmx_SteamAPI_ISteamFriends_GetFriendCoplayTime(intptr_t instancePtr, uint64 steamIDFriend) {
+	return SteamAPI_ISteamFriends_GetFriendCoplayTime(instancePtr, steamIDFriend);
+}
+
+int bmx_SteamAPI_ISteamFriends_GetFriendCount(intptr_t instancePtr, int friendFlags) {
+	return SteamAPI_ISteamFriends_GetFriendCount(instancePtr, friendFlags);
+}
+
+int bmx_SteamAPI_ISteamFriends_GetFriendCountFromSource(intptr_t instancePtr, uint64 steamIDSource) {
+	return SteamAPI_ISteamFriends_GetFriendCountFromSource(instancePtr, steamIDSource);
+}
+
+uint64 bmx_SteamAPI_ISteamFriends_GetFriendFromSourceByIndex(intptr_t instancePtr, uint64 steamIDSource, int friendIndex) {
+	return SteamAPI_ISteamFriends_GetFriendFromSourceByIndex(instancePtr, steamIDSource, friendIndex);
+}
+
+int bmx_SteamAPI_ISteamFriends_GetFriendGamePlayed(intptr_t instancePtr, uint64 steamIDFriend, uint64 * gameID, uint32 * gameIP, BBSHORT * gamePort, BBSHORT * queryPort, uint64 * steamIDLobby) {
+	FriendGameInfo_t info;
+	bool res = SteamAPI_ISteamFriends_GetFriendGamePlayed(instancePtr, steamIDFriend, &info);
+	*gameID = info.m_gameID.ToUint64();
+	*gameIP = info.m_unGameIP;
+	*gamePort = info.m_usGamePort;
+	*queryPort = info.m_usQueryPort;
+	*steamIDLobby = info.m_steamIDLobby.ConvertToUint64();
+	return res;
+}
+
+int bmx_SteamAPI_ISteamFriends_GetFriendMessage(intptr_t instancePtr, uint64 steamIDFriend, int messageID, BBString ** txt, EChatEntryType * chatEntryType) {
+	char txtbuf[VALUE_SIZE];
+	bool res = SteamAPI_ISteamFriends_GetFriendMessage(instancePtr, steamIDFriend, messageID, txtbuf, VALUE_SIZE, chatEntryType);
+	if (strlen(txtbuf) == 0) {
+		*txt = &bbEmptyString;
+	} else {
+		*txt = bbStringFromUTF8String(txtbuf);
+	}
+	return res;
+}
+
+BBString * bmx_SteamAPI_ISteamFriends_GetFriendPersonaName(intptr_t instancePtr, uint64 steamIDFriend) {
+	BBString * n = &bbEmptyString;
+	const char * name = SteamAPI_ISteamFriends_GetFriendPersonaName(instancePtr, steamIDFriend);
+	if (strlen(name) > 0) {
+		n = bbStringFromUTF8String(name);
+	}
+	return n;
+}
+
+BBString * bmx_SteamAPI_ISteamFriends_GetFriendPersonaNameHistory(intptr_t instancePtr, uint64 steamIDFriend, int personaName) {
+	BBString * n = &bbEmptyString;
+	const char * name = SteamAPI_ISteamFriends_GetFriendPersonaNameHistory(instancePtr, steamIDFriend, personaName);
+	if (strlen(name) > 0) {
+		n = bbStringFromUTF8String(name);
+	}
+	return n;
+}
+
+EPersonaState bmx_SteamAPI_ISteamFriends_GetFriendPersonaState(intptr_t instancePtr, uint64 steamIDFriend) {
+	return SteamAPI_ISteamFriends_GetFriendPersonaState(instancePtr, steamIDFriend);
+}
+
+EFriendRelationship bmx_SteamAPI_ISteamFriends_GetFriendRelationship(intptr_t instancePtr, uint64 steamIDFriend) {
+	return SteamAPI_ISteamFriends_GetFriendRelationship(instancePtr, steamIDFriend);
+}
+
+BBString * bmx_SteamAPI_ISteamFriends_GetFriendRichPresence(intptr_t instancePtr, uint64 steamIDFriend, BBString * key) {
+	char * k = bbStringToUTF8String(key);
+	BBString * v = &bbEmptyString;
+	const char * value = SteamAPI_ISteamFriends_GetFriendRichPresence(instancePtr, steamIDFriend, k);
+	bbMemFree(k);
+	if (strlen(value) > 0) {
+		v = bbStringFromUTF8String(value);
+	}
+	return v;	
+}
+
+BBString * bmx_SteamAPI_ISteamFriends_GetFriendRichPresenceKeyByIndex(intptr_t instancePtr, uint64 steamIDFriend, int key) {
+	BBString * v = &bbEmptyString;
+	const char * value = SteamAPI_ISteamFriends_GetFriendRichPresenceKeyByIndex(instancePtr, steamIDFriend, key);
+	if (strlen(value) > 0) {
+		v = bbStringFromUTF8String(value);
+	}
+	return v;	
+}
+
+int bmx_SteamAPI_ISteamFriends_GetFriendRichPresenceKeyCount(intptr_t instancePtr, uint64 steamIDFriend) {
+	return SteamAPI_ISteamFriends_GetFriendRichPresenceKeyCount(instancePtr, steamIDFriend);
+}
+
+int bmx_SteamAPI_ISteamFriends_GetFriendsGroupCount(intptr_t instancePtr) {
+	return SteamAPI_ISteamFriends_GetFriendsGroupCount(instancePtr);
+}
+
+BBSHORT bmx_SteamAPI_ISteamFriends_GetFriendsGroupIDByIndex(intptr_t instancePtr, int fg) {
+	return SteamAPI_ISteamFriends_GetFriendsGroupIDByIndex(instancePtr, fg);
+}
+
+int bmx_SteamAPI_ISteamFriends_GetFriendsGroupMembersCount(intptr_t instancePtr, BBSHORT friendsGroupID) {
+	return SteamAPI_ISteamFriends_GetFriendsGroupMembersCount(instancePtr, friendsGroupID);
+}
+
+void bmx_SteamAPI_ISteamFriends_GetFriendsGroupMembersList(intptr_t instancePtr, BBSHORT friendsGroupID, uint64 * outSteamIDMembers, int membersCount) {
+	std::vector<CSteamID> members;
+	for (int i = 0; i < membersCount; i++) {
+		members.push_back(CSteamID(outSteamIDMembers[i]));
+	}
+
+	SteamAPI_ISteamFriends_GetFriendsGroupMembersList(instancePtr, friendsGroupID, members.data(), membersCount);
+}
+
+BBString * bmx_SteamAPI_ISteamFriends_GetFriendsGroupName(intptr_t instancePtr, BBSHORT friendsGroupID) {
+	BBString * n = &bbEmptyString;
+	const char * name = SteamAPI_ISteamFriends_GetFriendsGroupName(instancePtr, friendsGroupID);
+	if (strlen(name) > 0) {
+		n = bbStringFromUTF8String(name);
+	}
+	return n;	
+}
+
+int bmx_SteamAPI_ISteamFriends_GetFriendSteamLevel(intptr_t instancePtr, uint64 steamIDFriend) {
+	return SteamAPI_ISteamFriends_GetFriendSteamLevel(instancePtr, steamIDFriend);
+}
+
+int bmx_SteamAPI_ISteamFriends_GetLargeFriendAvatar(intptr_t instancePtr, uint64 steamIDFriend) {
+	return SteamAPI_ISteamFriends_GetLargeFriendAvatar(instancePtr, steamIDFriend);
+}
+
+int bmx_SteamAPI_ISteamFriends_GetMediumFriendAvatar(intptr_t instancePtr, uint64 steamIDFriend) {
+	return SteamAPI_ISteamFriends_GetMediumFriendAvatar(instancePtr, steamIDFriend);
+}
+
+BBString * bmx_SteamAPI_ISteamFriends_GetPersonaName(intptr_t instancePtr) {
+	BBString * n = &bbEmptyString;
+	const char * name = SteamAPI_ISteamFriends_GetPersonaName(instancePtr);
+	if (strlen(name) > 0) {
+		n = bbStringFromUTF8String(name);
+	}
+	return n;	
+}
+
+EPersonaState bmx_SteamAPI_ISteamFriends_GetPersonaState(intptr_t instancePtr) {
+	return SteamAPI_ISteamFriends_GetPersonaState(instancePtr);
+}
+
+BBString * bmx_SteamAPI_ISteamFriends_GetPlayerNickname(intptr_t instancePtr, uint64 steamIDPlayer) {
+	BBString * n = &bbEmptyString;
+	const char * name = SteamAPI_ISteamFriends_GetPlayerNickname(instancePtr, steamIDPlayer);
+	if (strlen(name) > 0) {
+		n = bbStringFromUTF8String(name);
+	}
+	return n;	
+}
+
+int bmx_SteamAPI_ISteamFriends_GetSmallFriendAvatar(intptr_t instancePtr, uint64 steamIDFriend) {
+	return SteamAPI_ISteamFriends_GetSmallFriendAvatar(instancePtr, steamIDFriend);
+}
+
+uint32 bmx_SteamAPI_ISteamFriends_GetUserRestrictions(intptr_t instancePtr) {
+	return SteamAPI_ISteamFriends_GetUserRestrictions(instancePtr);
+}
+
+int bmx_SteamAPI_ISteamFriends_HasFriend(intptr_t instancePtr, uint64 steamIDFriend, int friendFlags) {
+	return SteamAPI_ISteamFriends_HasFriend(instancePtr, steamIDFriend, friendFlags);
+}
+
+int bmx_SteamAPI_ISteamFriends_InviteUserToGame(intptr_t instancePtr, uint64 steamIDFriend, BBString * connectString) {
+	char * s = bbStringToUTF8String(connectString);
+	bool res = SteamAPI_ISteamFriends_InviteUserToGame(instancePtr, steamIDFriend, s);
+	bbMemFree(s);
+	return res;
+}
+
+int bmx_SteamAPI_ISteamFriends_IsClanChatAdmin(intptr_t instancePtr, uint64 steamIDClanChat, uint64 steamIDUser) {
+	return SteamAPI_ISteamFriends_IsClanChatAdmin(instancePtr, steamIDClanChat, steamIDUser);
+}
+
+int bmx_SteamAPI_ISteamFriends_IsClanPublic(intptr_t instancePtr, uint64 steamIDClan) {
+	return SteamAPI_ISteamFriends_IsClanPublic(instancePtr, steamIDClan);
+}
+
+int bmx_SteamAPI_ISteamFriends_IsClanOfficialGameGroup(intptr_t instancePtr, uint64 steamIDClan) {
+	return SteamAPI_ISteamFriends_IsClanOfficialGameGroup(instancePtr, steamIDClan);
+}
+
+int bmx_SteamAPI_ISteamFriends_IsClanChatWindowOpenInSteam(intptr_t instancePtr, uint64 steamIDClanChat) {
+	return SteamAPI_ISteamFriends_IsClanChatWindowOpenInSteam(instancePtr, steamIDClanChat);
+}
+
+void bmx_SteamAPI_ISteamFriends_IsFollowing(MaxFriends * friends, uint64 steamID) {
+	friends->IsFollowing(steamID);
+}
+
+int bmx_SteamAPI_ISteamFriends_IsUserInSource(intptr_t instancePtr, uint64 steamIDUser, uint64 steamIDSource) {
+	return SteamAPI_ISteamFriends_IsUserInSource(instancePtr, steamIDUser, steamIDSource);
+}
+
+void bmx_SteamAPI_ISteamFriends_JoinClanChatRoom(MaxFriends * friends, uint64 steamIDClan) {
+	friends->JoinClanChatRoom(steamIDClan);
+}
+
+int bmx_SteamAPI_ISteamFriends_LeaveClanChatRoom(intptr_t instancePtr, uint64 steamIDClan) {
+	return SteamAPI_ISteamFriends_LeaveClanChatRoom(instancePtr, steamIDClan);
+}
+
+int bmx_SteamAPI_ISteamFriends_OpenClanChatWindowInSteam(intptr_t instancePtr, uint64 steamIDClanChat) {
+	return SteamAPI_ISteamFriends_OpenClanChatWindowInSteam(instancePtr, steamIDClanChat);
+}
+
+int bmx_SteamAPI_ISteamFriends_ReplyToFriendMessage(intptr_t instancePtr, uint64 steamIDFriend, BBString * msgToSend) {
+	char * m = bbStringToUTF8String(msgToSend);
+	bool res = SteamAPI_ISteamFriends_ReplyToFriendMessage(instancePtr, steamIDFriend, m);
+	bbMemFree(m);
+	return res;
+}
+
+void bmx_SteamAPI_ISteamFriends_RequestClanOfficerList(MaxFriends * friends, uint64 steamIDClan) {
+	friends->RequestClanOfficerList(steamIDClan);
+}
+
+void bmx_SteamAPI_ISteamFriends_RequestFriendRichPresence(intptr_t instancePtr, uint64 steamIDFriend) {
+	SteamAPI_ISteamFriends_RequestFriendRichPresence(instancePtr, steamIDFriend);
+}
+
+int bmx_SteamAPI_ISteamFriends_RequestUserInformation(intptr_t instancePtr, uint64 steamIDUser, int requireNameOnly) {
+	return SteamAPI_ISteamFriends_RequestUserInformation(instancePtr, steamIDUser, requireNameOnly);
+}
+
+int bmx_SteamAPI_ISteamFriends_SendClanChatMessage(intptr_t instancePtr, uint64 steamIDClanChat, BBString * txt) {
+	char * t = bbStringToUTF8String(txt);
+	bool res = SteamAPI_ISteamFriends_SendClanChatMessage(instancePtr, steamIDClanChat, t);
+	bbMemFree(t);
+	return res;
+}
+
+void bmx_SteamAPI_ISteamFriends_SetInGameVoiceSpeaking(intptr_t instancePtr, uint64 steamIDUser, int speaking) {
+	SteamAPI_ISteamFriends_SetInGameVoiceSpeaking(instancePtr, steamIDUser, speaking);
+}
+
+int bmx_SteamAPI_ISteamFriends_SetListenForFriendsMessages(intptr_t instancePtr, int interceptEnabled) {
+	return SteamAPI_ISteamFriends_SetListenForFriendsMessages(instancePtr, interceptEnabled);
+}
+
+void bmx_SteamAPI_ISteamFriends_SetPersonaName(MaxFriends * friends, BBString * personaName) {
+	char * n = bbStringToUTF8String(personaName);
+	friends->SetPersonaName(n);
+	bbMemFree(n);
+}
+
+void bmx_SteamAPI_ISteamFriends_SetPlayedWith(intptr_t instancePtr, uint64 steamIDUserPlayedWith) {
+	SteamAPI_ISteamFriends_SetPlayedWith(instancePtr, steamIDUserPlayedWith);
+}
+
+int bmx_SteamAPI_ISteamFriends_SetRichPresence(intptr_t instancePtr, BBString * key, BBString * value) {
+	char * k = bbStringToUTF8String(key);
+	char * v = bbStringToUTF8String(value);
+	bool res = SteamAPI_ISteamFriends_SetRichPresence(instancePtr, k, v);
+	bbMemFree(v);
+	bbMemFree(k);
+	return res;
 }

@@ -23,10 +23,17 @@ bbdoc: Steam SDK
 End Rem
 Module steam.steamsdk
 
-ModuleInfo "Version: 1.00"
+ModuleInfo "Version: 1.02"
 ModuleInfo "License: zlib/libpng"
 ModuleInfo "Copyright: Steam SDK - Valve Corporation"
 ModuleInfo "Copyright: Wrapper - 2019 Bruce A Henderson"
+
+ModuleInfo "History: 1.02"
+ModuleInfo "History: Added ISteamFriends API."
+ModuleInfo "History: 1.01"
+ModuleInfo "History: Added ISteamUGC API."
+ModuleInfo "History: 1.00"
+ModuleInfo "History: Initial Release."
 
 ModuleInfo "CPP_OPTS: -std=c++11"
 ?win32x64
@@ -185,7 +192,7 @@ Type TSteamUtils Extends TSteamAPI
 		Local this:TSteamUtils = New TSteamUtils
 		this.instancePtr = instancePtr
 
-		this.callbackPtr = bmx_steamsdk_register_steamuutils(instancePtr, this)
+		this.callbackPtr = bmx_steamsdk_register_steamutils(instancePtr, this)
 
 		Return this
 	End Function
@@ -2558,4 +2565,842 @@ Type TSteamUGC Extends TSteamAPI
 		inst.OnRemoteStorageUnsubscribePublishedFile(result, publishedFileId)
 	End Function
 
+End Type
+
+Rem
+bbdoc: Steam Friends listener interface
+about: Implement this and add as a listener to an instance of #TSteamFriends to receive appropriate event callbacks.
+End Rem
+Interface ISteamFriendsListener
+
+	Rem
+	bbdoc: Called when a large avatar is loaded if you have tried requesting it when it was unavailable.
+	End Rem
+	Method OnAvatarImageLoaded(steamID:ULong, image:Int, width:Int, height:Int)
+	Rem
+	bbdoc: Called when Rich Presence data has been updated for a user.
+	about: This can happen automatically when friends in the same game update their rich presence, or after a call to #RequestFriendRichPresence.
+	End Rem
+	Method OnFriendRichPresenceUpdated(steamIDFriend:ULong, appID:UInt)
+	Rem
+	bbdoc: Called when a user has left a Steam group chat that the we are in.
+	End Rem
+	Method OnGameConnectedChatLeave(steamIDClanChat:ULong, steamIDUser:ULong, kicked:Int, dropped:Int)
+	Rem
+	bbdoc: Called when chat message has been received from a friend.
+	about: 
+	Associated Functions: #SetListenForFriendsMessages
+	End Rem
+	Method OnGameConnectedFriendChatMsg(steamIDUser:ULong, messageID:Int)
+	Rem
+	bbdoc: Called when the user tries to join a lobby from their friends list or from an invite.
+	about: The game client should attempt to connect to specified lobby when this is received.
+	If the game isn't running yet then the game will be automatically launched with the command line parameter +connect_lobby &lt;64-bit lobby Steam ID&gt; instead.
+
+	> NOTE: This callback is made when joining a lobby. If the user is attempting to join a game but not a lobby, then the callback #OnGameRichPresenceJoinRequested will be made.
+	End Rem
+	Method OnGameLobbyJoinRequested(steamIDLobby:ULong, steamIDFriend:ULong)
+	Rem
+	bbdoc: Posted when the Steam Overlay activates or deactivates.
+	about: The game can use this to be pause or resume single player games.
+	End Rem
+	Method OnGameOverlayActivated(active:Int)
+	Rem
+	bbdoc: Called when the user tries to join a game from their friends list or after a user accepts an invite by a friend with #InviteUserToGame.
+	about:
+	> NOTE : This callback is made when joining a game. If the user is attempting to join a lobby, then the callback #OnGameLobbyJoinRequested will be made.
+	End Rem
+	Method OnGameRichPresenceJoinRequested(steamIDFriend:ULong, connect:String)
+	Rem
+	bbdoc: Called when the user tries to join a different game server from their friends list.
+	about: The game client should attempt to connect to specified server when this is received.
+	End Rem
+	Method OnGameServerChangeRequested(server:String, password:String)
+	Rem
+	bbdoc: Called whenever a friends' status changes.
+	End Rem
+	Method OnPersonaStateChanged(steamID:ULong, changeFlags:Int)
+	Rem
+	bbdoc: Marks the return of a request officer list call.
+	End Rem
+	Method OnClanOfficerList(steamIDClan:ULong, officers:Int, success:Int)
+	Rem
+	bbdoc: Called when a Steam group activity has received.
+	End Rem
+	Method OnDownloadClanActivityCounts(success:Int)
+	Rem
+	bbdoc: Returns the result of #EnumerateFollowingList.
+	End Rem
+	Method OnFriendsEnumerateFollowingList(result:EResult, steamIDS:ULong Ptr, resultsReturned:Int, totalResultCount:Int)
+	Rem
+	bbdoc: Returns the result of #GetFollowerCount.
+	End Rem
+	Method OnFriendsGetFollowerCount(result:EResult, steamID:ULong, count:Int)
+	Rem
+	bbdoc: Returns the result of #IsFollowing.
+	End Rem
+	Method OnFriendsIsFollowing(result:EResult, steamID:ULong, isFollowing:Int)
+	Rem
+	bbdoc: Called when a user has joined a Steam group chat that the we are in.
+	End Rem
+	Method OnGameConnectedChatJoined(steamIDClanChat:ULong, steamIDUser:ULong)
+	Rem
+	bbdoc: Called when a chat message has been received in a Steam group chat that we are in.
+	End Rem
+	Method OnGameConnectedClanChatMsg(steamIDClanChat:ULong, steamIDUser:ULong, messageID:Int)
+	Rem
+	bbdoc: Posted when the user has attempted to join a Steam group chat via #JoinClanChatRoom.
+	End Rem
+	Method OnJoinClanChatRoomCompletion(steamIDClanChat:ULong, chatRoomEnterResponse:EChatRoomEnterResponse)
+	Rem
+	bbdoc: Reports the result of an attempt to change the current user's persona name.
+	End Rem
+	Method OnSetPersonaName(result:EResult, success:Int, localSuccess:Int)
+
+End Interface
+
+Rem
+bbdoc: Interface to access information about individual users and interact with the Steam Overlay.
+End Rem
+Type TSteamFriends Extends TSteamAPI
+
+	Const STEAMFRIENDS_INTERFACE_VERSION:String = "SteamFriends017"
+
+	Field listener:ISteamFriendsListener
+
+	Function _create:TSteamFriends(instancePtr:Byte Ptr)
+		Local this:TSteamFriends = New TSteamFriends
+		this.instancePtr = instancePtr
+
+		this.callbackPtr = bmx_steamsdk_register_steamfriends(instancePtr, this)
+
+		Return this
+	End Function
+
+	Method Delete()
+		bmx_steamsdk_unregister_steamfriends(callbackPtr)
+	End Method
+
+	Rem
+	bbdoc: Sets the steam utils callback listener.
+	about: Once installed, the listener will receive utils events via the callback methods.
+	End Rem
+	Method SetListener(listener:ISteamFriendsListener)
+		Self.listener = listener
+	End Method
+
+	Rem
+	bbdoc: Activates the Steam Overlay to a specific dialog.
+	about: This is equivalent to calling #ActivateGameOverlayToUser with steamID set to ISteamUser::GetSteamID.
+	Valid options are: "friends", "community", "players", "settings", "officialgamegroup", "stats", "achievements".
+	End Rem
+	Method ActivateGameOverlay(dialog:String)
+		bmx_SteamAPI_ISteamFriends_ActivateGameOverlay(instancePtr, dialog)
+	End Method
+	
+	Rem
+	bbdoc: Activates the [Steam Overlay](https://partner.steamgames.com/doc/features/overlay) to open the invite dialog.
+	about: Invitations sent from this dialog will be for the provided lobby.
+	End Rem
+	Method ActivateGameOverlayInviteDialog(steamIDLobby:ULong)
+		bmx_SteamAPI_ISteamFriends_ActivateGameOverlayInviteDialog(instancePtr, steamIDLobby)
+	End Method
+	
+	Rem
+	bbdoc: Activates the [Steam Overlay](https://partner.steamgames.com/doc/features/overlay) to the Steam store page for the provided app.
+	about: Using k_uAppIdInvalid brings the user to the front page of the Steam store.
+	End Rem
+	Method ActivateGameOverlayToStore(appID:UInt, flag:EOverlayToStoreFlag )
+		bmx_SteamAPI_ISteamFriends_ActivateGameOverlayToStore(instancePtr, appID, flag)
+	End Method
+	
+	Rem
+	bbdoc: Activates [Steam Overlay](https://partner.steamgames.com/doc/features/overlay) to a specific dialog.
+	about: Valid @dialog options are:
+	* "steamid" - Opens the overlay web browser to the specified user or groups profile.
+	* "chat" - Opens a chat window to the specified user, or joins the group chat.
+	* "jointrade" - Opens a window to a Steam Trading session that was started with the ISteamEconomy/StartTrade Web API.
+	* "stats" - Opens the overlay web browser to the specified user's stats.
+	* "achievements" - Opens the overlay web browser to the specified user's achievements.
+	* "friendadd" - Opens the overlay in minimal mode prompting the user to add the target user as a friend.
+	* "friendremove" - Opens the overlay in minimal mode prompting the user to remove the target friend.
+	* "friendrequestaccept" - Opens the overlay in minimal mode prompting the user to accept an incoming friend invite.
+	* "friendrequestignore" - Opens the overlay in minimal mode prompting the user to ignore an incoming friend invite.
+	End Rem
+	Method ActivateGameOverlayToUser(dialog:String, steamID:ULong)
+		bmx_SteamAPI_ISteamFriends_ActivateGameOverlayToUser(instancePtr, dialog, steamID)
+	End Method
+	
+	Rem
+	bbdoc: Activates [Steam Overlay](https://partner.steamgames.com/doc/features/overlay) web browser directly to the specified URL.
+	about: A fully qualified address with the protocol is required, e.g. "http://www.steampowered.com"
+	End Rem
+	Method ActivateGameOverlayToWebPage(url:String)
+		bmx_SteamAPI_ISteamFriends_ActivateGameOverlayToWebPage(instancePtr, url)
+	End Method
+	
+	Rem
+	bbdoc: Clears all of the current user's Rich Presence key/values.
+	End Rem
+	Method ClearRichPresence()
+		bmx_SteamAPI_ISteamFriends_ClearRichPresence(instancePtr)
+	End Method
+	
+	Rem
+	bbdoc: Closes the specified Steam group chat room in the Steam UI.
+	returns: #True if the user successfully left the Steam group chat room, otherwise #False if the user is not in the provided Steam group chat room.
+	about: 
+	See Also: #IsClanChatWindowOpenInSteam, #OpenClanChatWindowInSteam
+	End Rem
+	Method CloseClanChatWindowInSteam:Int(steamIDClanChat:ULong)
+		Return bmx_SteamAPI_ISteamFriends_CloseClanChatWindowInSteam(instancePtr, steamIDClanChat)
+	End Method
+	
+	Rem
+	bbdoc: Refreshes the Steam Group activity data or get the data from groups other than one that the current user is a member.
+	about: After receiving the callback you can then use #GetClanActivityCounts to get the up to date user counts.
+	End Rem
+	Method DownloadClanActivityCounts(steamIDClans:ULong Ptr, clansToRequest:Int)
+		bmx_SteamAPI_ISteamFriends_DownloadClanActivityCounts(callbackPtr, steamIDClans, clansToRequest)
+	End Method
+	
+	Rem
+	bbdoc: Gets the list of users that the current user is following.
+	about: You can be following people that are not your friends. Following allows you to receive updates when the person does things like post a new piece of content to the Steam Workshop.
+
+	> NOTE: This returns up to k_cEnumerateFollowersMax users at once. If the current user is following more than that, you will need to call this repeatedly, with unStartIndex set to the total number of followers that you have received so far.
+	> i.e. If you have received 50 followers, and the user is following 105, you will need to call this again with unStartIndex = 50 to get the next 50, and then again with unStartIndex = 100 to get the remaining 5 users.
+	End Rem
+	Method EnumerateFollowingList(startIndex:UInt)
+		bmx_SteamAPI_ISteamFriends_EnumerateFollowingList(callbackPtr, startIndex)
+	End Method
+	
+	Rem
+	bbdoc: Gets the Steam ID at the given index in a Steam group chat.
+	about: 
+	> NOTE: You must call #GetClanChatMemberCount before calling this.
+
+
+	End Rem
+	Method GetChatMemberByIndex:ULong(steamIDClan:ULong, user:Int)
+		Return bmx_SteamAPI_ISteamFriends_GetChatMemberByIndex(instancePtr, steamIDClan, user)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetClanActivityCounts:Int(steamIDClan:ULong, online:Int Var, inGame:Int Var, chatting:Int Var)
+		Return bmx_SteamAPI_ISteamFriends_GetClanActivityCounts(instancePtr, steamIDClan, online, inGame, chatting)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetClanByIndex:ULong(clan:Int)
+		Return bmx_SteamAPI_ISteamFriends_GetClanByIndex(instancePtr, clan)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetClanChatMemberCount:Int(steamIDClan:ULong)
+		Return bmx_SteamAPI_ISteamFriends_GetClanChatMemberCount(instancePtr, steamIDClan)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetClanChatMessage:Int(steamIDClanChat:ULong, message:Int, txt:String Var, chatEntryType:EChatEntryType Var, steamidChatter:ULong Var)
+		Return bmx_SteamAPI_ISteamFriends_GetClanChatMessage(instancePtr, steamIDClanChat, message, txt, chatEntryType, steamidChatter)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetClanCount:Int()
+		Return bmx_SteamAPI_ISteamFriends_GetClanCount(instancePtr)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetClanName:String(steamIDClan:ULong)
+		Return bmx_SteamAPI_ISteamFriends_GetClanName(instancePtr, steamIDClan)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetClanOfficerByIndex:ULong(steamIDClan:ULong, officer:Int)
+		Return bmx_SteamAPI_ISteamFriends_GetClanOfficerByIndex(instancePtr, steamIDClan, officer)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetClanOfficerCount:Int(steamIDClan:ULong)
+		Return bmx_SteamAPI_ISteamFriends_GetClanOfficerCount(instancePtr, steamIDClan)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetClanOwner:ULong(steamIDClan:ULong)
+		Return bmx_SteamAPI_ISteamFriends_GetClanOwner(instancePtr, steamIDClan)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetClanTag:String(steamIDClan:ULong)
+		Return bmx_SteamAPI_ISteamFriends_GetClanTag(instancePtr, steamIDClan)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetCoplayFriend:ULong(coplayFriend:Int)
+		Return bmx_SteamAPI_ISteamFriends_GetCoplayFriend(instancePtr, coplayFriend)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetCoplayFriendCount:Int()
+		Return bmx_SteamAPI_ISteamFriends_GetCoplayFriendCount(instancePtr)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetFollowerCount(steamID:ULong)
+		bmx_SteamAPI_ISteamFriends_GetFollowerCount(callbackPTr, steamID)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetFriendByIndex:ULong(friend:Int, friendFlags:Int)
+		Return bmx_SteamAPI_ISteamFriends_GetFriendByIndex(instancePtr, friend, friendFlags)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetFriendCoplayGame:UInt(steamIDFriend:ULong)
+		Return bmx_SteamAPI_ISteamFriends_GetFriendCoplayGame(instancePtr, steamIDFriend)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetFriendCoplayTime:Int(steamIDFriend:ULong)
+		Return bmx_SteamAPI_ISteamFriends_GetFriendCoplayTime(instancePtr, steamIDFriend)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetFriendCount:Int(friendFlags:Int)
+		Return bmx_SteamAPI_ISteamFriends_GetFriendCount(instancePtr, friendFlags)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetFriendCountFromSource:Int(steamIDSource:ULong)
+		Return bmx_SteamAPI_ISteamFriends_GetFriendCountFromSource(instancePtr, steamIDSource)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetFriendFromSourceByIndex:ULong(steamIDSource:ULong, friend:Int)
+		Return bmx_SteamAPI_ISteamFriends_GetFriendFromSourceByIndex(instancePtr, steamIDSource, friend)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetFriendGamePlayed:Int(steamIDFriend:ULong, gameID:ULong Var, gameIP:UInt Var, gamePort:Short Var, queryPort:Short Var, steamIDLobby:ULong Var)
+		Return bmx_SteamAPI_ISteamFriends_GetFriendGamePlayed(instancePtr, steamIDFriend, gameID, gameIP, gamePort, queryPort, steamIDLobby)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetFriendMessage:Int(steamIDFriend:ULong, messageID:Int, txt:String Var, chatEntryType:EChatEntryType Var)
+		Return bmx_SteamAPI_ISteamFriends_GetFriendMessage(instancePtr, steamIDFriend, messageID, txt, chatEntryType)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetFriendPersonaName:String(steamIDFriend:ULong)
+		Return bmx_SteamAPI_ISteamFriends_GetFriendPersonaName(instancePtr, steamIDFriend)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetFriendPersonaNameHistory:String(steamIDFriend:ULong, personaName:Int)
+		Return bmx_SteamAPI_ISteamFriends_GetFriendPersonaNameHistory(instancePtr, steamIDFriend, personaName)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetFriendPersonaState:EPersonaState(steamIDFriend:ULong)
+		Return bmx_SteamAPI_ISteamFriends_GetFriendPersonaState(instancePtr, steamIDFriend)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetFriendRelationship:EFriendRelationship(steamIDFriend:ULong)
+		Return bmx_SteamAPI_ISteamFriends_GetFriendRelationship(instancePtr, steamIDFriend)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetFriendRichPresence:String(steamIDFriend:ULong, key:String)
+		Return bmx_SteamAPI_ISteamFriends_GetFriendRichPresence(instancePtr, steamIDFriend, key)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetFriendRichPresenceKeyByIndex:String(steamIDFriend:ULong, key:Int)
+		Return bmx_SteamAPI_ISteamFriends_GetFriendRichPresenceKeyByIndex(instancePtr, steamIDFriend, key)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetFriendRichPresenceKeyCount:Int(steamIDFriend:ULong)
+		Return bmx_SteamAPI_ISteamFriends_GetFriendRichPresenceKeyCount(instancePtr, steamIDFriend)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetFriendsGroupCount:Int()
+		Return bmx_SteamAPI_ISteamFriends_GetFriendsGroupCount(instancePtr)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetFriendsGroupIDByIndex:Short(fg:Int)
+		Return bmx_SteamAPI_ISteamFriends_GetFriendsGroupIDByIndex(instancePtr, fg)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetFriendsGroupMembersCount:Int(friendsGroupID:Short)
+		Return bmx_SteamAPI_ISteamFriends_GetFriendsGroupMembersCount(instancePtr, friendsGroupID)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetFriendsGroupMembersList(friendsGroupID:Short, outSteamIDMembers:ULong Ptr, membersCount:Int)
+		bmx_SteamAPI_ISteamFriends_GetFriendsGroupMembersList(instancePtr, friendsGroupID, outSteamIDMembers, membersCount)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetFriendsGroupName:String(friendsGroupID:Short)
+		Return bmx_SteamAPI_ISteamFriends_GetFriendsGroupName(instancePtr, friendsGroupID)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetFriendSteamLevel:Int(steamIDFriend:ULong)
+		Return bmx_SteamAPI_ISteamFriends_GetFriendSteamLevel(instancePtr, steamIDFriend)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetLargeFriendAvatar:Int(steamIDFriend:ULong)
+		Return bmx_SteamAPI_ISteamFriends_GetLargeFriendAvatar(instancePtr, steamIDFriend)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetMediumFriendAvatar:Int(steamIDFriend:ULong)
+		Return bmx_SteamAPI_ISteamFriends_GetMediumFriendAvatar(instancePtr, steamIDFriend)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetPersonaName:String()
+		Return bmx_SteamAPI_ISteamFriends_GetPersonaName(instancePtr)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetPersonaState:EPersonaState()
+		Return bmx_SteamAPI_ISteamFriends_GetPersonaState(instancePtr)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetPlayerNickname:String(steamIDPlayer:ULong)
+		Return bmx_SteamAPI_ISteamFriends_GetPlayerNickname(instancePtr, steamIDPlayer)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetSmallFriendAvatar:Int(steamIDFriend:ULong)
+		Return bmx_SteamAPI_ISteamFriends_GetSmallFriendAvatar(instancePtr, steamIDFriend)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method GetUserRestrictions:UInt()
+		Return bmx_SteamAPI_ISteamFriends_GetUserRestrictions(instancePtr)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method HasFriend:Int(steamIDFriend:ULong, friendFlags:Int)
+		Return bmx_SteamAPI_ISteamFriends_HasFriend(instancePtr, steamIDFriend, friendFlags)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method InviteUserToGame:Int(steamIDFriend:ULong, connectString:String)
+		Return bmx_SteamAPI_ISteamFriends_InviteUserToGame(instancePtr, steamIDFriend, connectString)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method IsClanChatAdmin:Int(steamIDClanChat:ULong, steamIDUser:ULong)
+		Return bmx_SteamAPI_ISteamFriends_IsClanChatAdmin(instancePtr, steamIDClanChat, steamIDUser)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method IsClanPublic:Int(steamIDClan:ULong)
+		Return bmx_SteamAPI_ISteamFriends_IsClanPublic(instancePtr, steamIDClan)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method IsClanOfficialGameGroup:Int(steamIDClan:ULong)
+		Return bmx_SteamAPI_ISteamFriends_IsClanOfficialGameGroup(instancePtr, steamIDClan)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method IsClanChatWindowOpenInSteam:Int(steamIDClanChat:ULong)
+		Return bmx_SteamAPI_ISteamFriends_IsClanChatWindowOpenInSteam(instancePtr, steamIDClanChat)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method IsFollowing(steamID:ULong)
+		bmx_SteamAPI_ISteamFriends_IsFollowing(callbackPtr, steamID)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method IsUserInSource:Int(steamIDUser:ULong, steamIDSource:ULong)
+		Return bmx_SteamAPI_ISteamFriends_IsUserInSource(instancePtr, steamIDUser, steamIDSource)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method JoinClanChatRoom(steamIDClan:ULong)
+		bmx_SteamAPI_ISteamFriends_JoinClanChatRoom(callbackPtr, steamIDClan)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method LeaveClanChatRoom:Int(steamIDClan:ULong)
+		Return bmx_SteamAPI_ISteamFriends_LeaveClanChatRoom(instancePtr, steamIDClan)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method OpenClanChatWindowInSteam:Int(steamIDClanChat:ULong)
+		Return bmx_SteamAPI_ISteamFriends_OpenClanChatWindowInSteam(instancePtr, steamIDClanChat)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method ReplyToFriendMessage:Int(steamIDFriend:ULong, msgToSend:String)
+		Return bmx_SteamAPI_ISteamFriends_ReplyToFriendMessage(instancePtr, steamIDFriend, msgToSend)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method RequestClanOfficerList(steamIDClan:ULong)
+		bmx_SteamAPI_ISteamFriends_RequestClanOfficerList(callbackPtr, steamIDClan)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method RequestFriendRichPresence(steamIDFriend:ULong)
+		bmx_SteamAPI_ISteamFriends_RequestFriendRichPresence(instancePtr, steamIDFriend)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method RequestUserInformation:Int(steamIDUser:ULong, requireNameOnly:Int)
+		Return bmx_SteamAPI_ISteamFriends_RequestUserInformation(instancePtr, steamIDUser, requireNameOnly)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method SendClanChatMessage:Int(steamIDClanChat:ULong, txt:String)
+		Return bmx_SteamAPI_ISteamFriends_SendClanChatMessage(instancePtr, steamIDClanChat, txt)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method SetInGameVoiceSpeaking(steamIDUser:ULong, speaking:Int)
+		bmx_SteamAPI_ISteamFriends_SetInGameVoiceSpeaking(instancePtr, steamIDUser, speaking)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method SetListenForFriendsMessages:Int(interceptEnabled:Int)
+		Return bmx_SteamAPI_ISteamFriends_SetListenForFriendsMessages(instancePtr, interceptEnabled)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method SetPersonaName(personaName:String)
+		bmx_SteamAPI_ISteamFriends_SetPersonaName(callbackPtr, personaName)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method SetPlayedWith(steamIDUserPlayedWith:ULong)
+		bmx_SteamAPI_ISteamFriends_SetPlayedWith(instancePtr, steamIDUserPlayedWith)
+	End Method
+	
+	Rem
+	bbdoc: 
+	End Rem
+	Method SetRichPresence:Int(key:String, value:String)
+		Return bmx_SteamAPI_ISteamFriends_SetRichPresence(instancePtr, key, value)
+	End Method
+
+	' callbacks
+	Private
+
+	Method OnAvatarImageLoaded(steamID:ULong, image:Int, width:Int, height:Int)
+		If listener Then
+			listener.OnAvatarImageLoaded(steamID, image, width, height)
+		End If
+	End Method
+
+	Function _OnAvatarImageLoaded(inst:TSteamFriends, steamID:ULong, image:Int, width:Int, height:Int) { nomangle }
+		inst.OnAvatarImageLoaded(steamID, image, width, height)
+	End Function
+	
+	Method OnFriendRichPresenceUpdated(steamIDFriend:ULong, appID:UInt)
+		If listener Then
+			listener.OnFriendRichPresenceUpdated(steamIDFriend, appID)
+		End If
+	End Method
+
+	Function _OnFriendRichPresenceUpdated(inst:TSteamFriends, steamIDFriend:ULong, appID:UInt) { nomangle }
+		inst.OnFriendRichPresenceUpdated(steamIDFriend, appID)
+	End Function
+
+	Method OnGameConnectedChatLeave(steamIDClanChat:ULong, steamIDUser:ULong, kicked:Int, dropped:Int)
+		If listener Then
+			listener.OnGameConnectedChatLeave(steamIDClanChat, steamIDUser, kicked, dropped)
+		End If
+	End Method
+
+	Function _OnGameConnectedChatLeave(inst:TSteamFriends, steamIDClanChat:ULong, steamIDUser:ULong, kicked:Int, dropped:Int) { nomangle }
+		inst.OnGameConnectedChatLeave(steamIDClanChat, steamIDUser, kicked, dropped)
+	End Function
+
+	Method OnGameConnectedFriendChatMsg(steamIDUser:ULong, messageID:Int)
+		If listener Then
+			listener.OnGameConnectedFriendChatMsg(steamIDUser, messageID)
+		End If
+	End Method
+
+	Function _OnGameConnectedFriendChatMsg(inst:TSteamFriends, steamIDUser:ULong, messageID:Int) { nomangle }
+		inst.OnGameConnectedFriendChatMsg(steamIDUser, messageID)
+	End Function
+
+	Method OnGameLobbyJoinRequested(steamIDLobby:ULong, steamIDFriend:ULong)
+		If listener Then
+			listener.OnGameLobbyJoinRequested(steamIDLobby, steamIDFriend)
+		End If
+	End Method
+
+	Function _OnGameLobbyJoinRequested(inst:TSteamFriends, steamIDLobby:ULong, steamIDFriend:ULong) { nomangle }
+		inst.OnGameLobbyJoinRequested(steamIDLobby, steamIDFriend)
+	End Function
+
+	Method OnGameOverlayActivated(active:Int)
+		If listener Then
+			listener.OnGameOverlayActivated(active)
+		End If
+	End Method
+
+	Function _OnGameOverlayActivated(inst:TSteamFriends, active:Int) { nomangle }
+		inst.OnGameOverlayActivated(active)
+	End Function
+
+	Method OnGameRichPresenceJoinRequested(steamIDFriend:ULong, connect:String)
+		If listener Then
+			listener.OnGameRichPresenceJoinRequested(steamIDFriend, connect)
+		End If
+	End Method
+
+	Function _OnGameRichPresenceJoinRequested(inst:TSteamFriends, steamIDFriend:ULong, connect:String) { nomangle }
+		inst.OnGameRichPresenceJoinRequested(steamIDFriend, connect)
+	End Function
+
+	Method OnGameServerChangeRequested(server:String, password:String)
+		If listener Then
+			listener.OnGameServerChangeRequested(server, password)
+		End If
+	End Method
+
+	Function _OnGameServerChangeRequested(inst:TSteamFriends, server:String, password:String) { nomangle }
+		inst.OnGameServerChangeRequested(server, password)
+	End Function
+
+	Method OnPersonaStateChanged(steamID:ULong, changeFlags:Int)
+		If listener Then
+			listener.OnPersonaStateChanged(steamID, changeFlags)
+		End If
+	End Method
+
+	Function _OnPersonaStateChanged(inst:TSteamFriends, steamID:ULong, changeFlags:Int) { nomangle }
+		inst.OnPersonaStateChanged(steamID, changeFlags)
+	End Function
+
+	Method OnClanOfficerList(steamIDClan:ULong, officers:Int, success:Int)
+		If listener Then
+			listener.OnClanOfficerList(steamIDClan, officers, success)
+		End If
+	End Method
+
+	Function _OnClanOfficerList(inst:TSteamFriends, steamIDClan:ULong, officers:Int, success:Int) { nomangle }
+		inst.OnClanOfficerList(steamIDClan, officers, success)
+	End Function
+
+	Method OnDownloadClanActivityCounts(success:Int)
+		If listener Then
+			listener.OnDownloadClanActivityCounts(success)
+		End If
+	End Method
+
+	Function _OnDownloadClanActivityCounts(inst:TSteamFriends, success:Int) { nomangle }
+		inst.OnDownloadClanActivityCounts(success)
+	End Function
+
+	Method OnFriendsEnumerateFollowingList(result:EResult, steamIDS:ULong Ptr, resultsReturned:Int, totalResultCount:Int)
+		If listener Then
+			listener.OnFriendsEnumerateFollowingList(result, steamIDS, resultsReturned, totalResultCount)
+		End If
+	End Method
+
+	Function _OnFriendsEnumerateFollowingList(inst:TSteamFriends, result:EResult, steamIDS:ULong Ptr, resultsReturned:Int, totalResultCount:Int) { nomangle }
+		inst.OnFriendsEnumerateFollowingList(result, steamIDS, resultsReturned, totalResultCount)
+	End Function
+
+	Method OnFriendsGetFollowerCount(result:EResult, steamID:ULong, count:Int)
+		If listener Then
+			listener.OnFriendsGetFollowerCount(result, steamID, count)
+		End If
+	End Method
+
+	Function _OnFriendsGetFollowerCount(inst:TSteamFriends, result:EResult, steamID:ULong, count:Int) { nomangle }
+		inst.OnFriendsGetFollowerCount(result, steamID, count)
+	End Function
+
+	Method OnFriendsIsFollowing(result:EResult, steamID:ULong, isFollowing:Int)
+		If listener Then
+			listener.OnFriendsIsFollowing(result, steamID, isFollowing)
+		End If
+	End Method
+
+	Function _OnFriendsIsFollowing(inst:TSteamFriends, result:EResult, steamID:ULong, isFollowing:Int) { nomangle }
+		inst.OnFriendsIsFollowing(result, steamID, isFollowing)
+	End Function
+
+	Method OnGameConnectedChatJoined(steamIDClanChat:ULong, steamIDUser:ULong)
+		If listener Then
+			listener.OnGameConnectedChatJoined(steamIDClanChat, steamIDUser)
+		End If
+	End Method
+
+	Function _OnGameConnectedChatJoined(inst:TSteamFriends, steamIDClanChat:ULong, steamIDUser:ULong) { nomangle }
+		inst.OnGameConnectedChatJoined(steamIDClanChat, steamIDUser)
+	End Function
+
+	Method OnGameConnectedClanChatMsg(steamIDClanChat:ULong, steamIDUser:ULong, messageID:Int)
+		If listener Then
+			listener.OnGameConnectedClanChatMsg(steamIDClanChat, steamIDUser, messageID)
+		End If
+	End Method
+
+	Function _OnGameConnectedClanChatMsg(inst:TSteamFriends, steamIDClanChat:ULong, steamIDUser:ULong, messageID:Int) { nomangle }
+		inst.OnGameConnectedClanChatMsg(steamIDClanChat, steamIDUser, messageID)
+	End Function
+
+	Method OnJoinClanChatRoomCompletion(steamIDClanChat:ULong, chatRoomEnterResponse:EChatRoomEnterResponse)
+		If listener Then
+			listener.OnJoinClanChatRoomCompletion(steamIDClanChat, chatRoomEnterResponse)
+		End If
+	End Method
+
+	Function _OnJoinClanChatRoomCompletion(inst:TSteamFriends, steamIDClanChat:ULong, chatRoomEnterResponse:EChatRoomEnterResponse) { nomangle }
+		inst.OnJoinClanChatRoomCompletion(steamIDClanChat, chatRoomEnterResponse)
+	End Function
+
+	Method OnSetPersonaName(result:EResult, success:Int, localSuccess:Int)
+		If listener Then
+			listener.OnSetPersonaName(result, success, localSuccess)
+		End If
+	End Method
+
+	Function _OnSetPersonaName(inst:TSteamFriends, result:EResult, success:Int, localSuccess:Int) { nomangle }
+		inst.OnSetPersonaName(result, success, localSuccess)
+	End Function
+	
 End Type
