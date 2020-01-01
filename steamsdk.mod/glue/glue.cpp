@@ -64,6 +64,7 @@ extern "C" {
 	void steam_steamsdk_TSteamUGC__OnDeleteItem(BBObject * maxHandle, EResult result, uint64 publishedFileId);
 	void steam_steamsdk_TSteamUGC__OnDownloadItem(BBObject * maxHandle, EResult result, uint32 appID, uint64 publishedFileId);
 	void steam_steamsdk_TSteamUGC__OnGetUserItemVote(BBObject * maxHandle, uint64 publishedFileId, EResult result, int votedUp, int votedDown, int voteSkipped);
+	void steam_steamsdk_TSteamUGC__OnItemInstalled(BBObject * maxHandle, uint32 appID, uint64 publishedFileId);
 	void steam_steamsdk_TSteamUGC__OnRemoveAppDependency(BBObject * maxHandle, EResult result, uint64 publishedFileId, uint32 appID);
 	void steam_steamsdk_TSteamUGC__OnRemoveUGCDependency(BBObject * maxHandle, EResult result, uint64 publishedFileId, uint64 childPublishedFileId);
 	void steam_steamsdk_TSteamUGC__OnSteamUGCQueryCompleted(BBObject * maxHandle, uint64 handle, EResult result, uint32 numResultsReturned, uint32 totalMatchingResults, int cachedData);
@@ -1027,6 +1028,7 @@ private:
 
 public:
 	STEAM_CALLBACK( MaxUGC, OnDownloadItem, DownloadItemResult_t, m_CallbackDownloadItem );
+	STEAM_CALLBACK( MaxUGC, OnItemInstalled, ItemInstalled_t, m_CallbackItemInstalled );
 
 	MaxUGC(intptr_t instancePtr, BBObject * handle);
 	~MaxUGC();
@@ -1073,12 +1075,17 @@ public:
 
 MaxUGC::MaxUGC(intptr_t instancePtr, BBObject * handle) :
 	instancePtr(instancePtr), maxHandle(handle),
-	m_CallbackDownloadItem( this, &MaxUGC::OnDownloadItem )
+	m_CallbackDownloadItem( this, &MaxUGC::OnDownloadItem ),
+	m_CallbackItemInstalled( this, &MaxUGC::OnItemInstalled )
 {
 }
 
 void MaxUGC::OnDownloadItem(DownloadItemResult_t * result) {
 	steam_steamsdk_TSteamUGC__OnDownloadItem(maxHandle, result->m_eResult, result->m_unAppID, result->m_nPublishedFileId);
+}
+
+void MaxUGC::OnItemInstalled(ItemInstalled_t * result) {
+	steam_steamsdk_TSteamUGC__OnItemInstalled(maxHandle, result->m_unAppID, result->m_nPublishedFileId);
 }
 
 void MaxUGC::AddAppDependency(uint64 publishedFileID, uint32 appID) {

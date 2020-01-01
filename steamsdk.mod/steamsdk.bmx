@@ -1272,6 +1272,12 @@ Interface ISteamUGCListener
 	End Rem
 	Method OnGetUserItemVote(result:EResult, publishedFileId:ULong, votedUp:Int, votedDown:Int, voteSkipped:Int)
 	Rem
+	bbdoc: Called when a workshop item has been installed or updated.
+	about: 
+	> NOTE: This callback goes out to all running applications, ensure that the app ID associated with the item matches what you expect.
+	End Rem
+	Method OnItemInstalled(appID:UInt, publishedFileId:ULong)
+	Rem
 	bbdoc: The result of a call to #RemoveAppDependency.
 	End Rem
 	Method OnRemoveAppDependency(result:EResult, publishedFileId:ULong, appID:UInt)
@@ -2463,6 +2469,16 @@ Type TSteamUGC Extends TSteamAPI
 
 	Function _OnGetUserItemVote(inst:TSteamUGC, publishedFileId:ULong, result:EResult, votedUp:Int, votedDown:Int, voteSkipped:Int) { nomangle }
 		inst.OnGetUserItemVote(result, publishedFileId, votedUp, votedDown, voteSkipped)
+	End Function
+	
+	Method OnItemInstalled(appID:UInt, publishedFileId:ULong)
+		If listener Then
+			listener.OnItemInstalled(appID, publishedFileId)
+		End If
+	End Method
+	
+	Function _OnItemInstalled(inst:TSteamUGC, appID:UInt, publishedFileId:ULong) { nomangle }
+		inst.OnItemInstalled(appID, publishedFileId)
 	End Function
 
 	Method OnRemoveAppDependency(result:EResult, publishedFileId:ULong, appID:UInt)

@@ -815,7 +815,7 @@ Enum EActivateGameOverlayToWebPageMode
 End Enum
 
 Rem
-bbdoc: Used in #OnPersonaStateChange, @changeFlags to describe what's changed about a user.
+bbdoc: Used in #OnPersonaStateChanged, @changeFlags to describe what's changed about a user.
 These flags describe what the client has learned has changed recently, so on startup you'll see a name, avatar and relationship change for every friend
 End Rem
 Enum EPersonaChange Flags
