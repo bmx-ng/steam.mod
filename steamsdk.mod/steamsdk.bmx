@@ -166,6 +166,13 @@ Type TSteamClient Extends TSteamAPI
 	Method GetISteamUGC:TSteamUGC()
 		Return TSteamUGC._create(bmx_SteamAPI_ISteamClient_GetISteamUGC(instancePtr, _user, _steamPipe, TSteamUGC.STEAMUGC_INTERFACE_VERSION))
 	End Method
+
+	Rem
+	bbdoc: Returns a new instance of #TSteamFriends.
+	End Rem
+	Method GetISteamFriends:TSteamFriends()
+		Return TSteamFriends._create(bmx_SteamAPI_ISteamClient_GetISteamFriends(instancePtr, _user, _steamPipe, TSteamFriends.STEAMFRIENDS_INTERFACE_VERSION))
+	End Method
 	
 End Type
 
