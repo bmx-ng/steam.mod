@@ -35,6 +35,7 @@ Extern
 	Function bmx_SteamAPI_startBackgroundTimer()
 	Function bmx_SteamAPI_stopBackgroundTimer()
 	Function bmx_SteamAPI_RunCallbacks()
+	Function bmx_SteamAPI_RestartAppIfNecessary:Int(ownAppID:UInt)
 	
 	Function bmx_SteamInternal_CreateInterface:Byte Ptr(version:String)
 

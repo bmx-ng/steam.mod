@@ -100,6 +100,7 @@ extern "C" {
 	void bmx_SteamAPI_startBackgroundTimer();
 	void bmx_SteamAPI_stopBackgroundTimer();
 	void bmx_SteamAPI_RunCallbacks();
+	int bmx_SteamAPI_RestartAppIfNecessary(uint32 ownAppID);
 		
 	HSteamPipe bmx_SteamAPI_GetHSteamPipe();
 
@@ -356,6 +357,10 @@ void * bmx_SteamInternal_CreateInterface(BBString * version) {
 
 void bmx_SteamAPI_RunCallbacks() {
 	SteamAPI_RunCallbacks();
+}
+
+int bmx_SteamAPI_RestartAppIfNecessary(uint32 ownAppID) {
+	return SteamAPI_RestartAppIfNecessary(ownAppID);
 }
 
 class CallbackTimer
