@@ -2102,7 +2102,7 @@ EPersonaState bmx_SteamAPI_ISteamFriends_GetPersonaState(intptr_t instancePtr) {
 BBString * bmx_SteamAPI_ISteamFriends_GetPlayerNickname(intptr_t instancePtr, uint64 steamIDPlayer) {
 	BBString * n = &bbEmptyString;
 	const char * name = SteamAPI_ISteamFriends_GetPlayerNickname(instancePtr, steamIDPlayer);
-	if (strlen(name) > 0) {
+	if (name != NULL && strlen(name) > 0 ) {
 		n = bbStringFromUTF8String(name);
 	}
 	return n;	

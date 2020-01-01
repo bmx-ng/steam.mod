@@ -287,6 +287,18 @@ Rem
 bbdoc: The maximum size in bytes that a Workshop item title can be.
 End Rem
 Const k_cchPublishedDocumentTitleMax:UInt = 128 + 1
+Rem
+bbdoc: The maximum amount of rich presence keys that can be set.
+End Rem
+Const k_cchMaxRichPresenceKeys:Int = 20
+Rem
+bbdoc: The maximum length that a rich presence value can be.
+End Rem
+Const k_cchMaxRichPresenceValueLength:Int = 256
+Rem
+bbdoc: The maximum length that a rich presence key can be.
+End Rem
+Const k_cchMaxRichPresenceKeyLength:Int = 64
 
 ' // GENERATED
 

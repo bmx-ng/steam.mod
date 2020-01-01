@@ -2779,442 +2779,680 @@ Type TSteamFriends Extends TSteamAPI
 	bbdoc: Gets the Steam ID at the given index in a Steam group chat.
 	about: 
 	> NOTE: You must call #GetClanChatMemberCount before calling this.
-
-
 	End Rem
 	Method GetChatMemberByIndex:ULong(steamIDClan:ULong, user:Int)
 		Return bmx_SteamAPI_ISteamFriends_GetChatMemberByIndex(instancePtr, steamIDClan, user)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets the most recent information we have about what the users in a Steam Group are doing.
+	returns: #True if the data was successfully returned, otherwise #False if the provided Steam ID is invalid or the local client does not have info about the Steam group and sets all the other parameters to 0.
+	about: This can only retrieve data that the local client knows about.
+	To refresh the data or get data from a group other than one that the current user is a member of you must call #DownloadClanActivityCounts.
 	End Rem
 	Method GetClanActivityCounts:Int(steamIDClan:ULong, online:Int Var, inGame:Int Var, chatting:Int Var)
 		Return bmx_SteamAPI_ISteamFriends_GetClanActivityCounts(instancePtr, steamIDClan, online, inGame, chatting)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets the Steam group's Steam ID at the given index.
+	about: 
+	> NOTE: You must call #GetClanCount before calling this.
 	End Rem
 	Method GetClanByIndex:ULong(clan:Int)
 		Return bmx_SteamAPI_ISteamFriends_GetClanByIndex(instancePtr, clan)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets the number of users in a Steam group chat.
+	returns: 0 if the Steam ID provided is invalid or if the local user doesn't have the data available.
+	about: 
+	> NOTE: Large steam groups cannot be iterated by the local user.
+
+	> NOTE: The current user must be in a lobby to retrieve the Steam IDs of other users in that lobby.
+
+	This is used for iteration, after calling this then #GetChatMemberByIndex can be used to get the Steam ID of each person in the chat.
 	End Rem
 	Method GetClanChatMemberCount:Int(steamIDClan:ULong)
 		Return bmx_SteamAPI_ISteamFriends_GetClanChatMemberCount(instancePtr, steamIDClan)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets the data from a Steam group chat room message.
+	returns: The number of bytes copied into @txt. Returns 0 and sets @chatEntryType to k_EChatEntryTypeInvalid if the current user is not in the specified Steam group chat room or if the index provided in iMessage is invalid.
+	about: This should only ever be called in response to an #OnGameConnectedClanChatMsg callback.
 	End Rem
 	Method GetClanChatMessage:Int(steamIDClanChat:ULong, message:Int, txt:String Var, chatEntryType:EChatEntryType Var, steamidChatter:ULong Var)
 		Return bmx_SteamAPI_ISteamFriends_GetClanChatMessage(instancePtr, steamIDClanChat, message, txt, chatEntryType, steamidChatter)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets the number of Steam groups that the current user is a member of.
+	returns: The number of Steam groups that the user is a member of.
+	about: This is used for iteration, after calling this then #GetClanByIndex can be used to get the Steam ID of each Steam group.
 	End Rem
 	Method GetClanCount:Int()
 		Return bmx_SteamAPI_ISteamFriends_GetClanCount(instancePtr)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets the display name for the specified Steam group; if the local client knows about it.
+	returns: The Steam groups name. Returns an empty string ("") if the provided Steam ID is invalid or the user does not know about the group.
+	about: 
+	See Also: #DownloadClanActivityCounts
 	End Rem
 	Method GetClanName:String(steamIDClan:ULong)
 		Return bmx_SteamAPI_ISteamFriends_GetClanName(instancePtr, steamIDClan)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets the Steam ID of the officer at the given index in a Steam group.
+	about: 
+	> NOTE: You must call GetClanOfficerCount before calling this.
 	End Rem
 	Method GetClanOfficerByIndex:ULong(steamIDClan:ULong, officer:Int)
 		Return bmx_SteamAPI_ISteamFriends_GetClanOfficerByIndex(instancePtr, steamIDClan, officer)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets the number of officers (administrators and moderators) in a specified Steam group.
+	returns: The number of officers in the Steam group. Returns 0 if @steamIDClan is invalid or if #RequestClanOfficerList has not been called for it.
+	about: This also includes the owner of the Steam group.
+
+	This is used for iteration, after calling this then #GetClanOfficerByIndex can be used to get the Steam ID of each officer.
+
+	> NOTE: You must call #RequestClanOfficerList before this to get the required data!
 	End Rem
 	Method GetClanOfficerCount:Int(steamIDClan:ULong)
 		Return bmx_SteamAPI_ISteamFriends_GetClanOfficerCount(instancePtr, steamIDClan)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets the owner of a Steam Group.
+	returns: Returns k_steamIDNil if steamIDClan is invalid or if #RequestClanOfficerList has not been called for it.
+
+	about: 
+	> NOTE: You must call #RequestClanOfficerList before this to get the required data!
 	End Rem
 	Method GetClanOwner:ULong(steamIDClan:ULong)
 		Return bmx_SteamAPI_ISteamFriends_GetClanOwner(instancePtr, steamIDClan)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets the unique tag (abbreviation) for the specified Steam group; If the local client knows about it.
+	returns: The Steam groups tag, or an empty string ("") if the provided Steam ID is invalid or the user does not know about the group.
+	about: The Steam group abbreviation is a unique way for people to identify the group and is limited to 12 characters.
+	In some games this will appear next to the name of group members.
 	End Rem
 	Method GetClanTag:String(steamIDClan:ULong)
 		Return bmx_SteamAPI_ISteamFriends_GetClanTag(instancePtr, steamIDClan)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets the Steam ID of the recently played with user at the given index.
+	about: 
+	> NOTE: You must call #GetCoplayFriendCount before calling this.
 	End Rem
 	Method GetCoplayFriend:ULong(coplayFriend:Int)
 		Return bmx_SteamAPI_ISteamFriends_GetCoplayFriend(instancePtr, coplayFriend)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets the number of players that the current users has recently played with, across all games.
+	returns: The number of users that the current user has recently played with.
+
+	about: This is used for iteration, after calling this then #GetCoplayFriend can be used to get the Steam ID of each player.
+
+	These players are have been set with previous calls to #SetPlayedWith.
 	End Rem
 	Method GetCoplayFriendCount:Int()
 		Return bmx_SteamAPI_ISteamFriends_GetCoplayFriendCount(instancePtr)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets the number of users following the specified user.
+	about: Triggers an OnFriendsGetFollowerCount callback.
 	End Rem
 	Method GetFollowerCount(steamID:ULong)
 		bmx_SteamAPI_ISteamFriends_GetFollowerCount(callbackPTr, steamID)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets the Steam ID of the user at the given index.
+	about: 
+	> NOTE: You must call #GetFriendCount before calling this.
 	End Rem
 	Method GetFriendByIndex:ULong(friend:Int, friendFlags:Int)
 		Return bmx_SteamAPI_ISteamFriends_GetFriendByIndex(instancePtr, friend, friendFlags)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets the app ID of the game that user played with someone on their recently-played-with list.
 	End Rem
 	Method GetFriendCoplayGame:UInt(steamIDFriend:ULong)
 		Return bmx_SteamAPI_ISteamFriends_GetFriendCoplayGame(instancePtr, steamIDFriend)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets the timestamp of when the user played with someone on their recently-played-with list.
+	returns: The time is provided in Unix epoch format (seconds since Jan 1st 1970). Steam IDs not in the recently-played-with list return 0.
 	End Rem
 	Method GetFriendCoplayTime:Int(steamIDFriend:ULong)
 		Return bmx_SteamAPI_ISteamFriends_GetFriendCoplayTime(instancePtr, steamIDFriend)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets the number of users the client knows about who meet a specified criteria. (Friends, blocked, users on the same server, etc)
+	returns: The number of users that meet the specified criteria.
+	about: This can be used to iterate over all of the users by calling #GetFriendByIndex to get the Steam IDs of each user.
+
+	> NOTE: Returns -1 if the current user is not logged on.
 	End Rem
 	Method GetFriendCount:Int(friendFlags:Int)
 		Return bmx_SteamAPI_ISteamFriends_GetFriendCount(instancePtr, friendFlags)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Get the number of users in a source (Steam group, chat room, lobby, or game server).
+	returns: 0 if the Steam ID provided is invalid or if the local user doesn't have the data available.
+	about: 
+	> NOTE: Large Steam groups cannot be iterated by the local user.
+
+	> NOTE: If you're getting the number of lobby members then you should use ISteamMatchmaking::GetNumLobbyMembers instead.
+
+	This is used for iteration, after calling this then #GetFriendFromSourceByIndex can be used to get the Steam ID of each person in the source.
 	End Rem
 	Method GetFriendCountFromSource:Int(steamIDSource:ULong)
 		Return bmx_SteamAPI_ISteamFriends_GetFriendCountFromSource(instancePtr, steamIDSource)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets the Steam ID at the given index from a source (Steam group, chat room, lobby, or game server).
+	about: 
+	> NOTE: You must call #GetFriendCountFromSource before calling this.
 	End Rem
 	Method GetFriendFromSourceByIndex:ULong(steamIDSource:ULong, friend:Int)
 		Return bmx_SteamAPI_ISteamFriends_GetFriendFromSourceByIndex(instancePtr, steamIDSource, friend)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Checks if the specified friend is in a game, and gets info about the game if they are.
+	returns: #True if the user is a friend and is in a game, otherwise #False.
 	End Rem
 	Method GetFriendGamePlayed:Int(steamIDFriend:ULong, gameID:ULong Var, gameIP:UInt Var, gamePort:Short Var, queryPort:Short Var, steamIDLobby:ULong Var)
 		Return bmx_SteamAPI_ISteamFriends_GetFriendGamePlayed(instancePtr, steamIDFriend, gameID, gameIP, gamePort, queryPort, steamIDLobby)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets the data from a Steam friends message.
+	returns: The number of bytes copied into @txt. Returns 0 and sets @chatEntryType to k_EChatEntryTypeInvalid if the current user is chat restricted, if the provided Steam ID is not a friend, or if the index provided in @messageID is invalid.
+	about: This should only ever be called in response to an OGameConnectedFriendChatMsg callback.
 	End Rem
 	Method GetFriendMessage:Int(steamIDFriend:ULong, messageID:Int, txt:String Var, chatEntryType:EChatEntryType Var)
 		Return bmx_SteamAPI_ISteamFriends_GetFriendMessage(instancePtr, steamIDFriend, messageID, txt, chatEntryType)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets the specified user's persona (display) name.
+	returns: The current users persona name, or an empty string (""), or "[unknown]" if the Steam ID is invalid or not known to the caller.
+	about: This will only be known to the current user if the other user is in their friends list, on the same game server, in a chat room or
+	lobby, or in a small Steam group with the local user.
+
+	> NOTE: Upon on first joining a lobby, chat room, or game server the current user will not known the name of the other users automatically; that information will arrive asynchronously via #OnPersonaStateChanged callbacks.
+
+	To get the persona name of the current user use #GetPersonaName.
 	End Rem
 	Method GetFriendPersonaName:String(steamIDFriend:ULong)
 		Return bmx_SteamAPI_ISteamFriends_GetFriendPersonaName(instancePtr, steamIDFriend)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets one of the previous display names for the specified user.
+	returns: The players old persona name at the given index. Returns an empty string when there are no further items in the history.
+	about: This only works for display names that the current user has seen on the local computer.
 	End Rem
 	Method GetFriendPersonaNameHistory:String(steamIDFriend:ULong, personaName:Int)
 		Return bmx_SteamAPI_ISteamFriends_GetFriendPersonaNameHistory(instancePtr, steamIDFriend, personaName)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets the current status of the specified user.
+	returns: The friend state of the specified user. (Online, Offline, In-Game, etc)
+	about: This will only be known to the current user if the other user is in their friends list, on the same game server,
+	in a chat room or lobby, or in a small Steam group with the local user.
+
+	> To get the state of the current user use #GetPersonaState.
 	End Rem
 	Method GetFriendPersonaState:EPersonaState(steamIDFriend:ULong)
 		Return bmx_SteamAPI_ISteamFriends_GetFriendPersonaState(instancePtr, steamIDFriend)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets a relationship to a specified user.
+	returns: How the users know each other.
 	End Rem
 	Method GetFriendRelationship:EFriendRelationship(steamIDFriend:ULong)
 		Return bmx_SteamAPI_ISteamFriends_GetFriendRelationship(instancePtr, steamIDFriend)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets a Rich Presence value from a specified friend.
+	returns: An empty string ("") if the specified key is not set.
+	about: 
+	See Also: #RequestFriendRichPresence, #SetRichPresence
 	End Rem
 	Method GetFriendRichPresence:String(steamIDFriend:ULong, key:String)
 		Return bmx_SteamAPI_ISteamFriends_GetFriendRichPresence(instancePtr, steamIDFriend, key)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets a Rich Presence value from a specified friend for the given key index.
+	returns: An empty string ("") if the index is invalid or the specified user has no Rich Presence data available.
+	about: 
+	See Also: #RequestFriendRichPresence, #SetRichPresence
 	End Rem
 	Method GetFriendRichPresenceKeyByIndex:String(steamIDFriend:ULong, key:Int)
 		Return bmx_SteamAPI_ISteamFriends_GetFriendRichPresenceKeyByIndex(instancePtr, steamIDFriend, key)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets the number of Rich Presence keys that are set on the specified user.
+	returns: 0 if there is no Rich Presence information for the specified user.
+	about: This is used for iteration, after calling this then #GetFriendRichPresenceKeyByIndex to get the rich presence keys.
+
+	This is typically only ever used for debugging purposes.
 	End Rem
 	Method GetFriendRichPresenceKeyCount:Int(steamIDFriend:ULong)
 		Return bmx_SteamAPI_ISteamFriends_GetFriendRichPresenceKeyCount(instancePtr, steamIDFriend)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets the number of friends groups (tags) the user has created.
+	returns: The number of friends groups the current user has.
+	about: This is used for iteration, after calling this then #GetFriendsGroupIDByIndex can be used to get the ID of each friend group.
+
+	This is not to be confused with Steam groups. Those can be obtained with #GetClanCount.
 	End Rem
 	Method GetFriendsGroupCount:Int()
 		Return bmx_SteamAPI_ISteamFriends_GetFriendsGroupCount(instancePtr)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets the friends group ID for the given index.
+	about: 
+	> NOTE: You must call #GetFriendsGroupCount before calling this.
+
+
 	End Rem
 	Method GetFriendsGroupIDByIndex:Short(fg:Int)
 		Return bmx_SteamAPI_ISteamFriends_GetFriendsGroupIDByIndex(instancePtr, fg)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets the number of friends in a given friends group.
+	returns: The number of friends in the specified friends group.
+	about: This should be called before getting the list of friends with #GetFriendsGroupMembersList.
+	
+	See Also: #GetFriendsGroupCount
 	End Rem
 	Method GetFriendsGroupMembersCount:Int(friendsGroupID:Short)
 		Return bmx_SteamAPI_ISteamFriends_GetFriendsGroupMembersCount(instancePtr, friendsGroupID)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets the number of friends in the given friends group.
+	about: If fewer friends exist than requested those positions' Steam IDs will be invalid.
+
+	You must call #GetFriendsGroupMembersCount before calling this to set up the @outSteamIDMembers array with an appropriate size!
+	
+	See Also: #GetFriendsGroupCount
 	End Rem
 	Method GetFriendsGroupMembersList(friendsGroupID:Short, outSteamIDMembers:ULong Ptr, membersCount:Int)
 		bmx_SteamAPI_ISteamFriends_GetFriendsGroupMembersList(instancePtr, friendsGroupID, outSteamIDMembers, membersCount)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets the name for the given friends group.
+	returns: The friend groups name or #Null if the group ID is invalid.
+	about: 
+	See Also: #GetFriendsGroupCount
 	End Rem
 	Method GetFriendsGroupName:String(friendsGroupID:Short)
 		Return bmx_SteamAPI_ISteamFriends_GetFriendsGroupName(instancePtr, friendsGroupID)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets the Steam level of the specified user.
+	returns: The Steam level if it's available.
+	about: You can use the local users Steam ID (ISteamUser::GetSteamID) to get their level.
+	
+	
+	If the Steam level is not immediately available for the specified user then this returns 0 and queues it to be downloaded from the Steam servers.
+	When it gets downloaded an #OnPersonaStateChanged callback will be posted with @changeFlags including k_EPersonaChangeSteamLevel.
 	End Rem
 	Method GetFriendSteamLevel:Int(steamIDFriend:ULong)
 		Return bmx_SteamAPI_ISteamFriends_GetFriendSteamLevel(instancePtr, steamIDFriend)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets a handle to the large (128*128px) avatar for the specified user.
+	returns: A Steam image handle which is used with ISteamUtils::GetImageSize and ISteamUtils::GetImageRGBA. Returns 0 if no avatar is set for the user. Returns -1 if the avatar image data has not been loaded yet and requests that it gets download. In this case wait for an #OnAvatarImageLoaded callback and then call this again.
+	about: You can pass in ISteamUser::GetSteamID to get the current users avatar.
+
+	Triggers an #OnAvatarImageLoaded callback.
+
+	> NOTE: This only works for users that the local user knows about. They will automatically know about their friends, people on leaderboards they've requested, or people in the same source as them (Steam group, chat room, lobby, or game server). If they don't know about them then you must call #RequestUserInformation to cache the avatar locally.
+
+	See Also: #GetMediumFriendAvatar, #GetSmallFriendAvatar
 	End Rem
 	Method GetLargeFriendAvatar:Int(steamIDFriend:ULong)
 		Return bmx_SteamAPI_ISteamFriends_GetLargeFriendAvatar(instancePtr, steamIDFriend)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets a handle to the medium (64*64px) avatar for the specified user.
+	returns: A Steam image handle which is used with ISteamUtils::GetImageSize and ISteamUtils::GetImageRGBA, or 0 if no avatar is set for the user.
+	about: You can pass in ISteamUser::GetSteamID to get the current users avatar.
+
+	> NOTE: This only works for users that the local user knows about. They will automatically know about their friends, people on leaderboards they've requested, or people in the same source as them (Steam group, chat room, lobby, or game server). If they don't know about them then you must call #RequestUserInformation to cache the avatar locally.
+
+	See Also: #GetLargeFriendAvatar, #GetSmallFriendAvatar
 	End Rem
 	Method GetMediumFriendAvatar:Int(steamIDFriend:ULong)
 		Return bmx_SteamAPI_ISteamFriends_GetMediumFriendAvatar(instancePtr, steamIDFriend)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets the current users persona (display) name.
+	returns: The current users persona name.
+	about: This is the same name that is displayed the users community profile page.
+
+	To get the persona name of other users use #GetFriendPersonaName.
 	End Rem
 	Method GetPersonaName:String()
 		Return bmx_SteamAPI_ISteamFriends_GetPersonaName(instancePtr)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets the friend status of the current user.
+	returns: The friend state of the current user. (Online, Offline, In-Game, etc)
+	about: To get the state of other users use #GetFriendPersonaState.
 	End Rem
 	Method GetPersonaState:EPersonaState()
 		Return bmx_SteamAPI_ISteamFriends_GetPersonaState(instancePtr)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets the nickname that the current user has set for the specified user.
+	returns: #Null if the no nickname has been set for that user.
 	End Rem
 	Method GetPlayerNickname:String(steamIDPlayer:ULong)
 		Return bmx_SteamAPI_ISteamFriends_GetPlayerNickname(instancePtr, steamIDPlayer)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Gets a handle to the small (32*32px) avatar for the specified user.
+	returns: A Steam image handle which is used with ISteamUtils::GetImageSize and ISteamUtils::GetImageRGBA, or 0 if no avatar is set for the user.
+	about: You can pass in ISteamUser::GetSteamID to get the current users avatar.
+
+	> NOTE: This only works for users that the local user knows about. They will automatically know about their friends, people on leaderboards they've requested, or people in the same source as them (Steam group, chat room, lobby, or game server). If they don't know about them then you must call #RequestUserInformation to cache the avatar locally.
+
+	See Also: #GetLargeFriendAvatar, #GetMediumFriendAvatar
 	End Rem
 	Method GetSmallFriendAvatar:Int(steamIDFriend:ULong)
 		Return bmx_SteamAPI_ISteamFriends_GetSmallFriendAvatar(instancePtr, steamIDFriend)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Checks if current user is chat restricted.
+	about: If they are restricted, then they can't send or receive any text/voice chat messages, can't see custom avatars.
+	A chat restricted user can't add friends or join any groups.
+	Restricted users can still be online and send/receive game invites.
 	End Rem
 	Method GetUserRestrictions:UInt()
 		Return bmx_SteamAPI_ISteamFriends_GetUserRestrictions(instancePtr)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Checks if the user meets the specified criteria. (Friends, blocked, users on the same server, etc)
+	returns: #True if the specified user meets any of the criteria specified in @friendFlags; otherwise, #False.
 	End Rem
 	Method HasFriend:Int(steamIDFriend:ULong, friendFlags:Int)
 		Return bmx_SteamAPI_ISteamFriends_HasFriend(instancePtr, steamIDFriend, friendFlags)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Invites a friend or clan member to the current game using a special invite string.
+	about: If the target user accepts the invite then the @connectString gets added to the command-line when launching the game.
+	
+	If the game is already running for that user, then they will receive an #OnGameRichPresenceJoinRequested callback with the connect string.
+
+	See Also: ISteamMatchmaking::InviteUserToLobby
 	End Rem
 	Method InviteUserToGame:Int(steamIDFriend:ULong, connectString:String)
 		Return bmx_SteamAPI_ISteamFriends_InviteUserToGame(instancePtr, steamIDFriend, connectString)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Checks if a user in the Steam group chat room is an admin.
+	returns: #True if the specified user is an admin, otherwise #False if the user is not an admin, if the current user is not in the chat room specified, or the specified user is not in the chat room.
 	End Rem
 	Method IsClanChatAdmin:Int(steamIDClanChat:ULong, steamIDUser:ULong)
 		Return bmx_SteamAPI_ISteamFriends_IsClanChatAdmin(instancePtr, steamIDClanChat, steamIDUser)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Checks if the Steam group is public.
+	returns: #True if the specified group is public, otherwise #False if the specified group is not public.
 	End Rem
 	Method IsClanPublic:Int(steamIDClan:ULong)
 		Return bmx_SteamAPI_ISteamFriends_IsClanPublic(instancePtr, steamIDClan)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Checks if the Steam group is an official game group/community hub.
+	returns: #True if the specified group is an official game group/community hub, #False if the specified group is not an official game group/community hub.
 	End Rem
 	Method IsClanOfficialGameGroup:Int(steamIDClan:ULong)
 		Return bmx_SteamAPI_ISteamFriends_IsClanOfficialGameGroup(instancePtr, steamIDClan)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Checks if the Steam Group chat room is open in the Steam UI.
+	returns: #True if the specified Steam group chat room is opened, otherwise, #False. This also returns #False if the specified Steam group chat room is unknown.
+	about: 
+	See Also: #OpenClanChatWindowInSteam, #CloseClanChatWindowInSteam
 	End Rem
 	Method IsClanChatWindowOpenInSteam:Int(steamIDClanChat:ULong)
 		Return bmx_SteamAPI_ISteamFriends_IsClanChatWindowOpenInSteam(instancePtr, steamIDClanChat)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Checks if the current user is following the specified user.
+	about: Triggers the #OnFriendsIsFollowing callback.
 	End Rem
 	Method IsFollowing(steamID:ULong)
 		bmx_SteamAPI_ISteamFriends_IsFollowing(callbackPtr, steamID)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Checks if a specified user is in a source (Steam group, chat room, lobby, or game server).
+	returns: #True if the local user can see that @steamIDUser is a member or in @steamIDSource, otherwise, #False.
 	End Rem
 	Method IsUserInSource:Int(steamIDUser:ULong, steamIDSource:ULong)
 		Return bmx_SteamAPI_ISteamFriends_IsUserInSource(instancePtr, steamIDUser, steamIDSource)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Allows the user to join Steam group (clan) chats right within the game.
+	about: The behavior is somewhat complicated, because the user may or may not be already in the group chat from outside the game or in the overlay.
+
+	You can use #ActivateGameOverlayToUser to open the in-game overlay version of the chat.
+
+	If you have joined a Steam group chat then you should be watching for the following callbacks:
+	* #OnGameConnectedClanChatMsg
+	* #OnGameConnectedChatJoin
+	* #OnGameConnectedChatLeave
+
+	See Also: #LeaveClanChatRoom, #GetClanChatMemberCount, #GetChatMemberByIndex, #SendClanChatMessage, #GetClanChatMessage, #IsClanChatAdmin, #IsClanChatWindowOpenInSteam
 	End Rem
 	Method JoinClanChatRoom(steamIDClan:ULong)
 		bmx_SteamAPI_ISteamFriends_JoinClanChatRoom(callbackPtr, steamIDClan)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Leaves a Steam group chat that the user has previously entered with #JoinClanChatRoom.
+	returns: #True if user is in the specified chat room, otherwise #False.
+	about: Triggers an #OnGameConnectedChatLeave callback.
 	End Rem
 	Method LeaveClanChatRoom:Int(steamIDClan:ULong)
 		Return bmx_SteamAPI_ISteamFriends_LeaveClanChatRoom(instancePtr, steamIDClan)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Opens the specified Steam group chat room in the Steam UI.
+	returns: #True if the user successfully entered the Steam group chat room.
+	about: 
+	Returns #False in one of the following situations:
+	* The provided Steam group chat room does not exist or the user does not have access to join it.
+	* The current user is currently rate limited.
+	* The current user is chat restricted.
+
+	See Also: #IsClanChatWindowOpenInSteam, #CloseClanChatWindowInSteam
 	End Rem
 	Method OpenClanChatWindowInSteam:Int(steamIDClanChat:ULong)
 		Return bmx_SteamAPI_ISteamFriends_OpenClanChatWindowInSteam(instancePtr, steamIDClanChat)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Sends a message to a Steam friend.
+	returns: #True if the message was successfully sent, otherwise #False if the current user is rate limited or chat restricted.
 	End Rem
 	Method ReplyToFriendMessage:Int(steamIDFriend:ULong, msgToSend:String)
 		Return bmx_SteamAPI_ISteamFriends_ReplyToFriendMessage(instancePtr, steamIDFriend, msgToSend)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Requests information about a Steam group officers (administrators and moderators).
+	about: 
+	Triggers an #OnClanOfficerListResponse callback.
+	
+	> NOTE: You can only ask about Steam groups that a user is a member of.
+
+	> NOTE: This won't download avatars for the officers automatically. If no avatar image is available for an officer, then call #RequestUserInformation to download the avatar.
+
+	See Also: #GetClanOwner, #GetClanOfficerCount, #GetClanOfficerByIndex
 	End Rem
 	Method RequestClanOfficerList(steamIDClan:ULong)
 		bmx_SteamAPI_ISteamFriends_RequestClanOfficerList(callbackPtr, steamIDClan)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Requests Rich Presence data from a specific user.
+	about: This is used to get the Rich Presence information from a user that is not a friend of the current user, like someone in the same lobby or game server.
+
+	This method is rate limited, if you call this too frequently for a particular user then it will just immediately post a callback without requesting new data from the server.
+	
+	Triggers an #OnFriendRichPresenceUpdated callback.
+	
+	See Also: #GetFriendRichPresence, #SetRichPresence
 	End Rem
 	Method RequestFriendRichPresence(steamIDFriend:ULong)
 		bmx_SteamAPI_ISteamFriends_RequestFriendRichPresence(instancePtr, steamIDFriend)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Requests the persona name and optionally the avatar of a specified user.
+	returns: #True means that the data has being requested, and an #OnPersonaStateChanged callback will be posted when it's retrieved. #False means that we already have all the details about that user, and functions that require this information can be used immediately.
+	about: 
+	Triggers an #OnPersonaStateChanged callback.
+	
+	> NOTE: It's a lot slower to download avatars and churns the local cache, so if you don't need avatars, don't request them.
 	End Rem
 	Method RequestUserInformation:Int(steamIDUser:ULong, requireNameOnly:Int)
 		Return bmx_SteamAPI_ISteamFriends_RequestUserInformation(instancePtr, steamIDUser, requireNameOnly)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Sends a message to a Steam group chat room.
+	returns: #True if the message was successfully sent.
+	about: 
+	Returns #False under one of the following circumstances:
+	* The current user is not in the specified group chat.
+	* The current user is not connected to Steam.
+	* The current user is rate limited.
+	* The current user is chat restricted.
+	* The message in @txt exceeds 2048 characters.
 	End Rem
 	Method SendClanChatMessage:Int(steamIDClanChat:ULong, txt:String)
 		Return bmx_SteamAPI_ISteamFriends_SendClanChatMessage(instancePtr, steamIDClanChat, txt)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Lets Steam know that the user is currently using voice chat in game.
+	about: This will suppress the microphone for all voice communication in the Steam UI.
 	End Rem
 	Method SetInGameVoiceSpeaking(steamIDUser:ULong, speaking:Int)
 		bmx_SteamAPI_ISteamFriends_SetInGameVoiceSpeaking(instancePtr, steamIDUser, speaking)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Listens for Steam friends chat messages.
+	returns: Always returns #True.
+	about: You can then show these chats inline in the game. For example with a Blizzard style chat message system or the chat system in Dota 2.
+	After enabling this you will receive #OnGameConnectedFriendChatMsg callbacks when ever the user receives a chat message.
+	You can get the actual message data from this callback with #GetFriendMessage. You can send messages with #ReplyToFriendMessage.
+	
+	Triggers an #OnGameConnectedFriendChatMsg callback.
 	End Rem
 	Method SetListenForFriendsMessages:Int(interceptEnabled:Int)
 		Return bmx_SteamAPI_ISteamFriends_SetListenForFriendsMessages(instancePtr, interceptEnabled)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Sets the current users persona name, stores it on the server and publishes the changes to all friends who are online.
+	about: Changes take place locally immediately, and an #OnPersonaStateChanged callback is posted, presuming success.
+
+	If the name change fails to happen on the server, then an additional #OnPersonaStateChanged callback will be posted to change the name back,
+	in addition to the final result available in the call result.
 	End Rem
 	Method SetPersonaName(personaName:String)
 		bmx_SteamAPI_ISteamFriends_SetPersonaName(callbackPtr, personaName)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Marks a target user as 'played with'.
+	about: 
+	> NOTE: The current user must be in game with the other player for the association to work.
+
+	You can view the players you have recently played with here on the Steam community and in the Steam Overlay.
 	End Rem
 	Method SetPlayedWith(steamIDUserPlayedWith:ULong)
 		bmx_SteamAPI_ISteamFriends_SetPlayedWith(instancePtr, steamIDUserPlayedWith)
 	End Method
 	
 	Rem
-	bbdoc: 
+	bbdoc: Sets a Rich Presence key/value for the current user that is automatically shared to all friends playing the same game.
+	returns: #True if the rich presence was set successfully.
+	about: Each user can have up to 20 keys set as defined by #k_cchMaxRichPresenceKeys.
+
+	There are two special keys used for viewing/joining games:
+	* "status" - A #String that will show up in the 'view game info' dialog in the Steam friends list.
+	* "connect" - A #String that contains the command-line for how a friend can connect to a game. This enables the 'join game' button in the 'view game info' dialog, in the steam friends list right click menu, and on the players Steam community profile.
+
+	There are three additional special keys used by the new Steam Chat:
+	* "steam_display" - Names a rich presence localization token that will be displayed in the viewing user's selected language in the Steam client UI. See [Rich Presence Localization](https://partner.steamgames.com/doc/api/ISteamFriends#richpresencelocalization) for more info, including a link to a page for testing this rich presence data. If steam_display is not set to a valid localization tag, then rich presence will not be displayed in the Steam client.
+	* "steam_player_group" - When set, indicates to the Steam client that the player is a member of a particular group. Players in the same group may be organized together in various places in the Steam UI. This string could identify a party, a server, or whatever grouping is relevant for your game. The string itself is not displayed to users.
+	* "steam_player_group_size" - When set, indicates the total number of players in the steam_player_group. The Steam client may use this number to display additional information about a group when all of the members are not part of a user's friends list. (For example, "Bob, Pete, and 4 more".)
+
+	You can clear all of the keys for the current user with #ClearRichPresence.
+
+	To get rich presence keys for friends see: #GetFriendRichPresence.
+
+	Returns #False under the following conditions:
+	* @key was longer than #k_cchMaxRichPresenceKeyLength or had a length of 0.
+	* @value was longer than #k_cchMaxRichPresenceValueLength.
+	* The user has reached the maximum amount of rich presence keys as defined by #k_cchMaxRichPresenceKeys.
 	End Rem
 	Method SetRichPresence:Int(key:String, value:String)
 		Return bmx_SteamAPI_ISteamFriends_SetRichPresence(instancePtr, key, value)
