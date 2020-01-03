@@ -1,4 +1,4 @@
-' Copyright (c) 2019 Bruce A Henderson
+' Copyright (c) 2019-2020 Bruce A Henderson
 ' 
 ' This software is provided 'as-is', without any express or implied
 ' warranty. In no event will the authors be held liable for any damages
@@ -21,13 +21,15 @@ SuperStrict
 Rem
 bbdoc: Steam SDK
 End Rem
-Module steam.steamsdk
+Module Steam.SteamSDK
 
-ModuleInfo "Version: 1.02"
+ModuleInfo "Version: 1.03"
 ModuleInfo "License: zlib/libpng"
 ModuleInfo "Copyright: Steam SDK - Valve Corporation"
-ModuleInfo "Copyright: Wrapper - 2019 Bruce A Henderson"
+ModuleInfo "Copyright: Wrapper - 2019-2020 Bruce A Henderson"
 
+ModuleInfo "History: 1.03"
+ModuleInfo "History: Fixed thread registration."
 ModuleInfo "History: 1.02"
 ModuleInfo "History: Added ISteamFriends API."
 ModuleInfo "History: 1.01"

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 2019 Bruce A Henderson
+  Copyright (c) 2019-2020 Bruce A Henderson
   
   This software is provided 'as-is', without any express or implied
   warranty. In no event will the authors be held liable for any damages
@@ -367,6 +367,7 @@ class CallbackTimer
 {
     std::thread th;
     bool running = false;
+	BBThread * bbThread = NULL;
 
 public:
     typedef std::chrono::milliseconds Interval;
@@ -376,13 +377,20 @@ public:
         running = true;
 
         th = std::thread([=]() {
-			struct GC_stack_base base;;
-			GC_get_stack_base(&base);
-			GC_register_my_thread(&base);
+
+#ifdef _WIN32
+			auto nativeThread = ::GetCurrentThreadId();
+#else
+			auto nativeThread = pthread_self();
+#endif
+			bbThread = bbThreadRegister(nativeThread);
+
             while (running) {
                 std::this_thread::sleep_for(interval);
                 timeout();
             }
+
+			bbThreadUnregister(bbThread);
         });
     }
 
