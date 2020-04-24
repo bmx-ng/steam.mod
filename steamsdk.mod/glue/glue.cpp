@@ -381,7 +381,7 @@ public:
 #ifdef _WIN32
 			auto nativeThread = ::GetCurrentThreadId();
 #else
-			auto nativeThread = pthread_self();
+			void * nativeThread = (void*)pthread_self();
 #endif
 			bbThread = bbThreadRegister(nativeThread);
 
