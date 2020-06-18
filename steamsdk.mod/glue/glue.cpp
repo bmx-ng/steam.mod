@@ -165,6 +165,8 @@ extern "C" {
 	int bmx_SteamAPI_ISteamUserStats_GetLeaderboardEntryCount(intptr_t instancePtr, uint64 leaderboardHandle);
 	BBString * bmx_SteamAPI_ISteamUserStats_GetLeaderboardName(intptr_t instancePtr, uint64 leaderboardHandle);
 	ELeaderboardSortMethod bmx_SteamAPI_ISteamUserStats_GetLeaderboardSortMethod(intptr_t instancePtr, uint64 leaderboardHandle);
+	int bmx_SteamAPI_ISteamUserStats_GetStat(intptr_t instancePtr, BBString * name, int * data);
+	int bmx_SteamAPI_ISteamUserStats_GetStat0(intptr_t instancePtr, BBString * name, float * data);
 	int bmx_SteamAPI_ISteamGameServerStats_GetUserAchievement(intptr_t instancePtr, uint64 steamID, BBString * name, int * achieved);
 	int bmx_SteamAPI_ISteamUserStats_GetUserAchievementAndUnlockTime(intptr_t instancePtr, uint64 steamID, BBString * name, int * achieved, uint32 * unlockTime);
 	int bmx_SteamAPI_ISteamGameServerStats_GetUserStat(intptr_t instancePtr, uint64 steamID, BBString * name, int * data);
@@ -923,6 +925,20 @@ BBString * bmx_SteamAPI_ISteamUserStats_GetLeaderboardName(intptr_t instancePtr,
 
 ELeaderboardSortMethod bmx_SteamAPI_ISteamUserStats_GetLeaderboardSortMethod(intptr_t instancePtr, uint64 leaderboardHandle) {
 	return SteamAPI_ISteamUserStats_GetLeaderboardSortMethod(instancePtr, leaderboardHandle);
+}
+
+int bmx_SteamAPI_ISteamUserStats_GetStat(intptr_t instancePtr, BBString * name, int * data) {
+	char * n = bbStringToUTF8String(name);
+	int res = SteamAPI_ISteamUserStats_GetStat(instancePtr, n, data);
+	bbMemFree(n);
+	return res;
+}
+
+int bmx_SteamAPI_ISteamUserStats_GetStat0(intptr_t instancePtr, BBString * name, float * data) {
+	char * n = bbStringToUTF8String(name);
+	int res = SteamAPI_ISteamUserStats_GetStat0(instancePtr, n, data);
+	bbMemFree(n);
+	return res;
 }
 
 int bmx_SteamAPI_ISteamGameServerStats_GetUserAchievement(intptr_t instancePtr, uint64 steamID, BBString * name, int * achieved) {

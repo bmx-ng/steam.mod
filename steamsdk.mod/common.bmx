@@ -22,6 +22,8 @@ SuperStrict
 Import "-l:steam_api64.dll"
 ?linuxx64
 Import "-lsteam_api"
+?macosx64
+Import "-lsteam_api"
 ?
 
 Import "glue/glue.cpp"
@@ -96,6 +98,8 @@ Extern
 	Function bmx_SteamAPI_ISteamUserStats_GetLeaderboardEntryCount:Int(inst:Byte Ptr, leaderboardHandle:ULong)
 	Function bmx_SteamAPI_ISteamUserStats_GetLeaderboardName:String(inst:Byte Ptr, leadboarHandle:ULong)
 	Function bmx_SteamAPI_ISteamUserStats_GetLeaderboardSortMethod:ELeaderboardSortMethod(inst:Byte Ptr, leaderboardHandle:ULong)
+	Function bmx_SteamAPI_ISteamUserStats_GetStat:Int(inst:Byte Ptr, name:String, data:Int Var)
+	Function bmx_SteamAPI_ISteamUserStats_GetStat0:Int(inst:Byte Ptr, name:String, data:Float Var)
 	Function bmx_SteamAPI_ISteamGameServerStats_GetUserAchievement:Int(inst:Byte Ptr, steamID:ULong, name:String, achieved:Int Var)
 	Function bmx_SteamAPI_ISteamUserStats_GetUserAchievementAndUnlockTime:Int(inst:Byte Ptr, steamID:ULong, name:String, achieved:Int Var, unlockTime:UInt Var)
 	Function bmx_SteamAPI_ISteamGameServerStats_GetUserStat:Int(inst:Byte Ptr, steamID:ULong, name:String, data:Int Var)

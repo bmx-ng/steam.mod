@@ -23,11 +23,14 @@ bbdoc: Steam SDK
 End Rem
 Module Steam.SteamSDK
 
-ModuleInfo "Version: 1.03"
+ModuleInfo "Version: 1.04"
 ModuleInfo "License: zlib/libpng"
 ModuleInfo "Copyright: Steam SDK - Valve Corporation"
 ModuleInfo "Copyright: Wrapper - 2019-2020 Bruce A Henderson"
 
+ModuleInfo "History: 1.04"
+ModuleInfo "History: Added ISteamUserStats GetStats()."
+ModuleInfo "History: Fixed linking for macOS and Linux."
 ModuleInfo "History: 1.03"
 ModuleInfo "History: Fixed thread registration."
 ModuleInfo "History: 1.02"
@@ -42,6 +45,7 @@ ModuleInfo "CPP_OPTS: -std=c++11"
 ModuleInfo "LD_OPTS: -L%PWD%/sdk/redistributable_bin/win64"
 ?linuxx64
 ModuleInfo "LD_OPTS: -L%PWD%/sdk/redistributable_bin/linux64"
+ModuleInfo "LD_OPTS: -Wl,-rpath,'$ORIGIN'"
 ?macosx64
 ModuleInfo "LD_OPTS: -L%PWD%/sdk/redistributable_bin/osx32"
 ?
@@ -872,7 +876,41 @@ Type TSteamUserStats Extends TSteamAPI
 	Method GetNumberOfCurrentPlayers()
 		bmx_SteamAPI_ISteamUserStats_GetNumberOfCurrentPlayers(callbackPtr)
 	End Method
-	
+
+	Rem
+	bbdoc: Gets the current value of the a stat for the current user.
+	about: You must have called #RequestCurrentStats and it needs to return successfully via its callback prior to calling this.
+
+	To receive stats for other users use #GetUserStat.
+
+	This method returns #True upon success if all of the following conditions are met; otherwise, #False.
+	* The specified stat exists in App Admin on the Steamworks website, and the changes are published.
+	* #RequestCurrentStats has completed and successfully returned its callback.
+	* The type passed to this function must match the type listed in the App Admin panel of the Steamworks website.
+
+	See Also: #RequestCurrentStats, #SetStat, #UpdateAvgRateStat, #StoreStats, #ResetAllStats
+	End Rem
+	Method GetStat:Int(name:String, data:Int Var)
+		Return bmx_SteamAPI_ISteamUserStats_GetStat(instancePtr, name, data)
+	End Method
+
+	Rem
+	bbdoc: Gets the current value of the a stat for the current user.
+	about: You must have called #RequestCurrentStats and it needs to return successfully via its callback prior to calling this.
+
+	To receive stats for other users use #GetUserStat.
+
+	This method returns #True upon success if all of the following conditions are met; otherwise, #False.
+	* The specified stat exists in App Admin on the Steamworks website, and the changes are published.
+	* #RequestCurrentStats has completed and successfully returned its callback.
+	* The type passed to this function must match the type listed in the App Admin panel of the Steamworks website.
+
+	See Also: #RequestCurrentStats, #SetStat, #UpdateAvgRateStat, #StoreStats, #ResetAllStats
+	End Rem
+	Method GetStat:Int(name:String, data:Float Var)
+		Return bmx_SteamAPI_ISteamUserStats_GetStat0(instancePtr, name, data)
+	End Method
+
 	Rem
 	bbdoc: Gets the unlock status of the Achievement.
 	about: The equivalent function for the local user is #GetAchievement.
