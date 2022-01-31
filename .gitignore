@@ -2,3 +2,5 @@
 .bmx
 *.i
 *.i2
+
+.DS_Store

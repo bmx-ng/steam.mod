@@ -1,4 +1,4 @@
-' Copyright (c) 2019-2020 Bruce A Henderson
+' Copyright (c) 2019-2022 Bruce A Henderson
 ' 
 ' This software is provided 'as-is', without any express or implied
 ' warranty. In no event will the authors be held liable for any damages
@@ -23,11 +23,14 @@ bbdoc: Steam SDK
 End Rem
 Module Steam.SteamSDK
 
-ModuleInfo "Version: 1.04"
+ModuleInfo "Version: 1.05"
 ModuleInfo "License: zlib/libpng"
 ModuleInfo "Copyright: Steam SDK - Valve Corporation"
-ModuleInfo "Copyright: Wrapper - 2019-2020 Bruce A Henderson"
+ModuleInfo "Copyright: Wrapper - 2019-2022 Bruce A Henderson"
 
+ModuleInfo "History: 1.05"
+ModuleInfo "History: Update to steamworks sdk 1.53a."
+ModuleInfo "History: Build fixes."
 ModuleInfo "History: 1.04"
 ModuleInfo "History: Added ISteamUserStats GetStats()."
 ModuleInfo "History: Fixed linking for macOS and Linux."
@@ -41,19 +44,25 @@ ModuleInfo "History: 1.00"
 ModuleInfo "History: Initial Release."
 
 ModuleInfo "CPP_OPTS: -std=c++11"
+?win32x86
+ModuleInfo "LD_OPTS: -L%PWD%/sdk/redistributable_bin"
 ?win32x64
 ModuleInfo "LD_OPTS: -L%PWD%/sdk/redistributable_bin/win64"
+?linuxx86
+ModuleInfo "LD_OPTS: -L%PWD%/sdk/redistributable_bin/linux32"
+ModuleInfo "LD_OPTS: -Wl,-rpath,'$ORIGIN'"
 ?linuxx64
 ModuleInfo "LD_OPTS: -L%PWD%/sdk/redistributable_bin/linux64"
 ModuleInfo "LD_OPTS: -Wl,-rpath,'$ORIGIN'"
 ?macosx64
-ModuleInfo "LD_OPTS: -L%PWD%/sdk/redistributable_bin/osx32"
+ModuleInfo "LD_OPTS: -L%PWD%/sdk/redistributable_bin/osx"
+?macosarm64
+ModuleInfo "LD_OPTS: -L%PWD%/sdk/redistributable_bin/osx"
 ?
 
 '
 ' Build notes :
 '    steamtypes.h was changed to support building with mingw
-'    include/flat.h is steam_api_flat.h with the defs stripped out.
 '
 
 Import "common.bmx"
@@ -64,8 +73,7 @@ Global _steamPipe:UInt
 Global _inited:Int
 Global _user:Int
 Global _autoRunCallbacks:Int
-
-OnEnd SteamShutdown
+Global _shutdown:Int
 
 Public
 
@@ -112,12 +120,16 @@ End Function
 
 Rem
 bbdoc: Shuts down Steam.
+about: This should be called before your application closes.
 End Rem
 Function SteamShutdown()
-	If _autoRunCallbacks Then
-		bmx_SteamAPI_stopBackgroundTimer()
+	If Not _shutdown Then
+		_shutdown = True
+		If _autoRunCallbacks Then
+			bmx_SteamAPI_stopBackgroundTimer()
+		End If
+		bmx_SteamAPI_Shutdown()
 	End If
-	bmx_SteamAPI_Shutdown()
 End Function
 
 Rem
@@ -739,7 +751,7 @@ Type TSteamUserStats Extends TSteamAPI
 	See Also: #GetGlobalStatHistory
 	End Rem
 	Method GetGlobalStat:Int(statName:String, data:Long Var)
-		Return bmx_SteamAPI_ISteamUserStats_GetGlobalStat(instancePtr, statName, data)
+		Return bmx_SteamAPI_ISteamUserStats_GetGlobalStatInt64(instancePtr, statName, data)
 	End Method
 	
 	Rem
@@ -754,7 +766,7 @@ Type TSteamUserStats Extends TSteamAPI
 	See Also: #GetGlobalStatHistory
 	End Rem
 	Method GetGlobalStat:Int(statName:String, data:Double Var)
-		Return bmx_SteamAPI_ISteamUserStats_GetGlobalStat0(instancePtr, statName, data)
+		Return bmx_SteamAPI_ISteamUserStats_GetGlobalStatDouble(instancePtr, statName, data)
 	End Method
 	
 	Rem
@@ -772,7 +784,7 @@ Type TSteamUserStats Extends TSteamAPI
 	* There is no history available.
 	End Rem
 	Method GetGlobalStatHistory:Int(statName:String, data:Long[])
-		Return bmx_SteamAPI_ISteamUserStats_GetGlobalStatHistory(instancePtr, statName, data, UInt(data.length))
+		Return bmx_SteamAPI_ISteamUserStats_GetGlobalStatHistoryInt64(instancePtr, statName, data, UInt(data.length))
 	End Method
 	
 	Rem
@@ -790,7 +802,7 @@ Type TSteamUserStats Extends TSteamAPI
 	* There is no history available.
 	End Rem
 	Method GetGlobalStatHistory:Int(statName:String, data:Double[])
-		Return bmx_SteamAPI_ISteamUserStats_GetGlobalStatHistory0(instancePtr, statName, data, UInt(data.length))
+		Return bmx_SteamAPI_ISteamUserStats_GetGlobalStatHistoryDouble(instancePtr, statName, data, UInt(data.length))
 	End Method
 	
 	Rem
@@ -891,7 +903,7 @@ Type TSteamUserStats Extends TSteamAPI
 	See Also: #RequestCurrentStats, #SetStat, #UpdateAvgRateStat, #StoreStats, #ResetAllStats
 	End Rem
 	Method GetStat:Int(name:String, data:Int Var)
-		Return bmx_SteamAPI_ISteamUserStats_GetStat(instancePtr, name, data)
+		Return bmx_SteamAPI_ISteamUserStats_GetStatInt32(instancePtr, name, data)
 	End Method
 
 	Rem
@@ -908,7 +920,7 @@ Type TSteamUserStats Extends TSteamAPI
 	See Also: #RequestCurrentStats, #SetStat, #UpdateAvgRateStat, #StoreStats, #ResetAllStats
 	End Rem
 	Method GetStat:Int(name:String, data:Float Var)
-		Return bmx_SteamAPI_ISteamUserStats_GetStat0(instancePtr, name, data)
+		Return bmx_SteamAPI_ISteamUserStats_GetStatFloat(instancePtr, name, data)
 	End Method
 
 	Rem
@@ -952,7 +964,7 @@ Type TSteamUserStats Extends TSteamAPI
 	* The type does not match the type listed in the App Admin panel of the Steamworks website.
 	End Rem
 	Method GetUserStat:Int(steamID:ULong, name:String, data:Int Var)
-		Return bmx_SteamAPI_ISteamGameServerStats_GetUserStat(instancePtr, steamID, name, data)
+		Return bmx_SteamAPI_ISteamGameServerStats_GetUserStatInt32(instancePtr, steamID, name, data)
 	End Method
 	
 	Rem
@@ -966,7 +978,7 @@ Type TSteamUserStats Extends TSteamAPI
 	* The type does not match the type listed in the App Admin panel of the Steamworks website.
 	End Rem
 	Method GetUserStat:Int(steamID:ULong, name:String, data:Float Var)
-		Return bmx_SteamAPI_ISteamGameServerStats_GetUserStat0(instancePtr, steamID, name, data)
+		Return bmx_SteamAPI_ISteamGameServerStats_GetUserStatFloat(instancePtr, steamID, name, data)
 	End Method
 	
 	Rem
@@ -1086,7 +1098,7 @@ Type TSteamUserStats Extends TSteamAPI
 	See Also: #GetStat, #UpdateAvgRateStat, #ResetAllStats
 	End Rem
 	Method SetStat:Int(name:String, data:Int)
-		Return bmx_SteamAPI_ISteamUserStats_SetStat(instancePtr, name, data)
+		Return bmx_SteamAPI_ISteamUserStats_SetStatInt32(instancePtr, name, data)
 	End Method
 	
 	Rem
@@ -1107,7 +1119,7 @@ Type TSteamUserStats Extends TSteamAPI
 	See Also: #GetStat, #UpdateAvgRateStat, #ResetAllStats
 	End Rem
 	Method SetStat:Int(name:String, data:Float)
-		Return bmx_SteamAPI_ISteamUserStats_SetStat0(instancePtr, name, data)
+		Return bmx_SteamAPI_ISteamUserStats_SetStatFloat(instancePtr, name, data)
 	End Method
 	
 	Rem
@@ -1749,8 +1761,8 @@ Type TSteamUGC Extends TSteamAPI
 
 	To query for the UGC associated with a single user you can use #CreateQueryUserUGCRequest instead.
 	End Rem
-	Method CreateQueryAllUGCRequest:ULong(queryType:EUGCQuery, matchingeMatchingUGCTypeFileType:EUGCMatchingUGCType, creatorAppID:UInt, consumerAppID:UInt, page:UInt)
-		Return bmx_SteamAPI_ISteamUGC_CreateQueryAllUGCRequest(instancePtr, queryType, matchingeMatchingUGCTypeFileType, creatorAppID, consumerAppID, page)
+	Method CreateQueryAllUGCRequestPage:ULong(queryType:EUGCQuery, matchingeMatchingUGCTypeFileType:EUGCMatchingUGCType, creatorAppID:UInt, consumerAppID:UInt, page:UInt)
+		Return bmx_SteamAPI_ISteamUGC_CreateQueryAllUGCRequestPage(instancePtr, queryType, matchingeMatchingUGCTypeFileType, creatorAppID, consumerAppID, page)
 	End Method
 	
 	Rem

@@ -35,6 +35,8 @@ For Local i:Int = 0 Until 50
 	Delay 100
 Next
 
+SteamShutdown()
+
 End
 
 Function ListAchievements(userStats:TSteamUserStats)

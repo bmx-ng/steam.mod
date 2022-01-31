@@ -1,7 +1,7 @@
 SuperStrict
 
 Framework brl.standardio
-Import brl.json
+Import text.json
 Import brl.linkedlist
 Import brl.map
 
@@ -19,7 +19,7 @@ Local json:TJSONObject = TJSONObject(TJSON.Load(stream, 0, error))
 
 Local enums:TList = ParseEnums(TJSONArray(json.Get("enums")))
 Local typeMapping:TTypeMapping = ParseTypeMappings(TJSONArray(json.Get("typedefs")))
-Local classes:TClasses = ParseMethods(TJSONArray(json.Get("methods")))
+'Local classes:TClasses = ParseMethods(TJSONArray(json.Get("methods")))
 
 For Local sEnum:TEnum = EachIn enums
 	sEnum.Write(Null)

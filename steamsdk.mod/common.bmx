@@ -1,4 +1,4 @@
-' Copyright (c) 2019-2020 Bruce A Henderson
+' Copyright (c) 2019-2022 Bruce A Henderson
 ' 
 ' This software is provided 'as-is', without any express or implied
 ' warranty. In no event will the authors be held liable for any damages
@@ -18,14 +18,21 @@
 ' 
 SuperStrict
 
+?win32x86
+Import "-l:steam_api.dll"
 ?win32x64
 Import "-l:steam_api64.dll"
+?linuxx86
+Import "-lsteam_api"
 ?linuxx64
 Import "-lsteam_api"
 ?macosx64
 Import "-lsteam_api"
+?macosarm64
+Import "-lsteam_api"
 ?
 
+Import "sdk/public/*.h"
 Import "glue/glue.cpp"
 
 
@@ -90,32 +97,33 @@ Extern
 	Function bmx_SteamAPI_ISteamUserStats_GetAchievementDisplayAttribute:String(inst:Byte Ptr, name:String, key:String)
 	Function bmx_SteamAPI_ISteamUserStats_GetAchievementIcon:Int(inst:Byte Ptr, name:String)
 	Function bmx_SteamAPI_ISteamUserStats_GetAchievementName:String(inst:Byte Ptr, achievement:UInt)
-	Function bmx_SteamAPI_ISteamUserStats_GetGlobalStat:Int(inst:Byte Ptr, statName:String, data:Long Var)
-	Function bmx_SteamAPI_ISteamUserStats_GetGlobalStat0:Int(inst:Byte Ptr, statName:String, data:Double Var)
-	Function bmx_SteamAPI_ISteamUserStats_GetGlobalStatHistory:Int(inst:Byte Ptr, statName:String, data:Long Ptr, count:UInt)
-	Function bmx_SteamAPI_ISteamUserStats_GetGlobalStatHistory0:Int(inst:Byte Ptr, statName:String, data:Double Ptr, count:UInt)
+	Function bmx_SteamAPI_ISteamUserStats_GetGlobalStatInt64:Int(inst:Byte Ptr, statName:String, data:Long Var)
+	Function bmx_SteamAPI_ISteamUserStats_GetGlobalStatDouble:Int(inst:Byte Ptr, statName:String, data:Double Var)
+	Function bmx_SteamAPI_ISteamUserStats_GetGlobalStatHistoryInt64:Int(inst:Byte Ptr, statName:String, data:Long Ptr, count:UInt)
+	Function bmx_SteamAPI_ISteamUserStats_GetGlobalStatHistoryDouble:Int(inst:Byte Ptr, statName:String, data:Double Ptr, count:UInt)
 	Function bmx_SteamAPI_ISteamUserStats_GetLeaderboardDisplayType:ELeaderboardDisplayType(inst:Byte Ptr, leaderboardHandle:ULong)
 	Function bmx_SteamAPI_ISteamUserStats_GetLeaderboardEntryCount:Int(inst:Byte Ptr, leaderboardHandle:ULong)
 	Function bmx_SteamAPI_ISteamUserStats_GetLeaderboardName:String(inst:Byte Ptr, leadboarHandle:ULong)
 	Function bmx_SteamAPI_ISteamUserStats_GetLeaderboardSortMethod:ELeaderboardSortMethod(inst:Byte Ptr, leaderboardHandle:ULong)
-	Function bmx_SteamAPI_ISteamUserStats_GetStat:Int(inst:Byte Ptr, name:String, data:Int Var)
-	Function bmx_SteamAPI_ISteamUserStats_GetStat0:Int(inst:Byte Ptr, name:String, data:Float Var)
-	Function bmx_SteamAPI_ISteamGameServerStats_GetUserAchievement:Int(inst:Byte Ptr, steamID:ULong, name:String, achieved:Int Var)
+	Function bmx_SteamAPI_ISteamUserStats_GetStatInt32:Int(inst:Byte Ptr, name:String, data:Int Var)
+	Function bmx_SteamAPI_ISteamUserStats_GetStatFloat:Int(inst:Byte Ptr, name:String, data:Float Var)
 	Function bmx_SteamAPI_ISteamUserStats_GetUserAchievementAndUnlockTime:Int(inst:Byte Ptr, steamID:ULong, name:String, achieved:Int Var, unlockTime:UInt Var)
-	Function bmx_SteamAPI_ISteamGameServerStats_GetUserStat:Int(inst:Byte Ptr, steamID:ULong, name:String, data:Int Var)
-	Function bmx_SteamAPI_ISteamGameServerStats_GetUserStat0:Int(inst:Byte Ptr, steamID:ULong, name:String, data:Float Var)
 	Function bmx_SteamAPI_ISteamUserStats_IndicateAchievementProgress:Int(inst:Byte Ptr, name:String, curProgress:UInt, maxProgress:UInt)
 	Function bmx_SteamAPI_ISteamUserStats_RequestGlobalAchievementPercentages(callback:Byte Ptr)
 	Function bmx_SteamAPI_ISteamUserStats_RequestGlobalStats(callback:Byte Ptr, historyDays:Int)
-	Function bmx_SteamAPI_ISteamGameServerStats_RequestUserStats(callback:Byte Ptr, steamID:ULong)
 	Function bmx_SteamAPI_ISteamUserStats_ResetAllStats:Int(inst:Byte Ptr, achievementsToo:Int)
 	Function bmx_SteamAPI_ISteamUserStats_SetAchievement:Int(inst:Byte Ptr, name:String)
-	Function bmx_SteamAPI_ISteamUserStats_SetStat:Int(inst:Byte Ptr, name:String, data:Int)
-	Function bmx_SteamAPI_ISteamUserStats_SetStat0:Int(inst:Byte Ptr, name:String, data:Float)
+	Function bmx_SteamAPI_ISteamUserStats_SetStatInt32:Int(inst:Byte Ptr, name:String, data:Int)
+	Function bmx_SteamAPI_ISteamUserStats_SetStatFloat:Int(inst:Byte Ptr, name:String, data:Float)
 	Function bmx_SteamAPI_ISteamUserStats_StoreStats:Int(inst:Byte Ptr)
 	Function bmx_SteamAPI_ISteamUserStats_UpdateAvgRateStat:Int(inst:Byte Ptr, name:String, countThisSession:Float, sessionLength:Double)
 	Function bmx_SteamAPI_ISteamUserStats_UploadLeaderboardScore(callback:Byte Ptr, leaderboardHandle:ULong, uploadScoreMethod:ELeaderboardUploadScoreMethod, score:Int, scoreDetails:Int Ptr, count:Int)
 
+	Function bmx_SteamAPI_ISteamGameServerStats_GetUserAchievement:Int(inst:Byte Ptr, steamID:ULong, name:String, achieved:Int Var)
+	Function bmx_SteamAPI_ISteamGameServerStats_GetUserStatInt32:Int(inst:Byte Ptr, steamID:ULong, name:String, data:Int Var)
+	Function bmx_SteamAPI_ISteamGameServerStats_GetUserStatFloat:Int(inst:Byte Ptr, steamID:ULong, name:String, data:Float Var)
+	Function bmx_SteamAPI_ISteamGameServerStats_RequestUserStats(callback:Byte Ptr, steamID:ULong)
+		
 	Function bmx_steamsdk_register_steamugc:Byte Ptr(inst:Byte Ptr, obj:Object)
 	Function bmx_steamsdk_unregister_steamugc(callbackPtr:Byte Ptr)
 	
@@ -130,7 +138,7 @@ Extern
 	Function bmx_SteamAPI_ISteamUGC_AddRequiredTag:Int(inst:Byte Ptr, queryHandle:ULong, tagName:String)
 	Function bmx_SteamAPI_ISteamUGC_InitWorkshopForGameServer:Int(inst:Byte Ptr, workshopDepotID:ULong, folder:String)
 	Function bmx_SteamAPI_ISteamUGC_CreateItem(callback:Byte Ptr, consumerAppId:UInt, FileType:EWorkshopFileType)
-	Function bmx_SteamAPI_ISteamUGC_CreateQueryAllUGCRequest:ULong(inst:Byte Ptr, queryType:EUGCQuery, matchingeMatchingUGCTypeFileType:EUGCMatchingUGCType, creatorAppID:UInt, consumerAppID:UInt, page:UInt)
+	Function bmx_SteamAPI_ISteamUGC_CreateQueryAllUGCRequestPage:ULong(inst:Byte Ptr, queryType:EUGCQuery, matchingeMatchingUGCTypeFileType:EUGCMatchingUGCType, creatorAppID:UInt, consumerAppID:UInt, page:UInt)
 	Function bmx_SteamAPI_ISteamUGC_CreateQueryUGCDetailsRequest:ULong(inst:Byte Ptr, publishedFileIDs:ULong Ptr, numPublishedFileIDs:Int)
 	Function bmx_SteamAPI_ISteamUGC_CreateQueryUserUGCRequest:ULong(inst:Byte Ptr, accountID:UInt, listType:EUserUGCList, matchingUGCType:EUGCMatchingUGCType, sortOrder:EUserUGCListSortOrder, creatorAppID:UInt, consumerAppID:UInt, page:UInt)
 	Function bmx_SteamAPI_ISteamUGC_DeleteItem(callback:Byte Ptr, publishedFileID:ULong)
@@ -317,6 +325,7 @@ Enum EUniverse
 End Enum
 
 Enum EResult
+	k_EResultNone = 0
 	k_EResultOK = 1
 	k_EResultFail = 2
 	k_EResultNoConnection = 3
@@ -429,6 +438,16 @@ Enum EResult
 	k_EResultAccountNotFriends = 111
 	k_EResultLimitedUserAccount = 112
 	k_EResultCantRemoveItem = 113
+	k_EResultAccountDeleted = 114
+	k_EResultExistingUserCancelledLicense = 115
+	k_EResultCommunityCooldown = 116
+	k_EResultNoLauncherSpecified = 117
+	k_EResultMustAgreeToSSA = 118
+	k_EResultLauncherMigrated = 119
+	k_EResultSteamRealmMismatch = 120
+	k_EResultInvalidSignature = 121
+	k_EResultParseFailure = 122
+	k_EResultNoVerifiedPhone = 123
 End Enum
 
 Enum EVoiceResult
@@ -506,69 +525,6 @@ Enum EAccountType
 	k_EAccountTypeMax = 11
 End Enum
 
-Enum EAppReleaseState
-	k_EAppReleaseState_Unknown = 0
-	k_EAppReleaseState_Unavailable = 1
-	k_EAppReleaseState_Prerelease = 2
-	k_EAppReleaseState_PreloadOnly = 3
-	k_EAppReleaseState_Released = 4
-End Enum
-
-Enum EAppOwnershipFlags Flags
-	k_EAppOwnershipFlags_None = 0
-	k_EAppOwnershipFlags_OwnsLicense = 1
-	k_EAppOwnershipFlags_FreeLicense = 2
-	k_EAppOwnershipFlags_RegionRestricted = 4
-	k_EAppOwnershipFlags_LowViolence = 8
-	k_EAppOwnershipFlags_InvalidPlatform = 16
-	k_EAppOwnershipFlags_SharedLicense = 32
-	k_EAppOwnershipFlags_FreeWeekend = 64
-	k_EAppOwnershipFlags_RetailLicense = 128
-	k_EAppOwnershipFlags_LicenseLocked = 256
-	k_EAppOwnershipFlags_LicensePending = 512
-	k_EAppOwnershipFlags_LicenseExpired = 1024
-	k_EAppOwnershipFlags_LicensePermanent = 2048
-	k_EAppOwnershipFlags_LicenseRecurring = 4096
-	k_EAppOwnershipFlags_LicenseCanceled = 8192
-	k_EAppOwnershipFlags_AutoGrant = 16384
-	k_EAppOwnershipFlags_PendingGift = 32768
-	k_EAppOwnershipFlags_RentalNotActivated = 65536
-	k_EAppOwnershipFlags_Rental = 131072
-	k_EAppOwnershipFlags_SiteLicense = 262144
-End Enum
-
-Enum EAppType:UInt Flags
-	k_EAppType_Invalid = 0
-	k_EAppType_Game = 1
-	k_EAppType_Application = 2
-	k_EAppType_Tool = 4
-	k_EAppType_Demo = 8
-	k_EAppType_Media_DEPRECATED = 16
-	k_EAppType_DLC = 32
-	k_EAppType_Guide = 64
-	k_EAppType_Driver = 128
-	k_EAppType_Config = 256
-	k_EAppType_Hardware = 512
-	k_EAppType_Franchise = 1024
-	k_EAppType_Video = 2048
-	k_EAppType_Plugin = 4096
-	k_EAppType_Music = 8192
-	k_EAppType_Series = 16384
-	k_EAppType_Comic = 32768
-	k_EAppType_Shortcut = 1073741824
-	k_EAppType_DepotOnly = -2147483648
-End Enum
-
-Enum ESteamUserStatType
-	k_ESteamUserStatTypeINVALID = 0
-	k_ESteamUserStatTypeINT = 1
-	k_ESteamUserStatTypeFLOAT = 2
-	k_ESteamUserStatTypeAVGRATE = 3
-	k_ESteamUserStatTypeACHIEVEMENTS = 4
-	k_ESteamUserStatTypeGROUPACHIEVEMENTS = 5
-	k_ESteamUserStatTypeMAX = 6
-End Enum
-
 Enum EChatEntryType
 	k_EChatEntryTypeInvalid = 0
 	k_EChatEntryTypeChatMsg = 1
@@ -606,15 +562,6 @@ Enum EChatSteamIDInstanceFlags
 	k_EChatInstanceFlagMMSLobby = 131072
 End Enum
 
-Enum EMarketingMessageFlags
-	k_EMarketingMessageFlagsNone = 0
-	k_EMarketingMessageFlagsHighPriority = 1
-	k_EMarketingMessageFlagsPlatformWindows = 2
-	k_EMarketingMessageFlagsPlatformMac = 4
-	k_EMarketingMessageFlagsPlatformLinux = 8
-	k_EMarketingMessageFlagsPlatformRestrictions = 14
-End Enum
-
 Enum ENotificationPosition
 	k_EPositionTopLeft = 0
 	k_EPositionTopRight = 1
@@ -649,56 +596,6 @@ Enum EBroadcastUploadResult
 	k_EBroadcastUploadResultAudioInitFailed = 23
 End Enum
 
-Enum ELaunchOptionType
-	k_ELaunchOptionType_None = 0
-	k_ELaunchOptionType_Default = 1
-	k_ELaunchOptionType_SafeMode = 2
-	k_ELaunchOptionType_Multiplayer = 3
-	k_ELaunchOptionType_Config = 4
-	k_ELaunchOptionType_OpenVR = 5
-	k_ELaunchOptionType_Server = 6
-	k_ELaunchOptionType_Editor = 7
-	k_ELaunchOptionType_Manual = 8
-	k_ELaunchOptionType_Benchmark = 9
-	k_ELaunchOptionType_Option1 = 10
-	k_ELaunchOptionType_Option2 = 11
-	k_ELaunchOptionType_Option3 = 12
-	k_ELaunchOptionType_OculusVR = 13
-	k_ELaunchOptionType_OpenVROverlay = 14
-	k_ELaunchOptionType_OSVR = 15
-	k_ELaunchOptionType_Dialog = 1000
-End Enum
-
-Enum EVRHMDType
-	k_eEVRHMDType_None = -1
-	k_eEVRHMDType_Unknown = 0
-	k_eEVRHMDType_HTC_Dev = 1
-	k_eEVRHMDType_HTC_VivePre = 2
-	k_eEVRHMDType_HTC_Vive = 3
-	k_eEVRHMDType_HTC_VivePro = 4
-	k_eEVRHMDType_HTC_Unknown = 20
-	k_eEVRHMDType_Oculus_DK1 = 21
-	k_eEVRHMDType_Oculus_DK2 = 22
-	k_eEVRHMDType_Oculus_Rift = 23
-	k_eEVRHMDType_Oculus_Unknown = 40
-	k_eEVRHMDType_Acer_Unknown = 50
-	k_eEVRHMDType_Acer_WindowsMR = 51
-	k_eEVRHMDType_Dell_Unknown = 60
-	k_eEVRHMDType_Dell_Visor = 61
-	k_eEVRHMDType_Lenovo_Unknown = 70
-	k_eEVRHMDType_Lenovo_Explorer = 71
-	k_eEVRHMDType_HP_Unknown = 80
-	k_eEVRHMDType_HP_WindowsMR = 81
-	k_eEVRHMDType_Samsung_Unknown = 90
-	k_eEVRHMDType_Samsung_Odyssey = 91
-	k_eEVRHMDType_Unannounced_Unknown = 100
-	k_eEVRHMDType_Unannounced_WindowsMR = 101
-	k_eEVRHMDType_vridge = 110
-	k_eEVRHMDType_Huawei_Unknown = 120
-	k_eEVRHMDType_Huawei_VR2 = 121
-	k_eEVRHMDType_Huawei_Unannounced = 129
-End Enum
-
 Enum EMarketNotAllowedReasonFlags Flags
 	k_EMarketNotAllowedReason_None = 0
 	k_EMarketNotAllowedReason_TemporaryFailure = 1
@@ -719,11 +616,31 @@ Enum EMarketNotAllowedReasonFlags Flags
 	k_EMarketNotAllowedReason_AcceptedWalletGift = 32768
 End Enum
 
-Enum EGameIDType
-	k_EGameIDTypeApp = 0
-	k_EGameIDTypeGameMod = 1
-	k_EGameIDTypeShortcut = 2
-	k_EGameIDTypeP2P = 3
+Enum EDurationControlProgress
+	k_EDurationControlProgress_Full = 0
+	k_EDurationControlProgress_Half = 1
+	k_EDurationControlProgress_None = 2
+	k_EDurationControl_ExitSoon_3h = 3
+	k_EDurationControl_ExitSoon_5h = 4
+	k_EDurationControl_ExitSoon_Night = 5
+End Enum
+
+Enum EDurationControlNotification
+	k_EDurationControlNotification_None = 0
+	k_EDurationControlNotification_1Hour = 1
+	k_EDurationControlNotification_3Hours = 2
+	k_EDurationControlNotification_HalfProgress = 3
+	k_EDurationControlNotification_NoProgress = 4
+	k_EDurationControlNotification_ExitSoon_3h = 5
+	k_EDurationControlNotification_ExitSoon_5h = 6
+	k_EDurationControlNotification_ExitSoon_Night = 7
+End Enum
+
+Enum EDurationControlOnlineState
+	k_EDurationControlOnlineState_Invalid = 0
+	k_EDurationControlOnlineState_Offline = 1
+	k_EDurationControlOnlineState_Online = 2
+	k_EDurationControlOnlineState_OnlineHighPri = 3
 End Enum
 
 Enum EGameSearchErrorCode_t
@@ -746,9 +663,16 @@ Enum EPlayerResult_t
 	k_EPlayerResultCompleted = 5
 End Enum
 
-Enum EFailureType
-	k_EFailureFlushedCallbackQueue = 0
-	k_EFailurePipeFail = 1
+Enum ESteamIPv6ConnectivityProtocol
+	k_ESteamIPv6ConnectivityProtocol_Invalid = 0
+	k_ESteamIPv6ConnectivityProtocol_HTTP = 1
+	k_ESteamIPv6ConnectivityProtocol_UDP = 2
+End Enum
+
+Enum ESteamIPv6ConnectivityState
+	k_ESteamIPv6ConnectivityState_Unknown = 0
+	k_ESteamIPv6ConnectivityState_Good = 1
+	k_ESteamIPv6ConnectivityState_Bad = 2
 End Enum
 
 Enum EFriendRelationship
@@ -859,6 +783,20 @@ Enum EGamepadTextInputLineMode
 	k_EGamepadTextInputLineModeMultipleLines = 1
 End Enum
 
+Enum EFloatingGamepadTextInputMode
+	k_EFloatingGamepadTextInputModeModeSingleLine = 0
+	k_EFloatingGamepadTextInputModeModeMultipleLines = 1
+	k_EFloatingGamepadTextInputModeModeEmail = 2
+	k_EFloatingGamepadTextInputModeModeNumeric = 3
+End Enum
+
+Enum ETextFilteringContext
+	k_ETextFilteringContextUnknown = 0
+	k_ETextFilteringContextGameContent = 1
+	k_ETextFilteringContextChat = 2
+	k_ETextFilteringContextName = 3
+End Enum
+
 Enum ECheckFileSignature
 	k_ECheckFileSignatureInvalidSignature = 0
 	k_ECheckFileSignatureValidSignature = 1
@@ -878,6 +816,7 @@ Enum ELobbyType
 	k_ELobbyTypeFriendsOnly = 1
 	k_ELobbyTypePublic = 2
 	k_ELobbyTypeInvisible = 3
+	k_ELobbyTypePrivateUnique = 4
 End Enum
 
 Enum ELobbyComparison
@@ -918,20 +857,15 @@ Enum ESteamPartyBeaconLocationData
 	k_ESteamPartyBeaconLocationDataIconURLLarge = 4
 End Enum
 
-Enum PlayerAcceptState_t
-	k_EStateUnknown = 0
-	k_EStatePlayerAccepted = 1
-	k_EStatePlayerDeclined = 2
-End Enum
-
 Enum ERemoteStoragePlatform Flags
 	k_ERemoteStoragePlatformNone = 0
 	k_ERemoteStoragePlatformWindows = 1
 	k_ERemoteStoragePlatformOSX = 2
 	k_ERemoteStoragePlatformPS3 = 4
 	k_ERemoteStoragePlatformLinux = 8
-	k_ERemoteStoragePlatformReserved2 = 16
+	k_ERemoteStoragePlatformSwitch = 16
 	k_ERemoteStoragePlatformAndroid = 32
+	k_ERemoteStoragePlatformIOS = 64
 	k_ERemoteStoragePlatformAll = -1
 End Enum
 
@@ -942,6 +876,7 @@ Enum ERemoteStoragePublishedFileVisibility
 	k_ERemoteStoragePublishedFileVisibilityPublic = 0
 	k_ERemoteStoragePublishedFileVisibilityFriendsOnly = 1
 	k_ERemoteStoragePublishedFileVisibilityPrivate = 2
+	k_ERemoteStoragePublishedFileVisibilityUnlisted = 3
 End Enum
 
 Rem
@@ -1001,6 +936,18 @@ Enum EUGCReadAction
 	k_EUGCRead_Close = 2
 End Enum
 
+Enum ERemoteStorageLocalFileChange
+	k_ERemoteStorageLocalFileChange_Invalid = 0
+	k_ERemoteStorageLocalFileChange_FileUpdated = 1
+	k_ERemoteStorageLocalFileChange_FileDeleted = 2
+End Enum
+
+Enum ERemoteStorageFilePathType
+	k_ERemoteStorageFilePathType_Invalid = 0
+	k_ERemoteStorageFilePathType_Absolute = 1
+	k_ERemoteStorageFilePathType_APIFilename = 2
+End Enum
+
 Enum ELeaderboardDataRequest
 	k_ELeaderboardDataRequestGlobal = 0
 	k_ELeaderboardDataRequestGlobalAroundUser = 1
@@ -1037,10 +984,10 @@ End Enum
 
 Enum EP2PSessionError
 	k_EP2PSessionErrorNone = 0
-	k_EP2PSessionErrorNotRunningApp = 1
 	k_EP2PSessionErrorNoRightsToApp = 2
-	k_EP2PSessionErrorDestinationNotLoggedIn = 3
 	k_EP2PSessionErrorTimeout = 4
+	k_EP2PSessionErrorNotRunningApp_DELETED = 1
+	k_EP2PSessionErrorDestinationNotLoggedIn_DELETED = 3
 	k_EP2PSessionErrorMax = 5
 End Enum
 
@@ -1136,6 +1083,7 @@ Enum EHTTPStatusCode
 	k_EHTTPStatusCode417ExpectationFailed = 417
 	k_EHTTPStatusCode4xxUnknown = 418
 	k_EHTTPStatusCode429TooManyRequests = 429
+	k_EHTTPStatusCode444ConnectionClosed = 444
 	k_EHTTPStatusCode500InternalServerError = 500
 	k_EHTTPStatusCode501NotImplemented = 501
 	k_EHTTPStatusCode502BadGateway = 502
@@ -1143,27 +1091,6 @@ Enum EHTTPStatusCode
 	k_EHTTPStatusCode504GatewayTimeout = 504
 	k_EHTTPStatusCode505HTTPVersionNotSupported = 505
 	k_EHTTPStatusCode5xxUnknown = 599
-End Enum
-
-Enum EInputSource
-	k_EInputSource_None = 0
-	k_EInputSource_LeftTrackpad = 1
-	k_EInputSource_RightTrackpad = 2
-	k_EInputSource_Joystick = 3
-	k_EInputSource_ABXY = 4
-	k_EInputSource_Switch = 5
-	k_EInputSource_LeftTrigger = 6
-	k_EInputSource_RightTrigger = 7
-	k_EInputSource_LeftBumper = 8
-	k_EInputSource_RightBumper = 9
-	k_EInputSource_Gyro = 10
-	k_EInputSource_CenterTrackpad = 11
-	k_EInputSource_RightJoystick = 12
-	k_EInputSource_DPad = 13
-	k_EInputSource_Key = 14
-	k_EInputSource_Mouse = 15
-	k_EInputSource_LeftGyro = 16
-	k_EInputSource_Count = 17
 End Enum
 
 Enum EInputSourceMode
@@ -1290,7 +1217,7 @@ Enum EInputActionOrigin
 	k_EInputActionOrigin_PS4_Gyro_Pitch = 100
 	k_EInputActionOrigin_PS4_Gyro_Yaw = 101
 	k_EInputActionOrigin_PS4_Gyro_Roll = 102
-	k_EInputActionOrigin_PS4_Reserved0 = 103
+	k_EInputActionOrigin_PS4_DPad_Move = 103
 	k_EInputActionOrigin_PS4_Reserved1 = 104
 	k_EInputActionOrigin_PS4_Reserved2 = 105
 	k_EInputActionOrigin_PS4_Reserved3 = 106
@@ -1329,12 +1256,12 @@ Enum EInputActionOrigin
 	k_EInputActionOrigin_XBoxOne_DPad_South = 139
 	k_EInputActionOrigin_XBoxOne_DPad_West = 140
 	k_EInputActionOrigin_XBoxOne_DPad_East = 141
-	k_EInputActionOrigin_XBoxOne_Reserved0 = 142
-	k_EInputActionOrigin_XBoxOne_Reserved1 = 143
-	k_EInputActionOrigin_XBoxOne_Reserved2 = 144
-	k_EInputActionOrigin_XBoxOne_Reserved3 = 145
-	k_EInputActionOrigin_XBoxOne_Reserved4 = 146
-	k_EInputActionOrigin_XBoxOne_Reserved5 = 147
+	k_EInputActionOrigin_XBoxOne_DPad_Move = 142
+	k_EInputActionOrigin_XBoxOne_LeftGrip_Lower = 143
+	k_EInputActionOrigin_XBoxOne_LeftGrip_Upper = 144
+	k_EInputActionOrigin_XBoxOne_RightGrip_Lower = 145
+	k_EInputActionOrigin_XBoxOne_RightGrip_Upper = 146
+	k_EInputActionOrigin_XBoxOne_Share = 147
 	k_EInputActionOrigin_XBoxOne_Reserved6 = 148
 	k_EInputActionOrigin_XBoxOne_Reserved7 = 149
 	k_EInputActionOrigin_XBoxOne_Reserved8 = 150
@@ -1368,7 +1295,7 @@ Enum EInputActionOrigin
 	k_EInputActionOrigin_XBox360_DPad_South = 178
 	k_EInputActionOrigin_XBox360_DPad_West = 179
 	k_EInputActionOrigin_XBox360_DPad_East = 180
-	k_EInputActionOrigin_XBox360_Reserved0 = 181
+	k_EInputActionOrigin_XBox360_DPad_Move = 181
 	k_EInputActionOrigin_XBox360_Reserved1 = 182
 	k_EInputActionOrigin_XBox360_Reserved2 = 183
 	k_EInputActionOrigin_XBox360_Reserved3 = 184
@@ -1412,7 +1339,7 @@ Enum EInputActionOrigin
 	k_EInputActionOrigin_Switch_ProGyro_Pitch = 222
 	k_EInputActionOrigin_Switch_ProGyro_Yaw = 223
 	k_EInputActionOrigin_Switch_ProGyro_Roll = 224
-	k_EInputActionOrigin_Switch_Reserved0 = 225
+	k_EInputActionOrigin_Switch_DPad_Move = 225
 	k_EInputActionOrigin_Switch_Reserved1 = 226
 	k_EInputActionOrigin_Switch_Reserved2 = 227
 	k_EInputActionOrigin_Switch_Reserved3 = 228
@@ -1445,7 +1372,155 @@ Enum EInputActionOrigin
 	k_EInputActionOrigin_Switch_Reserved18 = 255
 	k_EInputActionOrigin_Switch_Reserved19 = 256
 	k_EInputActionOrigin_Switch_Reserved20 = 257
-	k_EInputActionOrigin_Count = 258
+	k_EInputActionOrigin_PS5_X = 258
+	k_EInputActionOrigin_PS5_Circle = 259
+	k_EInputActionOrigin_PS5_Triangle = 260
+	k_EInputActionOrigin_PS5_Square = 261
+	k_EInputActionOrigin_PS5_LeftBumper = 262
+	k_EInputActionOrigin_PS5_RightBumper = 263
+	k_EInputActionOrigin_PS5_Option = 264
+	k_EInputActionOrigin_PS5_Create = 265
+	k_EInputActionOrigin_PS5_Mute = 266
+	k_EInputActionOrigin_PS5_LeftPad_Touch = 267
+	k_EInputActionOrigin_PS5_LeftPad_Swipe = 268
+	k_EInputActionOrigin_PS5_LeftPad_Click = 269
+	k_EInputActionOrigin_PS5_LeftPad_DPadNorth = 270
+	k_EInputActionOrigin_PS5_LeftPad_DPadSouth = 271
+	k_EInputActionOrigin_PS5_LeftPad_DPadWest = 272
+	k_EInputActionOrigin_PS5_LeftPad_DPadEast = 273
+	k_EInputActionOrigin_PS5_RightPad_Touch = 274
+	k_EInputActionOrigin_PS5_RightPad_Swipe = 275
+	k_EInputActionOrigin_PS5_RightPad_Click = 276
+	k_EInputActionOrigin_PS5_RightPad_DPadNorth = 277
+	k_EInputActionOrigin_PS5_RightPad_DPadSouth = 278
+	k_EInputActionOrigin_PS5_RightPad_DPadWest = 279
+	k_EInputActionOrigin_PS5_RightPad_DPadEast = 280
+	k_EInputActionOrigin_PS5_CenterPad_Touch = 281
+	k_EInputActionOrigin_PS5_CenterPad_Swipe = 282
+	k_EInputActionOrigin_PS5_CenterPad_Click = 283
+	k_EInputActionOrigin_PS5_CenterPad_DPadNorth = 284
+	k_EInputActionOrigin_PS5_CenterPad_DPadSouth = 285
+	k_EInputActionOrigin_PS5_CenterPad_DPadWest = 286
+	k_EInputActionOrigin_PS5_CenterPad_DPadEast = 287
+	k_EInputActionOrigin_PS5_LeftTrigger_Pull = 288
+	k_EInputActionOrigin_PS5_LeftTrigger_Click = 289
+	k_EInputActionOrigin_PS5_RightTrigger_Pull = 290
+	k_EInputActionOrigin_PS5_RightTrigger_Click = 291
+	k_EInputActionOrigin_PS5_LeftStick_Move = 292
+	k_EInputActionOrigin_PS5_LeftStick_Click = 293
+	k_EInputActionOrigin_PS5_LeftStick_DPadNorth = 294
+	k_EInputActionOrigin_PS5_LeftStick_DPadSouth = 295
+	k_EInputActionOrigin_PS5_LeftStick_DPadWest = 296
+	k_EInputActionOrigin_PS5_LeftStick_DPadEast = 297
+	k_EInputActionOrigin_PS5_RightStick_Move = 298
+	k_EInputActionOrigin_PS5_RightStick_Click = 299
+	k_EInputActionOrigin_PS5_RightStick_DPadNorth = 300
+	k_EInputActionOrigin_PS5_RightStick_DPadSouth = 301
+	k_EInputActionOrigin_PS5_RightStick_DPadWest = 302
+	k_EInputActionOrigin_PS5_RightStick_DPadEast = 303
+	k_EInputActionOrigin_PS5_DPad_North = 304
+	k_EInputActionOrigin_PS5_DPad_South = 305
+	k_EInputActionOrigin_PS5_DPad_West = 306
+	k_EInputActionOrigin_PS5_DPad_East = 307
+	k_EInputActionOrigin_PS5_Gyro_Move = 308
+	k_EInputActionOrigin_PS5_Gyro_Pitch = 309
+	k_EInputActionOrigin_PS5_Gyro_Yaw = 310
+	k_EInputActionOrigin_PS5_Gyro_Roll = 311
+	k_EInputActionOrigin_PS5_DPad_Move = 312
+	k_EInputActionOrigin_PS5_Reserved1 = 313
+	k_EInputActionOrigin_PS5_Reserved2 = 314
+	k_EInputActionOrigin_PS5_Reserved3 = 315
+	k_EInputActionOrigin_PS5_Reserved4 = 316
+	k_EInputActionOrigin_PS5_Reserved5 = 317
+	k_EInputActionOrigin_PS5_Reserved6 = 318
+	k_EInputActionOrigin_PS5_Reserved7 = 319
+	k_EInputActionOrigin_PS5_Reserved8 = 320
+	k_EInputActionOrigin_PS5_Reserved9 = 321
+	k_EInputActionOrigin_PS5_Reserved10 = 322
+	k_EInputActionOrigin_PS5_Reserved11 = 323
+	k_EInputActionOrigin_PS5_Reserved12 = 324
+	k_EInputActionOrigin_PS5_Reserved13 = 325
+	k_EInputActionOrigin_PS5_Reserved14 = 326
+	k_EInputActionOrigin_PS5_Reserved15 = 327
+	k_EInputActionOrigin_PS5_Reserved16 = 328
+	k_EInputActionOrigin_PS5_Reserved17 = 329
+	k_EInputActionOrigin_PS5_Reserved18 = 330
+	k_EInputActionOrigin_PS5_Reserved19 = 331
+	k_EInputActionOrigin_PS5_Reserved20 = 332
+	k_EInputActionOrigin_SteamDeck_A = 333
+	k_EInputActionOrigin_SteamDeck_B = 334
+	k_EInputActionOrigin_SteamDeck_X = 335
+	k_EInputActionOrigin_SteamDeck_Y = 336
+	k_EInputActionOrigin_SteamDeck_L1 = 337
+	k_EInputActionOrigin_SteamDeck_R1 = 338
+	k_EInputActionOrigin_SteamDeck_Menu = 339
+	k_EInputActionOrigin_SteamDeck_View = 340
+	k_EInputActionOrigin_SteamDeck_LeftPad_Touch = 341
+	k_EInputActionOrigin_SteamDeck_LeftPad_Swipe = 342
+	k_EInputActionOrigin_SteamDeck_LeftPad_Click = 343
+	k_EInputActionOrigin_SteamDeck_LeftPad_DPadNorth = 344
+	k_EInputActionOrigin_SteamDeck_LeftPad_DPadSouth = 345
+	k_EInputActionOrigin_SteamDeck_LeftPad_DPadWest = 346
+	k_EInputActionOrigin_SteamDeck_LeftPad_DPadEast = 347
+	k_EInputActionOrigin_SteamDeck_RightPad_Touch = 348
+	k_EInputActionOrigin_SteamDeck_RightPad_Swipe = 349
+	k_EInputActionOrigin_SteamDeck_RightPad_Click = 350
+	k_EInputActionOrigin_SteamDeck_RightPad_DPadNorth = 351
+	k_EInputActionOrigin_SteamDeck_RightPad_DPadSouth = 352
+	k_EInputActionOrigin_SteamDeck_RightPad_DPadWest = 353
+	k_EInputActionOrigin_SteamDeck_RightPad_DPadEast = 354
+	k_EInputActionOrigin_SteamDeck_L2_SoftPull = 355
+	k_EInputActionOrigin_SteamDeck_L2 = 356
+	k_EInputActionOrigin_SteamDeck_R2_SoftPull = 357
+	k_EInputActionOrigin_SteamDeck_R2 = 358
+	k_EInputActionOrigin_SteamDeck_LeftStick_Move = 359
+	k_EInputActionOrigin_SteamDeck_L3 = 360
+	k_EInputActionOrigin_SteamDeck_LeftStick_DPadNorth = 361
+	k_EInputActionOrigin_SteamDeck_LeftStick_DPadSouth = 362
+	k_EInputActionOrigin_SteamDeck_LeftStick_DPadWest = 363
+	k_EInputActionOrigin_SteamDeck_LeftStick_DPadEast = 364
+	k_EInputActionOrigin_SteamDeck_LeftStick_Touch = 365
+	k_EInputActionOrigin_SteamDeck_RightStick_Move = 366
+	k_EInputActionOrigin_SteamDeck_R3 = 367
+	k_EInputActionOrigin_SteamDeck_RightStick_DPadNorth = 368
+	k_EInputActionOrigin_SteamDeck_RightStick_DPadSouth = 369
+	k_EInputActionOrigin_SteamDeck_RightStick_DPadWest = 370
+	k_EInputActionOrigin_SteamDeck_RightStick_DPadEast = 371
+	k_EInputActionOrigin_SteamDeck_RightStick_Touch = 372
+	k_EInputActionOrigin_SteamDeck_L4 = 373
+	k_EInputActionOrigin_SteamDeck_R4 = 374
+	k_EInputActionOrigin_SteamDeck_L5 = 375
+	k_EInputActionOrigin_SteamDeck_R5 = 376
+	k_EInputActionOrigin_SteamDeck_DPad_Move = 377
+	k_EInputActionOrigin_SteamDeck_DPad_North = 378
+	k_EInputActionOrigin_SteamDeck_DPad_South = 379
+	k_EInputActionOrigin_SteamDeck_DPad_West = 380
+	k_EInputActionOrigin_SteamDeck_DPad_East = 381
+	k_EInputActionOrigin_SteamDeck_Gyro_Move = 382
+	k_EInputActionOrigin_SteamDeck_Gyro_Pitch = 383
+	k_EInputActionOrigin_SteamDeck_Gyro_Yaw = 384
+	k_EInputActionOrigin_SteamDeck_Gyro_Roll = 385
+	k_EInputActionOrigin_SteamDeck_Reserved1 = 386
+	k_EInputActionOrigin_SteamDeck_Reserved2 = 387
+	k_EInputActionOrigin_SteamDeck_Reserved3 = 388
+	k_EInputActionOrigin_SteamDeck_Reserved4 = 389
+	k_EInputActionOrigin_SteamDeck_Reserved5 = 390
+	k_EInputActionOrigin_SteamDeck_Reserved6 = 391
+	k_EInputActionOrigin_SteamDeck_Reserved7 = 392
+	k_EInputActionOrigin_SteamDeck_Reserved8 = 393
+	k_EInputActionOrigin_SteamDeck_Reserved9 = 394
+	k_EInputActionOrigin_SteamDeck_Reserved10 = 395
+	k_EInputActionOrigin_SteamDeck_Reserved11 = 396
+	k_EInputActionOrigin_SteamDeck_Reserved12 = 397
+	k_EInputActionOrigin_SteamDeck_Reserved13 = 398
+	k_EInputActionOrigin_SteamDeck_Reserved14 = 399
+	k_EInputActionOrigin_SteamDeck_Reserved15 = 400
+	k_EInputActionOrigin_SteamDeck_Reserved16 = 401
+	k_EInputActionOrigin_SteamDeck_Reserved17 = 402
+	k_EInputActionOrigin_SteamDeck_Reserved18 = 403
+	k_EInputActionOrigin_SteamDeck_Reserved19 = 404
+	k_EInputActionOrigin_SteamDeck_Reserved20 = 405
+	k_EInputActionOrigin_Count = 406
 	k_EInputActionOrigin_MaximumPossibleValue = 32767
 End Enum
 
@@ -1486,6 +1561,18 @@ Enum ESteamControllerPad
 	k_ESteamControllerPad_Right = 1
 End Enum
 
+Enum EControllerHapticLocation
+	k_EControllerHapticLocation_Left = 1
+	k_EControllerHapticLocation_Right = 2
+	k_EControllerHapticLocation_Both = 3
+End Enum
+
+Enum EControllerHapticType
+	k_EControllerHapticType_Off = 0
+	k_EControllerHapticType_Tick = 1
+	k_EControllerHapticType_Click = 2
+End Enum
+
 Enum ESteamInputType
 	k_ESteamInputType_Unknown = 0
 	k_ESteamInputType_SteamController = 1
@@ -1500,8 +1587,18 @@ Enum ESteamInputType
 	k_ESteamInputType_SwitchProController = 10
 	k_ESteamInputType_MobileTouch = 11
 	k_ESteamInputType_PS3Controller = 12
-	k_ESteamInputType_Count = 13
+	k_ESteamInputType_PS5Controller = 13
+	k_ESteamInputType_SteamDeckController = 14
+	k_ESteamInputType_Count = 15
 	k_ESteamInputType_MaximumPossibleValue = 255
+End Enum
+
+Enum ESteamInputConfigurationEnableType
+	k_ESteamInputConfigurationEnableType_None = 0
+	k_ESteamInputConfigurationEnableType_Playstation = 1
+	k_ESteamInputConfigurationEnableType_Xbox = 2
+	k_ESteamInputConfigurationEnableType_Generic = 4
+	k_ESteamInputConfigurationEnableType_Switch = 8
 End Enum
 
 Enum ESteamInputLEDFlag
@@ -1509,45 +1606,24 @@ Enum ESteamInputLEDFlag
 	k_ESteamInputLEDFlag_RestoreUserDefault = 1
 End Enum
 
-Enum EControllerSource
-	k_EControllerSource_None = 0
-	k_EControllerSource_LeftTrackpad = 1
-	k_EControllerSource_RightTrackpad = 2
-	k_EControllerSource_Joystick = 3
-	k_EControllerSource_ABXY = 4
-	k_EControllerSource_Switch = 5
-	k_EControllerSource_LeftTrigger = 6
-	k_EControllerSource_RightTrigger = 7
-	k_EControllerSource_LeftBumper = 8
-	k_EControllerSource_RightBumper = 9
-	k_EControllerSource_Gyro = 10
-	k_EControllerSource_CenterTrackpad = 11
-	k_EControllerSource_RightJoystick = 12
-	k_EControllerSource_DPad = 13
-	k_EControllerSource_Key = 14
-	k_EControllerSource_Mouse = 15
-	k_EControllerSource_LeftGyro = 16
-	k_EControllerSource_Count = 17
+Enum ESteamInputGlyphSize
+	k_ESteamInputGlyphSize_Small = 0
+	k_ESteamInputGlyphSize_Medium = 1
+	k_ESteamInputGlyphSize_Large = 2
+	k_ESteamInputGlyphSize_Count = 3
 End Enum
 
-Enum EControllerSourceMode
-	k_EControllerSourceMode_None = 0
-	k_EControllerSourceMode_Dpad = 1
-	k_EControllerSourceMode_Buttons = 2
-	k_EControllerSourceMode_FourButtons = 3
-	k_EControllerSourceMode_AbsoluteMouse = 4
-	k_EControllerSourceMode_RelativeMouse = 5
-	k_EControllerSourceMode_JoystickMove = 6
-	k_EControllerSourceMode_JoystickMouse = 7
-	k_EControllerSourceMode_JoystickCamera = 8
-	k_EControllerSourceMode_ScrollWheel = 9
-	k_EControllerSourceMode_Trigger = 10
-	k_EControllerSourceMode_TouchMenu = 11
-	k_EControllerSourceMode_MouseJoystick = 12
-	k_EControllerSourceMode_MouseRegion = 13
-	k_EControllerSourceMode_RadialMenu = 14
-	k_EControllerSourceMode_SingleButton = 15
-	k_EControllerSourceMode_Switches = 16
+Enum ESteamInputGlyphStyle
+	ESteamInputGlyphStyle_Knockout = 0
+	ESteamInputGlyphStyle_Light = 1
+	ESteamInputGlyphStyle_Dark = 2
+	ESteamInputGlyphStyle_NeutralColorABXY = 16
+	ESteamInputGlyphStyle_SolidABXY = 32
+End Enum
+
+Enum ESteamInputActionEventType
+	ESteamInputActionEventType_DigitalAction = 0
+	ESteamInputActionEventType_AnalogAction = 1
 End Enum
 
 Enum EControllerActionOrigin
@@ -1792,7 +1868,144 @@ Enum EControllerActionOrigin
 	k_EControllerActionOrigin_Switch_LeftGrip_Upper = 238
 	k_EControllerActionOrigin_Switch_RightGrip_Lower = 239
 	k_EControllerActionOrigin_Switch_RightGrip_Upper = 240
-	k_EControllerActionOrigin_Count = 241
+	k_EControllerActionOrigin_PS4_DPad_Move = 241
+	k_EControllerActionOrigin_XBoxOne_DPad_Move = 242
+	k_EControllerActionOrigin_XBox360_DPad_Move = 243
+	k_EControllerActionOrigin_Switch_DPad_Move = 244
+	k_EControllerActionOrigin_PS5_X = 245
+	k_EControllerActionOrigin_PS5_Circle = 246
+	k_EControllerActionOrigin_PS5_Triangle = 247
+	k_EControllerActionOrigin_PS5_Square = 248
+	k_EControllerActionOrigin_PS5_LeftBumper = 249
+	k_EControllerActionOrigin_PS5_RightBumper = 250
+	k_EControllerActionOrigin_PS5_Option = 251
+	k_EControllerActionOrigin_PS5_Create = 252
+	k_EControllerActionOrigin_PS5_Mute = 253
+	k_EControllerActionOrigin_PS5_LeftPad_Touch = 254
+	k_EControllerActionOrigin_PS5_LeftPad_Swipe = 255
+	k_EControllerActionOrigin_PS5_LeftPad_Click = 256
+	k_EControllerActionOrigin_PS5_LeftPad_DPadNorth = 257
+	k_EControllerActionOrigin_PS5_LeftPad_DPadSouth = 258
+	k_EControllerActionOrigin_PS5_LeftPad_DPadWest = 259
+	k_EControllerActionOrigin_PS5_LeftPad_DPadEast = 260
+	k_EControllerActionOrigin_PS5_RightPad_Touch = 261
+	k_EControllerActionOrigin_PS5_RightPad_Swipe = 262
+	k_EControllerActionOrigin_PS5_RightPad_Click = 263
+	k_EControllerActionOrigin_PS5_RightPad_DPadNorth = 264
+	k_EControllerActionOrigin_PS5_RightPad_DPadSouth = 265
+	k_EControllerActionOrigin_PS5_RightPad_DPadWest = 266
+	k_EControllerActionOrigin_PS5_RightPad_DPadEast = 267
+	k_EControllerActionOrigin_PS5_CenterPad_Touch = 268
+	k_EControllerActionOrigin_PS5_CenterPad_Swipe = 269
+	k_EControllerActionOrigin_PS5_CenterPad_Click = 270
+	k_EControllerActionOrigin_PS5_CenterPad_DPadNorth = 271
+	k_EControllerActionOrigin_PS5_CenterPad_DPadSouth = 272
+	k_EControllerActionOrigin_PS5_CenterPad_DPadWest = 273
+	k_EControllerActionOrigin_PS5_CenterPad_DPadEast = 274
+	k_EControllerActionOrigin_PS5_LeftTrigger_Pull = 275
+	k_EControllerActionOrigin_PS5_LeftTrigger_Click = 276
+	k_EControllerActionOrigin_PS5_RightTrigger_Pull = 277
+	k_EControllerActionOrigin_PS5_RightTrigger_Click = 278
+	k_EControllerActionOrigin_PS5_LeftStick_Move = 279
+	k_EControllerActionOrigin_PS5_LeftStick_Click = 280
+	k_EControllerActionOrigin_PS5_LeftStick_DPadNorth = 281
+	k_EControllerActionOrigin_PS5_LeftStick_DPadSouth = 282
+	k_EControllerActionOrigin_PS5_LeftStick_DPadWest = 283
+	k_EControllerActionOrigin_PS5_LeftStick_DPadEast = 284
+	k_EControllerActionOrigin_PS5_RightStick_Move = 285
+	k_EControllerActionOrigin_PS5_RightStick_Click = 286
+	k_EControllerActionOrigin_PS5_RightStick_DPadNorth = 287
+	k_EControllerActionOrigin_PS5_RightStick_DPadSouth = 288
+	k_EControllerActionOrigin_PS5_RightStick_DPadWest = 289
+	k_EControllerActionOrigin_PS5_RightStick_DPadEast = 290
+	k_EControllerActionOrigin_PS5_DPad_Move = 291
+	k_EControllerActionOrigin_PS5_DPad_North = 292
+	k_EControllerActionOrigin_PS5_DPad_South = 293
+	k_EControllerActionOrigin_PS5_DPad_West = 294
+	k_EControllerActionOrigin_PS5_DPad_East = 295
+	k_EControllerActionOrigin_PS5_Gyro_Move = 296
+	k_EControllerActionOrigin_PS5_Gyro_Pitch = 297
+	k_EControllerActionOrigin_PS5_Gyro_Yaw = 298
+	k_EControllerActionOrigin_PS5_Gyro_Roll = 299
+	k_EControllerActionOrigin_XBoxOne_LeftGrip_Lower = 300
+	k_EControllerActionOrigin_XBoxOne_LeftGrip_Upper = 301
+	k_EControllerActionOrigin_XBoxOne_RightGrip_Lower = 302
+	k_EControllerActionOrigin_XBoxOne_RightGrip_Upper = 303
+	k_EControllerActionOrigin_XBoxOne_Share = 304
+	k_EControllerActionOrigin_SteamDeck_A = 305
+	k_EControllerActionOrigin_SteamDeck_B = 306
+	k_EControllerActionOrigin_SteamDeck_X = 307
+	k_EControllerActionOrigin_SteamDeck_Y = 308
+	k_EControllerActionOrigin_SteamDeck_L1 = 309
+	k_EControllerActionOrigin_SteamDeck_R1 = 310
+	k_EControllerActionOrigin_SteamDeck_Menu = 311
+	k_EControllerActionOrigin_SteamDeck_View = 312
+	k_EControllerActionOrigin_SteamDeck_LeftPad_Touch = 313
+	k_EControllerActionOrigin_SteamDeck_LeftPad_Swipe = 314
+	k_EControllerActionOrigin_SteamDeck_LeftPad_Click = 315
+	k_EControllerActionOrigin_SteamDeck_LeftPad_DPadNorth = 316
+	k_EControllerActionOrigin_SteamDeck_LeftPad_DPadSouth = 317
+	k_EControllerActionOrigin_SteamDeck_LeftPad_DPadWest = 318
+	k_EControllerActionOrigin_SteamDeck_LeftPad_DPadEast = 319
+	k_EControllerActionOrigin_SteamDeck_RightPad_Touch = 320
+	k_EControllerActionOrigin_SteamDeck_RightPad_Swipe = 321
+	k_EControllerActionOrigin_SteamDeck_RightPad_Click = 322
+	k_EControllerActionOrigin_SteamDeck_RightPad_DPadNorth = 323
+	k_EControllerActionOrigin_SteamDeck_RightPad_DPadSouth = 324
+	k_EControllerActionOrigin_SteamDeck_RightPad_DPadWest = 325
+	k_EControllerActionOrigin_SteamDeck_RightPad_DPadEast = 326
+	k_EControllerActionOrigin_SteamDeck_L2_SoftPull = 327
+	k_EControllerActionOrigin_SteamDeck_L2 = 328
+	k_EControllerActionOrigin_SteamDeck_R2_SoftPull = 329
+	k_EControllerActionOrigin_SteamDeck_R2 = 330
+	k_EControllerActionOrigin_SteamDeck_LeftStick_Move = 331
+	k_EControllerActionOrigin_SteamDeck_L3 = 332
+	k_EControllerActionOrigin_SteamDeck_LeftStick_DPadNorth = 333
+	k_EControllerActionOrigin_SteamDeck_LeftStick_DPadSouth = 334
+	k_EControllerActionOrigin_SteamDeck_LeftStick_DPadWest = 335
+	k_EControllerActionOrigin_SteamDeck_LeftStick_DPadEast = 336
+	k_EControllerActionOrigin_SteamDeck_LeftStick_Touch = 337
+	k_EControllerActionOrigin_SteamDeck_RightStick_Move = 338
+	k_EControllerActionOrigin_SteamDeck_R3 = 339
+	k_EControllerActionOrigin_SteamDeck_RightStick_DPadNorth = 340
+	k_EControllerActionOrigin_SteamDeck_RightStick_DPadSouth = 341
+	k_EControllerActionOrigin_SteamDeck_RightStick_DPadWest = 342
+	k_EControllerActionOrigin_SteamDeck_RightStick_DPadEast = 343
+	k_EControllerActionOrigin_SteamDeck_RightStick_Touch = 344
+	k_EControllerActionOrigin_SteamDeck_L4 = 345
+	k_EControllerActionOrigin_SteamDeck_R4 = 346
+	k_EControllerActionOrigin_SteamDeck_L5 = 347
+	k_EControllerActionOrigin_SteamDeck_R5 = 348
+	k_EControllerActionOrigin_SteamDeck_DPad_Move = 349
+	k_EControllerActionOrigin_SteamDeck_DPad_North = 350
+	k_EControllerActionOrigin_SteamDeck_DPad_South = 351
+	k_EControllerActionOrigin_SteamDeck_DPad_West = 352
+	k_EControllerActionOrigin_SteamDeck_DPad_East = 353
+	k_EControllerActionOrigin_SteamDeck_Gyro_Move = 354
+	k_EControllerActionOrigin_SteamDeck_Gyro_Pitch = 355
+	k_EControllerActionOrigin_SteamDeck_Gyro_Yaw = 356
+	k_EControllerActionOrigin_SteamDeck_Gyro_Roll = 357
+	k_EControllerActionOrigin_SteamDeck_Reserved1 = 358
+	k_EControllerActionOrigin_SteamDeck_Reserved2 = 359
+	k_EControllerActionOrigin_SteamDeck_Reserved3 = 360
+	k_EControllerActionOrigin_SteamDeck_Reserved4 = 361
+	k_EControllerActionOrigin_SteamDeck_Reserved5 = 362
+	k_EControllerActionOrigin_SteamDeck_Reserved6 = 363
+	k_EControllerActionOrigin_SteamDeck_Reserved7 = 364
+	k_EControllerActionOrigin_SteamDeck_Reserved8 = 365
+	k_EControllerActionOrigin_SteamDeck_Reserved9 = 366
+	k_EControllerActionOrigin_SteamDeck_Reserved10 = 367
+	k_EControllerActionOrigin_SteamDeck_Reserved11 = 368
+	k_EControllerActionOrigin_SteamDeck_Reserved12 = 369
+	k_EControllerActionOrigin_SteamDeck_Reserved13 = 370
+	k_EControllerActionOrigin_SteamDeck_Reserved14 = 371
+	k_EControllerActionOrigin_SteamDeck_Reserved15 = 372
+	k_EControllerActionOrigin_SteamDeck_Reserved16 = 373
+	k_EControllerActionOrigin_SteamDeck_Reserved17 = 374
+	k_EControllerActionOrigin_SteamDeck_Reserved18 = 375
+	k_EControllerActionOrigin_SteamDeck_Reserved19 = 376
+	k_EControllerActionOrigin_SteamDeck_Reserved20 = 377
+	k_EControllerActionOrigin_Count = 378
 	k_EControllerActionOrigin_MaximumPossibleValue = 32767
 End Enum
 
@@ -1869,6 +2082,7 @@ Enum EUGCQuery
 	k_EUGCQuery_RankedByLifetimeAveragePlaytime = 16
 	k_EUGCQuery_RankedByPlaytimeSessionsTrend = 17
 	k_EUGCQuery_RankedByLifetimePlaytimeSessions = 18
+	k_EUGCQuery_RankedByLastUpdatedDate = 19
 End Enum
 
 Enum EItemUpdateStatus
@@ -1919,64 +2133,6 @@ Enum EItemPreviewType
 	k_EItemPreviewType_ReservedMax = 255
 End Enum
 
-Enum EHTMLMouseButton
-	eHTMLMouseButton_Left = 0
-	eHTMLMouseButton_Right = 1
-	eHTMLMouseButton_Middle = 2
-End Enum
-
-Enum EMouseCursor
-	dc_user = 0
-	dc_none = 1
-	dc_arrow = 2
-	dc_ibeam = 3
-	dc_hourglass = 4
-	dc_waitarrow = 5
-	dc_crosshair = 6
-	dc_up = 7
-	dc_sizenw = 8
-	dc_sizese = 9
-	dc_sizene = 10
-	dc_sizesw = 11
-	dc_sizew = 12
-	dc_sizee = 13
-	dc_sizen = 14
-	dc_sizes = 15
-	dc_sizewe = 16
-	dc_sizens = 17
-	dc_sizeall = 18
-	dc_no = 19
-	dc_hand = 20
-	dc_blank = 21
-	dc_middle_pan = 22
-	dc_north_pan = 23
-	dc_north_east_pan = 24
-	dc_east_pan = 25
-	dc_south_east_pan = 26
-	dc_south_pan = 27
-	dc_south_west_pan = 28
-	dc_west_pan = 29
-	dc_north_west_pan = 30
-	dc_alias = 31
-	dc_cell = 32
-	dc_colresize = 33
-	dc_copycur = 34
-	dc_verticaltext = 35
-	dc_rowresize = 36
-	dc_zoomin = 37
-	dc_zoomout = 38
-	dc_help = 39
-	dc_custom = 40
-	dc_last = 41
-End Enum
-
-Enum EHTMLKeyModifiers Flags
-	k_eHTMLKeyModifier_None = 0
-	k_eHTMLKeyModifier_AltDown = 1
-	k_eHTMLKeyModifier_CtrlDown = 2
-	k_eHTMLKeyModifier_ShiftDown = 4
-End Enum
-
 Enum ESteamItemFlags Flags
 	k_ESteamItemNoTrade = 1
 	k_ESteamItemRemoved = 256
@@ -1997,5 +2153,204 @@ Enum EParentalFeature
 	k_EFeatureParentalSetup = 10
 	k_EFeatureLibrary = 11
 	k_EFeatureTest = 12
-	k_EFeatureMax = 13
+	k_EFeatureSiteLicense = 13
+	k_EFeatureMax = 14
+End Enum
+
+Enum ESteamDeviceFormFactor
+	k_ESteamDeviceFormFactorUnknown = 0
+	k_ESteamDeviceFormFactorPhone = 1
+	k_ESteamDeviceFormFactorTablet = 2
+	k_ESteamDeviceFormFactorComputer = 3
+	k_ESteamDeviceFormFactorTV = 4
+End Enum
+
+Enum ESteamNetworkingAvailability
+	k_ESteamNetworkingAvailability_CannotTry = -102
+	k_ESteamNetworkingAvailability_Failed = -101
+	k_ESteamNetworkingAvailability_Previously = -100
+	k_ESteamNetworkingAvailability_Retrying = -10
+	k_ESteamNetworkingAvailability_NeverTried = 1
+	k_ESteamNetworkingAvailability_Waiting = 2
+	k_ESteamNetworkingAvailability_Attempting = 3
+	k_ESteamNetworkingAvailability_Current = 100
+	k_ESteamNetworkingAvailability_Unknown = 0
+	k_ESteamNetworkingAvailability__Force32bit = 2147483647
+End Enum
+
+Enum ESteamNetworkingIdentityType
+	k_ESteamNetworkingIdentityType_Invalid = 0
+	k_ESteamNetworkingIdentityType_SteamID = 16
+	k_ESteamNetworkingIdentityType_XboxPairwiseID = 17
+	k_ESteamNetworkingIdentityType_SonyPSN = 18
+	k_ESteamNetworkingIdentityType_GoogleStadia = 19
+	k_ESteamNetworkingIdentityType_IPAddress = 1
+	k_ESteamNetworkingIdentityType_GenericString = 2
+	k_ESteamNetworkingIdentityType_GenericBytes = 3
+	k_ESteamNetworkingIdentityType_UnknownType = 4
+	k_ESteamNetworkingIdentityType__Force32bit = 2147483647
+End Enum
+
+Enum ESteamNetworkingFakeIPType
+	k_ESteamNetworkingFakeIPType_Invalid = 0
+	k_ESteamNetworkingFakeIPType_NotFake = 1
+	k_ESteamNetworkingFakeIPType_GlobalIPv4 = 2
+	k_ESteamNetworkingFakeIPType_LocalIPv4 = 3
+	k_ESteamNetworkingFakeIPType__Force32Bit = 2147483647
+End Enum
+
+Enum ESteamNetworkingConnectionState
+	k_ESteamNetworkingConnectionState_None = 0
+	k_ESteamNetworkingConnectionState_Connecting = 1
+	k_ESteamNetworkingConnectionState_FindingRoute = 2
+	k_ESteamNetworkingConnectionState_Connected = 3
+	k_ESteamNetworkingConnectionState_ClosedByPeer = 4
+	k_ESteamNetworkingConnectionState_ProblemDetectedLocally = 5
+	k_ESteamNetworkingConnectionState_FinWait = -1
+	k_ESteamNetworkingConnectionState_Linger = -2
+	k_ESteamNetworkingConnectionState_Dead = -3
+	k_ESteamNetworkingConnectionState__Force32Bit = 2147483647
+End Enum
+
+Enum ESteamNetConnectionEnd
+	k_ESteamNetConnectionEnd_Invalid = 0
+	k_ESteamNetConnectionEnd_App_Min = 1000
+	k_ESteamNetConnectionEnd_App_Generic = 1000
+	k_ESteamNetConnectionEnd_App_Max = 1999
+	k_ESteamNetConnectionEnd_AppException_Min = 2000
+	k_ESteamNetConnectionEnd_AppException_Generic = 2000
+	k_ESteamNetConnectionEnd_AppException_Max = 2999
+	k_ESteamNetConnectionEnd_Local_Min = 3000
+	k_ESteamNetConnectionEnd_Local_OfflineMode = 3001
+	k_ESteamNetConnectionEnd_Local_ManyRelayConnectivity = 3002
+	k_ESteamNetConnectionEnd_Local_HostedServerPrimaryRelay = 3003
+	k_ESteamNetConnectionEnd_Local_NetworkConfig = 3004
+	k_ESteamNetConnectionEnd_Local_Rights = 3005
+	k_ESteamNetConnectionEnd_Local_P2P_ICE_NoPublicAddresses = 3006
+	k_ESteamNetConnectionEnd_Local_Max = 3999
+	k_ESteamNetConnectionEnd_Remote_Min = 4000
+	k_ESteamNetConnectionEnd_Remote_Timeout = 4001
+	k_ESteamNetConnectionEnd_Remote_BadCrypt = 4002
+	k_ESteamNetConnectionEnd_Remote_BadCert = 4003
+	k_ESteamNetConnectionEnd_Remote_BadProtocolVersion = 4006
+	k_ESteamNetConnectionEnd_Remote_P2P_ICE_NoPublicAddresses = 4007
+	k_ESteamNetConnectionEnd_Remote_Max = 4999
+	k_ESteamNetConnectionEnd_Misc_Min = 5000
+	k_ESteamNetConnectionEnd_Misc_Generic = 5001
+	k_ESteamNetConnectionEnd_Misc_InternalError = 5002
+	k_ESteamNetConnectionEnd_Misc_Timeout = 5003
+	k_ESteamNetConnectionEnd_Misc_SteamConnectivity = 5005
+	k_ESteamNetConnectionEnd_Misc_NoRelaySessionsToClient = 5006
+	k_ESteamNetConnectionEnd_Misc_P2P_Rendezvous = 5008
+	k_ESteamNetConnectionEnd_Misc_P2P_NAT_Firewall = 5009
+	k_ESteamNetConnectionEnd_Misc_PeerSentNoConnection = 5010
+	k_ESteamNetConnectionEnd_Misc_Max = 5999
+	k_ESteamNetConnectionEnd__Force32Bit = 2147483647
+End Enum
+
+Enum ESteamNetworkingConfigScope
+	k_ESteamNetworkingConfig_Global = 1
+	k_ESteamNetworkingConfig_SocketsInterface = 2
+	k_ESteamNetworkingConfig_ListenSocket = 3
+	k_ESteamNetworkingConfig_Connection = 4
+	k_ESteamNetworkingConfigScope__Force32Bit = 2147483647
+End Enum
+
+Enum ESteamNetworkingConfigDataType
+	k_ESteamNetworkingConfig_Int32 = 1
+	k_ESteamNetworkingConfig_Int64 = 2
+	k_ESteamNetworkingConfig_Float = 3
+	k_ESteamNetworkingConfig_String = 4
+	k_ESteamNetworkingConfig_Ptr = 5
+	k_ESteamNetworkingConfigDataType__Force32Bit = 2147483647
+End Enum
+
+Enum ESteamNetworkingConfigValue
+	k_ESteamNetworkingConfig_Invalid = 0
+	k_ESteamNetworkingConfig_TimeoutInitial = 24
+	k_ESteamNetworkingConfig_TimeoutConnected = 25
+	k_ESteamNetworkingConfig_SendBufferSize = 9
+	k_ESteamNetworkingConfig_ConnectionUserData = 40
+	k_ESteamNetworkingConfig_SendRateMin = 10
+	k_ESteamNetworkingConfig_SendRateMax = 11
+	k_ESteamNetworkingConfig_NagleTime = 12
+	k_ESteamNetworkingConfig_IP_AllowWithoutAuth = 23
+	k_ESteamNetworkingConfig_MTU_PacketSize = 32
+	k_ESteamNetworkingConfig_MTU_DataSize = 33
+	k_ESteamNetworkingConfig_Unencrypted = 34
+	k_ESteamNetworkingConfig_SymmetricConnect = 37
+	k_ESteamNetworkingConfig_LocalVirtualPort = 38
+	k_ESteamNetworkingConfig_DualWifi_Enable = 39
+	k_ESteamNetworkingConfig_EnableDiagnosticsUI = 46
+	k_ESteamNetworkingConfig_FakePacketLoss_Send = 2
+	k_ESteamNetworkingConfig_FakePacketLoss_Recv = 3
+	k_ESteamNetworkingConfig_FakePacketLag_Send = 4
+	k_ESteamNetworkingConfig_FakePacketLag_Recv = 5
+	k_ESteamNetworkingConfig_FakePacketReorder_Send = 6
+	k_ESteamNetworkingConfig_FakePacketReorder_Recv = 7
+	k_ESteamNetworkingConfig_FakePacketReorder_Time = 8
+	k_ESteamNetworkingConfig_FakePacketDup_Send = 26
+	k_ESteamNetworkingConfig_FakePacketDup_Recv = 27
+	k_ESteamNetworkingConfig_FakePacketDup_TimeMax = 28
+	k_ESteamNetworkingConfig_PacketTraceMaxBytes = 41
+	k_ESteamNetworkingConfig_FakeRateLimit_Send_Rate = 42
+	k_ESteamNetworkingConfig_FakeRateLimit_Send_Burst = 43
+	k_ESteamNetworkingConfig_FakeRateLimit_Recv_Rate = 44
+	k_ESteamNetworkingConfig_FakeRateLimit_Recv_Burst = 45
+	k_ESteamNetworkingConfig_Callback_ConnectionStatusChanged = 201
+	k_ESteamNetworkingConfig_Callback_AuthStatusChanged = 202
+	k_ESteamNetworkingConfig_Callback_RelayNetworkStatusChanged = 203
+	k_ESteamNetworkingConfig_Callback_MessagesSessionRequest = 204
+	k_ESteamNetworkingConfig_Callback_MessagesSessionFailed = 205
+	k_ESteamNetworkingConfig_Callback_CreateConnectionSignaling = 206
+	k_ESteamNetworkingConfig_Callback_FakeIPResult = 207
+	k_ESteamNetworkingConfig_P2P_STUN_ServerList = 103
+	k_ESteamNetworkingConfig_P2P_Transport_ICE_Enable = 104
+	k_ESteamNetworkingConfig_P2P_Transport_ICE_Penalty = 105
+	k_ESteamNetworkingConfig_P2P_Transport_SDR_Penalty = 106
+	k_ESteamNetworkingConfig_SDRClient_ConsecutitivePingTimeoutsFailInitial = 19
+	k_ESteamNetworkingConfig_SDRClient_ConsecutitivePingTimeoutsFail = 20
+	k_ESteamNetworkingConfig_SDRClient_MinPingsBeforePingAccurate = 21
+	k_ESteamNetworkingConfig_SDRClient_SingleSocket = 22
+	k_ESteamNetworkingConfig_SDRClient_ForceRelayCluster = 29
+	k_ESteamNetworkingConfig_SDRClient_DebugTicketAddress = 30
+	k_ESteamNetworkingConfig_SDRClient_ForceProxyAddr = 31
+	k_ESteamNetworkingConfig_SDRClient_FakeClusterPing = 36
+	k_ESteamNetworkingConfig_LogLevel_AckRTT = 13
+	k_ESteamNetworkingConfig_LogLevel_PacketDecode = 14
+	k_ESteamNetworkingConfig_LogLevel_Message = 15
+	k_ESteamNetworkingConfig_LogLevel_PacketGaps = 16
+	k_ESteamNetworkingConfig_LogLevel_P2PRendezvous = 17
+	k_ESteamNetworkingConfig_LogLevel_SDRRelayPings = 18
+	k_ESteamNetworkingConfig_DELETED_EnumerateDevVars = 35
+	k_ESteamNetworkingConfigValue__Force32Bit = 2147483647
+End Enum
+
+Enum ESteamNetworkingGetConfigValueResult
+	k_ESteamNetworkingGetConfigValue_BadValue = -1
+	k_ESteamNetworkingGetConfigValue_BadScopeObj = -2
+	k_ESteamNetworkingGetConfigValue_BufferTooSmall = -3
+	k_ESteamNetworkingGetConfigValue_OK = 1
+	k_ESteamNetworkingGetConfigValue_OKInherited = 2
+	k_ESteamNetworkingGetConfigValueResult__Force32Bit = 2147483647
+End Enum
+
+Enum ESteamNetworkingSocketsDebugOutputType
+	k_ESteamNetworkingSocketsDebugOutputType_None = 0
+	k_ESteamNetworkingSocketsDebugOutputType_Bug = 1
+	k_ESteamNetworkingSocketsDebugOutputType_Error = 2
+	k_ESteamNetworkingSocketsDebugOutputType_Important = 3
+	k_ESteamNetworkingSocketsDebugOutputType_Warning = 4
+	k_ESteamNetworkingSocketsDebugOutputType_Msg = 5
+	k_ESteamNetworkingSocketsDebugOutputType_Verbose = 6
+	k_ESteamNetworkingSocketsDebugOutputType_Debug = 7
+	k_ESteamNetworkingSocketsDebugOutputType_Everything = 8
+	k_ESteamNetworkingSocketsDebugOutputType__Force32Bit = 2147483647
+End Enum
+
+Enum EServerMode
+	eServerModeInvalid = 0
+	eServerModeNoAuthentication = 1
+	eServerModeAuthentication = 2
+	eServerModeAuthenticationAndSecure = 3
 End Enum
