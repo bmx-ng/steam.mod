@@ -45,6 +45,7 @@ ModuleInfo "History: Initial Release."
 
 ModuleInfo "CPP_OPTS: -std=c++11"
 ?win32x86
+ModuleInfo "CC_OPTS: -DSTEAM_API_EXPORTS"
 ModuleInfo "LD_OPTS: -L%PWD%/sdk/redistributable_bin"
 ?win32x64
 ModuleInfo "LD_OPTS: -L%PWD%/sdk/redistributable_bin/win64"
