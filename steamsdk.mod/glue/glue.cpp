@@ -17,11 +17,11 @@
      misrepresented as being the original software.
   3. This notice may not be removed or altered from any source distribution.
 */
-#include "steam/steam_api_flat.h"
-
 #define GC_THREADS
 #include "brl.mod/blitz.mod/bdwgc/include/gc.h"
 #include "brl.mod/blitz.mod/blitz.h"
+
+#include "steam/steam_api_flat.h"
 
 #include <chrono>
 #include <thread>
