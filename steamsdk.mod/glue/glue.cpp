@@ -380,9 +380,9 @@ public:
         th = std::thread([=]() {
 
 #ifdef _WIN32
-			auto nativeThread = ::GetCurrentThreadId();
+			bb_thread_t nativeThread = ::GetCurrentThreadId();
 #else
-			void * nativeThread = (void*)pthread_self();
+			bb_thread_t nativeThread = pthread_self();
 #endif
 			bbThread = bbThreadRegister(nativeThread);
 
