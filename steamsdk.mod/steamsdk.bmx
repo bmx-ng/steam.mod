@@ -1,4 +1,4 @@
-' Copyright (c) 2019-2022 Bruce A Henderson
+' Copyright (c) 2019-2025 Bruce A Henderson
 ' 
 ' This software is provided 'as-is', without any express or implied
 ' warranty. In no event will the authors be held liable for any damages
@@ -23,11 +23,13 @@ bbdoc: Steam SDK
 End Rem
 Module Steam.SteamSDK
 
-ModuleInfo "Version: 1.05"
+ModuleInfo "Version: 1.06"
 ModuleInfo "License: zlib/libpng"
 ModuleInfo "Copyright: Steam SDK - Valve Corporation"
-ModuleInfo "Copyright: Wrapper - 2019-2022 Bruce A Henderson"
+ModuleInfo "Copyright: Wrapper - 2019-2025 Bruce A Henderson"
 
+ModuleInfo "History: 1.06"
+ModuleInfo "History: Added TSteamUGC SetListener()"
 ModuleInfo "History: 1.05"
 ModuleInfo "History: Update to steamworks sdk 1.53a."
 ModuleInfo "History: Build fixes."
@@ -1622,6 +1624,21 @@ Type TSteamUGC Extends TSteamAPI
 	
 	Method Delete()
 		bmx_steamsdk_unregister_steamugc(callbackPtr)
+	End Method
+
+	Rem
+	bbdoc: Sets the UGC callback listener.
+	about: Once installed, the listener will receive events via the callback methods.
+	End Rem
+	Method SetListener(listener:ISteamUGCListener)
+		Self.listener = listener
+	End Method
+	
+	Rem
+	bbdoc: Removes the current UGC callback listener.
+	End Rem
+	Method RemoveListener()
+		listener = Null
 	End Method
 
 	Rem
