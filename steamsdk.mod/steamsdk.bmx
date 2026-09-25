@@ -2520,7 +2520,7 @@ Type TSteamUGC Extends TSteamAPI
 	End Method
 	
 	Function _OnUserFavoriteItemsListChanged(inst:TSteamUGC, publishedFileId:ULong, result:EResult, wasAddRequest:Int) { nomangle }
-		inst.OnUserFavoriteItemsListChanged(result:EResult, publishedFileId, wasAddRequest)
+		inst.OnUserFavoriteItemsListChanged(result, publishedFileId, wasAddRequest)
 	End Function
 
 	Method OnCreateItem(result:EResult, publishedFileId:ULong, userNeedsToAcceptWorkshopLegalAgreement:Int)
