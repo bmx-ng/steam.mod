@@ -1,6 +1,14 @@
 *.bak
-.bmx
+.bmx/
+.generics/
+/*.mod/*.debug.*
+/*.mod/*.release.*
+/*.mod/.generics/
+*.bmxbuild
+*.bmxbuild.*
 *.i
 *.i2
+*.app/
+*.exe
 
 .DS_Store
