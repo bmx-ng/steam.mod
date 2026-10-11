@@ -1,4 +1,4 @@
-' Copyright (c) 2019-2025 Bruce A Henderson
+' Copyright (c) 2019-2026 Bruce A Henderson
 ' 
 ' This software is provided 'as-is', without any express or implied
 ' warranty. In no event will the authors be held liable for any damages
@@ -23,11 +23,13 @@ bbdoc: Steam SDK
 End Rem
 Module Steam.SteamSDK
 
-ModuleInfo "Version: 1.06"
+ModuleInfo "Version: 1.07"
 ModuleInfo "License: zlib/libpng"
 ModuleInfo "Copyright: Steam SDK - Valve Corporation"
-ModuleInfo "Copyright: Wrapper - 2019-2025 Bruce A Henderson"
+ModuleInfo "Copyright: Wrapper - 2019-2026 Bruce A Henderson"
 
+ModuleInfo "History: 1.07"
+ModuleInfo "History: Completed Apps, User, Friends, matchmaking, Networking Messages, UserStats, Utils, and UGC feature coverage."
 ModuleInfo "History: 1.06"
 ModuleInfo "History: Added TSteamUGC SetListener()"
 ModuleInfo "History: 1.05"
@@ -145,11 +147,964 @@ Function SteamRunCallbacks()
 	bmx_SteamAPI_RunCallbacks()
 End Function
 
+Rem
+bbdoc: Returns True after Steam has been successfully initialized.
+End Rem
+Function SteamIsInitialized:Int()
+	Return _inited And Not _shutdown
+End Function
+
+Rem
+bbdoc: Enables or disables the wrapper's automatic background callback timer.
+about: Disable automatic callbacks when the application calls
+#SteamRunCallbacks from its main loop. Changing mode does not initialize Steam.
+End Rem
+Function SteamSetAutoRunCallbacks:Int(enabled:Int)
+	If Not _inited Or _shutdown Then Return False
+	enabled = enabled <> 0
+	If enabled = _autoRunCallbacks Then Return True
+	If enabled Then
+		bmx_SteamAPI_startBackgroundTimer()
+	Else
+		bmx_SteamAPI_stopBackgroundTimer()
+	End If
+	_autoRunCallbacks = enabled
+	Return True
+End Function
+
 Type TSteamAPI Abstract
 
 	Field instancePtr:Byte Ptr
 	Field callbackPtr:Byte Ptr
 
+End Type
+
+Rem
+bbdoc: Local Steam user identity and connection state.
+End Rem
+Interface ISteamUserListener
+	Method OnValidateAuthTicket(steamID:ULong, response:EAuthSessionResponse, ownerSteamID:ULong)
+	Method OnGetAuthSessionTicket(authTicket:UInt, result:EResult)
+	Method OnEncryptedAppTicket(result:EResult, ioFailure:Int)
+	Method OnStoreAuthURL(url:String, ioFailure:Int)
+	Method OnMarketEligibility(allowed:Int, reason:EMarketNotAllowedReasonFlags, allowedAtTime:UInt, steamGuardRequiredDays:Int, newDeviceCooldown:Int, ioFailure:Int)
+	Method OnDurationControl(result:EResult, appID:UInt, applicable:Int, secondsLast5h:Int, progress:EDurationControlProgress, notification:EDurationControlNotification, secondsToday:Int, secondsRemaining:Int, ioFailure:Int)
+End Interface
+
+Type TSteamUser Extends TSteamAPI
+	Const STEAMUSER_INTERFACE_VERSION:String = "SteamUser021"
+	Field listener:ISteamUserListener
+
+	Function _create:TSteamUser(instancePtr:Byte Ptr)
+		If Not instancePtr Then Return Null
+		Local this:TSteamUser = New TSteamUser
+		this.instancePtr = instancePtr
+		this.callbackPtr = bmx_steamsdk_register_steamuser(instancePtr, this)
+		Return this
+	End Function
+
+	Method Delete()
+		If callbackPtr Then bmx_steamsdk_unregister_steamuser(callbackPtr)
+		callbackPtr = Null
+	End Method
+
+	Rem
+	bbdoc: Sets the listener that receives asynchronous results and Steam callbacks for this interface.
+	End Rem
+	Method SetListener(listener:ISteamUserListener)
+		Self.listener = listener
+	End Method
+	Rem
+	bbdoc: Returns the Steam user handle associated with the current API context.
+	End Rem
+	Method GetHSteamUser:Int()
+		Return bmx_SteamAPI_ISteamUser_GetHSteamUser(instancePtr)
+	End Method
+
+	Rem
+	bbdoc: Returns #True when the Steam client currently has an active connection to the Steam servers.
+	End Rem
+	Method BLoggedOn:Int()
+		Return bmx_SteamAPI_ISteamUser_BLoggedOn(instancePtr)
+	End Method
+
+	Rem
+	bbdoc: Returns the 64-bit Steam ID of the local user.
+	End Rem
+	Method GetSteamID:ULong()
+		Return bmx_SteamAPI_ISteamUser_GetSteamID(instancePtr)
+	End Method
+
+	Rem
+	bbdoc: Returns the current user's application data folder in @folder.
+	End Rem
+	Method GetUserDataFolder:Int(folder:String Var)
+		Return bmx_SteamAPI_ISteamUser_GetUserDataFolder(instancePtr, folder)
+	End Method
+	Rem
+	bbdoc: Starts capturing voice data for the local user.
+	End Rem
+	Method StartVoiceRecording()
+		bmx_SteamAPI_ISteamUser_StartVoiceRecording(instancePtr)
+	End Method
+	Rem
+	bbdoc: Stops voice capture after any remaining recorded data has been read.
+	End Rem
+	Method StopVoiceRecording()
+		bmx_SteamAPI_ISteamUser_StopVoiceRecording(instancePtr)
+	End Method
+	Rem
+	bbdoc: Reports how many bytes of compressed voice data are ready to read.
+	End Rem
+	Method GetAvailableVoice:EVoiceResult(compressedBytes:UInt Var)
+		Return bmx_SteamAPI_ISteamUser_GetAvailableVoice(instancePtr, compressedBytes)
+	End Method
+	Rem
+	bbdoc: Copies available compressed voice data into @destination and reports the number of bytes written.
+	End Rem
+	Method GetVoice:EVoiceResult(destination:Byte Ptr, capacity:UInt, bytesWritten:UInt Var)
+		Return bmx_SteamAPI_ISteamUser_GetVoice(instancePtr, destination, capacity, bytesWritten)
+	End Method
+	Rem
+	bbdoc: Decompresses Steam voice data into signed 16-bit mono PCM at @sampleRate.
+	End Rem
+	Method DecompressVoice:EVoiceResult(compressed:Byte Ptr, compressedSize:UInt, destination:Byte Ptr, capacity:UInt, bytesWritten:UInt Var, sampleRate:UInt)
+		Return bmx_SteamAPI_ISteamUser_DecompressVoice(instancePtr, compressed, compressedSize, destination, capacity, bytesWritten, sampleRate)
+	End Method
+	Rem
+	bbdoc: Returns Steam's recommended sample rate for decompressed voice playback.
+	End Rem
+	Method GetVoiceOptimalSampleRate:UInt()
+		Return bmx_SteamAPI_ISteamUser_GetVoiceOptimalSampleRate(instancePtr)
+	End Method
+	Rem
+	bbdoc: Creates an authentication ticket and copies it into @ticket.
+	End Rem
+	Method GetAuthSessionTicket:UInt(ticket:Byte Ptr, capacity:Int, ticketSize:UInt Var)
+		Return bmx_SteamAPI_ISteamUser_GetAuthSessionTicket(instancePtr, ticket, capacity, ticketSize)
+	End Method
+	Rem
+	bbdoc: Begins validating a remote user's authentication ticket.
+	End Rem
+	Method BeginAuthSession:EBeginAuthSessionResult(ticket:Byte Ptr, ticketSize:Int, steamID:ULong)
+		Return bmx_SteamAPI_ISteamUser_BeginAuthSession(instancePtr, ticket, ticketSize, steamID)
+	End Method
+	Rem
+	bbdoc: Ends authentication for @steamID when the connection or session finishes.
+	End Rem
+	Method EndAuthSession(steamID:ULong)
+		bmx_SteamAPI_ISteamUser_EndAuthSession(instancePtr, steamID)
+	End Method
+	Rem
+	bbdoc: Cancels a ticket previously returned by #GetAuthSessionTicket.
+	End Rem
+	Method CancelAuthTicket(authTicket:UInt)
+		bmx_SteamAPI_ISteamUser_CancelAuthTicket(instancePtr, authTicket)
+	End Method
+	Rem
+	bbdoc: Checks whether @steamID owns or otherwise has a license for @appID.
+	End Rem
+	Method UserHasLicenseForApp:EUserHasLicenseForAppResult(steamID:ULong, appID:UInt)
+		Return bmx_SteamAPI_ISteamUser_UserHasLicenseForApp(instancePtr, steamID, appID)
+	End Method
+	Rem
+	bbdoc: Returns #True when Steam believes the local user is behind NAT.
+	End Rem
+	Method BIsBehindNAT:Int()
+		Return bmx_SteamAPI_ISteamUser_BIsBehindNAT(instancePtr)
+	End Method
+	Rem
+	bbdoc: Advertises the game server the local user is currently connected to.
+	End Rem
+	Method AdvertiseGame(steamIDGameServer:ULong, ip:UInt, port:Short)
+		bmx_SteamAPI_ISteamUser_AdvertiseGame(instancePtr, steamIDGameServer, ip, port)
+	End Method
+	Rem
+	bbdoc: Records a Steam application usage event for the supplied game ID.
+	End Rem
+	Method TrackAppUsageEvent(gameID:ULong, appUsageEvent:Int, extraInfo:String = "")
+		bmx_SteamAPI_ISteamUser_TrackAppUsageEvent(instancePtr, gameID, appUsageEvent, extraInfo)
+	End Method
+	Rem
+	bbdoc: Requests an encrypted application ticket and reports completion through #ISteamUserListener.
+	End Rem
+	Method RequestEncryptedAppTicket(data:Byte Ptr = Null, size:Int = 0)
+		bmx_SteamAPI_ISteamUser_RequestEncryptedAppTicket(callbackPtr, data, size)
+	End Method
+	Rem
+	bbdoc: Copies the most recently requested encrypted application ticket into @ticket.
+	End Rem
+	Method GetEncryptedAppTicket:Int(ticket:Byte Ptr, capacity:Int, ticketSize:UInt Var)
+		Return bmx_SteamAPI_ISteamUser_GetEncryptedAppTicket(instancePtr, ticket, capacity, ticketSize)
+	End Method
+	Rem
+	bbdoc: Returns the user's badge level for this game and card series.
+	End Rem
+	Method GetGameBadgeLevel:Int(series:Int, foil:Int = False)
+		Return bmx_SteamAPI_ISteamUser_GetGameBadgeLevel(instancePtr, series, foil)
+	End Method
+	Rem
+	bbdoc: Returns the local user's Steam community level.
+	End Rem
+	Method GetPlayerSteamLevel:Int()
+		Return bmx_SteamAPI_ISteamUser_GetPlayerSteamLevel(instancePtr)
+	End Method
+	Rem
+	bbdoc: Requests a store authentication URL and reports it through #ISteamUserListener.
+	End Rem
+	Method RequestStoreAuthURL(redirectURL:String)
+		bmx_SteamAPI_ISteamUser_RequestStoreAuthURL(callbackPtr, redirectURL)
+	End Method
+	Rem
+	bbdoc: Returns #True when the local account has a verified phone number.
+	End Rem
+	Method BIsPhoneVerified:Int()
+		Return bmx_SteamAPI_ISteamUser_BIsPhoneVerified(instancePtr)
+	End Method
+	Rem
+	bbdoc: Returns #True when the local account has two-factor authentication enabled.
+	End Rem
+	Method BIsTwoFactorEnabled:Int()
+		Return bmx_SteamAPI_ISteamUser_BIsTwoFactorEnabled(instancePtr)
+	End Method
+	Rem
+	bbdoc: Returns #True when the local account's phone identifies the user.
+	End Rem
+	Method BIsPhoneIdentifying:Int()
+		Return bmx_SteamAPI_ISteamUser_BIsPhoneIdentifying(instancePtr)
+	End Method
+	Rem
+	bbdoc: Returns #True when the local account's phone still requires verification.
+	End Rem
+	Method BIsPhoneRequiringVerification:Int()
+		Return bmx_SteamAPI_ISteamUser_BIsPhoneRequiringVerification(instancePtr)
+	End Method
+	Rem
+	bbdoc: Requests the local user's Community Market eligibility and reports it through #ISteamUserListener.
+	End Rem
+	Method GetMarketEligibility()
+		bmx_SteamAPI_ISteamUser_GetMarketEligibility(callbackPtr)
+	End Method
+	Rem
+	bbdoc: Requests play-time duration-control information and reports it through #ISteamUserListener.
+	End Rem
+	Method GetDurationControl()
+		bmx_SteamAPI_ISteamUser_GetDurationControl(callbackPtr)
+	End Method
+	Rem
+	bbdoc: Updates the application's online state for Steam duration-control tracking.
+	End Rem
+	Method BSetDurationControlOnlineState:Int(state:EDurationControlOnlineState)
+		Return bmx_SteamAPI_ISteamUser_BSetDurationControlOnlineState(instancePtr, state)
+	End Method
+
+	Method OnValidateAuthTicket(steamID:ULong, response:EAuthSessionResponse, ownerSteamID:ULong)
+		If listener Then listener.OnValidateAuthTicket(steamID, response, ownerSteamID)
+	End Method
+	Function _OnValidateAuthTicket(inst:TSteamUser, steamID:ULong, response:EAuthSessionResponse, ownerSteamID:ULong) { nomangle }
+		inst.OnValidateAuthTicket(steamID, response, ownerSteamID)
+	End Function
+	Method OnGetAuthSessionTicket(authTicket:UInt, result:EResult)
+		If listener Then listener.OnGetAuthSessionTicket(authTicket, result)
+	End Method
+	Function _OnGetAuthSessionTicket(inst:TSteamUser, authTicket:UInt, result:EResult) { nomangle }
+		inst.OnGetAuthSessionTicket(authTicket, result)
+	End Function
+	Method OnEncryptedAppTicket(result:EResult, ioFailure:Int)
+		If listener Then listener.OnEncryptedAppTicket(result, ioFailure)
+	End Method
+	Function _OnEncryptedAppTicket(inst:TSteamUser, result:EResult, ioFailure:Int) { nomangle }
+		inst.OnEncryptedAppTicket(result, ioFailure)
+	End Function
+	Method OnStoreAuthURL(url:String, ioFailure:Int)
+		If listener Then listener.OnStoreAuthURL(url, ioFailure)
+	End Method
+	Function _OnStoreAuthURL(inst:TSteamUser, url:String, ioFailure:Int) { nomangle }
+		inst.OnStoreAuthURL(url, ioFailure)
+	End Function
+	Method OnMarketEligibility(allowed:Int, reason:EMarketNotAllowedReasonFlags, allowedAtTime:UInt, steamGuardRequiredDays:Int, newDeviceCooldown:Int, ioFailure:Int)
+		If listener Then listener.OnMarketEligibility(allowed, reason, allowedAtTime, steamGuardRequiredDays, newDeviceCooldown, ioFailure)
+	End Method
+	Function _OnMarketEligibility(inst:TSteamUser, allowed:Int, reason:EMarketNotAllowedReasonFlags, allowedAtTime:UInt, steamGuardRequiredDays:Int, newDeviceCooldown:Int, ioFailure:Int) { nomangle }
+		inst.OnMarketEligibility(allowed, reason, allowedAtTime, steamGuardRequiredDays, newDeviceCooldown, ioFailure)
+	End Function
+	Method OnDurationControl(result:EResult, appID:UInt, applicable:Int, secondsLast5h:Int, progress:EDurationControlProgress, notification:EDurationControlNotification, secondsToday:Int, secondsRemaining:Int, ioFailure:Int)
+		If listener Then listener.OnDurationControl(result, appID, applicable, secondsLast5h, progress, notification, secondsToday, secondsRemaining, ioFailure)
+	End Method
+	Function _OnDurationControl(inst:TSteamUser, result:EResult, appID:UInt, applicable:Int, secondsLast5h:Int, progress:EDurationControlProgress, notification:EDurationControlNotification, secondsToday:Int, secondsRemaining:Int, ioFailure:Int) { nomangle }
+		inst.OnDurationControl(result, appID, applicable, secondsLast5h, progress, notification, secondsToday, secondsRemaining, ioFailure)
+	End Function
+End Type
+
+Rem
+bbdoc: Application information supplied by Steam.
+End Rem
+Interface ISteamAppsListener
+	Method OnDlcInstalled(appID:UInt)
+	Method OnNewUrlLaunchParameters()
+	Method OnAppProofOfPurchaseKey(result:EResult, appID:UInt, key:String)
+	Method OnTimedTrialStatus(appID:UInt, offline:Int, secondsAllowed:UInt, secondsPlayed:UInt)
+	Method OnFileDetails(result:EResult, fileSize:ULong, sha1:String, flags:UInt, ioFailure:Int)
+End Interface
+
+Type TSteamApps Extends TSteamAPI
+	Const STEAMAPPS_INTERFACE_VERSION:String = "STEAMAPPS_INTERFACE_VERSION008"
+	Field listener:ISteamAppsListener
+
+	Function _create:TSteamApps(instancePtr:Byte Ptr)
+		If Not instancePtr Then Return Null
+		Local this:TSteamApps = New TSteamApps
+		this.instancePtr = instancePtr
+		this.callbackPtr = bmx_steamsdk_register_steamapps(instancePtr, this)
+		Return this
+	End Function
+
+	Method Delete()
+		If callbackPtr Then bmx_steamsdk_unregister_steamapps(callbackPtr)
+		callbackPtr = Null
+	End Method
+
+	Rem
+	bbdoc: Sets the listener that receives asynchronous results and Steam callbacks for this interface.
+	End Rem
+	Method SetListener(listener:ISteamAppsListener)
+		Self.listener = listener
+	End Method
+	Rem
+	bbdoc: Returns #True when the active user is subscribed to the current application.
+	End Rem
+	Method BIsSubscribed:Int()
+		Return bmx_SteamAPI_ISteamApps_BIsSubscribed(instancePtr)
+	End Method
+	Rem
+	bbdoc: Returns #True when Steam is running a low-violence build for this user.
+	End Rem
+	Method BIsLowViolence:Int()
+		Return bmx_SteamAPI_ISteamApps_BIsLowViolence(instancePtr)
+	End Method
+	Rem
+	bbdoc: Returns #True when the application is running under a cybercafe license.
+	End Rem
+	Method BIsCybercafe:Int()
+		Return bmx_SteamAPI_ISteamApps_BIsCybercafe(instancePtr)
+	End Method
+	Rem
+	bbdoc: Returns #True when the user has a VAC ban for this application.
+	End Rem
+	Method BIsVACBanned:Int()
+		Return bmx_SteamAPI_ISteamApps_BIsVACBanned(instancePtr)
+	End Method
+	Rem
+	bbdoc: Returns the language Steam has selected for the current game.
+	End Rem
+	Method GetCurrentGameLanguage:String()
+		Return bmx_SteamAPI_ISteamApps_GetCurrentGameLanguage(instancePtr)
+	End Method
+	Rem
+	bbdoc: Returns the comma-separated languages supported by the current game.
+	End Rem
+	Method GetAvailableGameLanguages:String()
+		Return bmx_SteamAPI_ISteamApps_GetAvailableGameLanguages(instancePtr)
+	End Method
+	Rem
+	bbdoc: Returns #True when the active user is subscribed to @appID.
+	End Rem
+	Method BIsSubscribedApp:Int(appID:UInt)
+		Return bmx_SteamAPI_ISteamApps_BIsSubscribedApp(instancePtr, appID)
+	End Method
+	Rem
+	bbdoc: Returns #True when the specified DLC is installed.
+	End Rem
+	Method BIsDlcInstalled:Int(appID:UInt)
+		Return bmx_SteamAPI_ISteamApps_BIsDlcInstalled(instancePtr, appID)
+	End Method
+	Rem
+	bbdoc: Returns the earliest purchase time for @appID as a Unix timestamp.
+	End Rem
+	Method GetEarliestPurchaseUnixTime:UInt(appID:UInt)
+		Return bmx_SteamAPI_ISteamApps_GetEarliestPurchaseUnixTime(instancePtr, appID)
+	End Method
+	Rem
+	bbdoc: Returns #True when access comes from a free-weekend license.
+	End Rem
+	Method BIsSubscribedFromFreeWeekend:Int()
+		Return bmx_SteamAPI_ISteamApps_BIsSubscribedFromFreeWeekend(instancePtr)
+	End Method
+	Rem
+	bbdoc: Returns the number of DLC entries known for the current application.
+	End Rem
+	Method GetDLCCount:Int()
+		Return bmx_SteamAPI_ISteamApps_GetDLCCount(instancePtr)
+	End Method
+	Rem
+	bbdoc: Returns the application ID, availability, and display name of a DLC entry.
+	End Rem
+	Method BGetDLCDataByIndex:Int(index:Int, appID:UInt Var, available:Int Var, name:String Var)
+		Return bmx_SteamAPI_ISteamApps_BGetDLCDataByIndex(instancePtr, index, appID, available, name)
+	End Method
+	Rem
+	bbdoc: Requests installation of the specified DLC.
+	End Rem
+	Method InstallDLC(appID:UInt)
+		bmx_SteamAPI_ISteamApps_InstallDLC(instancePtr, appID)
+	End Method
+	Rem
+	bbdoc: Requests removal of the specified DLC.
+	End Rem
+	Method UninstallDLC(appID:UInt)
+		bmx_SteamAPI_ISteamApps_UninstallDLC(instancePtr, appID)
+	End Method
+	Rem
+	bbdoc: Requests the proof-of-purchase key for @appID through #ISteamAppsListener.
+	End Rem
+	Method RequestAppProofOfPurchaseKey(appID:UInt)
+		bmx_SteamAPI_ISteamApps_RequestAppProofOfPurchaseKey(instancePtr, appID)
+	End Method
+	Rem
+	bbdoc: Returns the name of the beta branch selected by the user.
+	End Rem
+	Method GetCurrentBetaName:Int(name:String Var)
+		Return bmx_SteamAPI_ISteamApps_GetCurrentBetaName(instancePtr, name)
+	End Method
+	Rem
+	bbdoc: Asks Steam to verify the application's installed content.
+	End Rem
+	Method MarkContentCorrupt:Int(missingFilesOnly:Int)
+		Return bmx_SteamAPI_ISteamApps_MarkContentCorrupt(instancePtr, missingFilesOnly)
+	End Method
+	Rem
+	bbdoc: Copies up to @maxDepots installed depot IDs into @depots and returns the count.
+	End Rem
+	Method GetInstalledDepots:UInt(appID:UInt, depots:UInt Ptr, maxDepots:UInt)
+		Return bmx_SteamAPI_ISteamApps_GetInstalledDepots(instancePtr, appID, depots, maxDepots)
+	End Method
+	Rem
+	bbdoc: Returns the installation directory for @appID in @folder.
+	End Rem
+	Method GetAppInstallDir:UInt(appID:UInt, folder:String Var)
+		Return bmx_SteamAPI_ISteamApps_GetAppInstallDir(instancePtr, appID, folder)
+	End Method
+	Rem
+	bbdoc: Returns #True when @appID is installed on this computer.
+	End Rem
+	Method BIsAppInstalled:Int(appID:UInt)
+		Return bmx_SteamAPI_ISteamApps_BIsAppInstalled(instancePtr, appID)
+	End Method
+	Rem
+	bbdoc: Returns the Steam ID of the account that owns the current application license.
+	End Rem
+	Method GetAppOwner:ULong()
+		Return bmx_SteamAPI_ISteamApps_GetAppOwner(instancePtr)
+	End Method
+	Rem
+	bbdoc: Returns a query parameter supplied in a Steam URL launch.
+	End Rem
+	Method GetLaunchQueryParam:String(key:String)
+		Return bmx_SteamAPI_ISteamApps_GetLaunchQueryParam(instancePtr, key)
+	End Method
+	Rem
+	bbdoc: Returns the downloaded and total byte counts for a DLC installation.
+	End Rem
+	Method GetDlcDownloadProgress:Int(appID:UInt, downloaded:ULong Var, total:ULong Var)
+		Return bmx_SteamAPI_ISteamApps_GetDlcDownloadProgress(instancePtr, appID, downloaded, total)
+	End Method
+	Rem
+	bbdoc: Returns the build ID of the currently installed application.
+	End Rem
+	Method GetAppBuildId:Int()
+		Return bmx_SteamAPI_ISteamApps_GetAppBuildId(instancePtr)
+	End Method
+	Rem
+	bbdoc: Requests proof-of-purchase keys for all owned DLC.
+	End Rem
+	Method RequestAllProofOfPurchaseKeys()
+		bmx_SteamAPI_ISteamApps_RequestAllProofOfPurchaseKeys(instancePtr)
+	End Method
+	Rem
+	bbdoc: Requests file size, SHA-1, and flag information through #ISteamAppsListener.
+	End Rem
+	Method GetFileDetails(fileName:String)
+		bmx_SteamAPI_ISteamApps_GetFileDetails(callbackPtr, fileName)
+	End Method
+	Rem
+	bbdoc: Returns #True when access comes from Steam Family Sharing.
+	End Rem
+	Method BIsSubscribedFromFamilySharing:Int()
+		Return bmx_SteamAPI_ISteamApps_BIsSubscribedFromFamilySharing(instancePtr)
+	End Method
+	Rem
+	bbdoc: Reports whether this is a timed trial and returns its allowed and played durations.
+	End Rem
+	Method BIsTimedTrial:Int(secondsAllowed:UInt Var, secondsPlayed:UInt Var)
+		Return bmx_SteamAPI_ISteamApps_BIsTimedTrial(instancePtr, secondsAllowed, secondsPlayed)
+	End Method
+
+	Rem
+	bbdoc: Returns the command line supplied by Steam when the application was launched.
+	about: This includes special launch parameters such as +connect_lobby after
+	a user accepts a lobby invitation while the application is not running.
+	End Rem
+	Method GetLaunchCommandLine:String()
+		Return bmx_SteamAPI_ISteamApps_GetLaunchCommandLine(instancePtr)
+	End Method
+
+	Method OnDlcInstalled(appID:UInt)
+		If listener Then listener.OnDlcInstalled(appID)
+	End Method
+	Function _OnDlcInstalled(inst:TSteamApps, appID:UInt) { nomangle }
+		inst.OnDlcInstalled(appID)
+	End Function
+	Method OnNewUrlLaunchParameters()
+		If listener Then listener.OnNewUrlLaunchParameters()
+	End Method
+	Function _OnNewUrlLaunchParameters(inst:TSteamApps) { nomangle }
+		inst.OnNewUrlLaunchParameters()
+	End Function
+	Method OnAppProofOfPurchaseKey(result:EResult, appID:UInt, key:String)
+		If listener Then listener.OnAppProofOfPurchaseKey(result, appID, key)
+	End Method
+	Function _OnAppProofOfPurchaseKey(inst:TSteamApps, result:EResult, appID:UInt, key:String) { nomangle }
+		inst.OnAppProofOfPurchaseKey(result, appID, key)
+	End Function
+	Method OnTimedTrialStatus(appID:UInt, offline:Int, secondsAllowed:UInt, secondsPlayed:UInt)
+		If listener Then listener.OnTimedTrialStatus(appID, offline, secondsAllowed, secondsPlayed)
+	End Method
+	Function _OnTimedTrialStatus(inst:TSteamApps, appID:UInt, offline:Int, secondsAllowed:UInt, secondsPlayed:UInt) { nomangle }
+		inst.OnTimedTrialStatus(appID, offline, secondsAllowed, secondsPlayed)
+	End Function
+	Method OnFileDetails(result:EResult, fileSize:ULong, sha1:String, flags:UInt, ioFailure:Int)
+		If listener Then listener.OnFileDetails(result, fileSize, sha1, flags, ioFailure)
+	End Method
+	Function _OnFileDetails(inst:TSteamApps, result:EResult, fileSize:ULong, sha1:String, flags:UInt, ioFailure:Int) { nomangle }
+		inst.OnFileDetails(result, fileSize, sha1, flags, ioFailure)
+	End Function
+End Type
+
+Rem
+bbdoc: Listener for Steam lobby matchmaking results and changes.
+End Rem
+Interface ISteamMatchmakingListener
+	Method OnLobbyCreated(result:EResult, steamIDLobby:ULong, ioFailure:Int)
+	Method OnLobbyMatchList(lobbyCount:UInt, ioFailure:Int)
+	Method OnLobbyEnter(steamIDLobby:ULong, locked:Int, response:EChatRoomEnterResponse)
+	Method OnLobbyDataUpdate(steamIDLobby:ULong, steamIDMember:ULong, success:Int)
+	Method OnLobbyChatUpdate(steamIDLobby:ULong, steamIDUserChanged:ULong, steamIDMakingChange:ULong, stateChange:EChatMemberStateChange)
+	Method OnLobbyChatMessage(steamIDLobby:ULong, steamIDUser:ULong, chatEntryType:EChatEntryType, chatID:UInt)
+	Method OnLobbyGameCreated(steamIDLobby:ULong, steamIDGameServer:ULong, ip:UInt, port:Short)
+	Method OnLobbyInvite(steamIDUser:ULong, steamIDLobby:ULong, gameID:ULong)
+	Method OnLobbyJoinRequested(steamIDLobby:ULong, steamIDFriend:ULong)
+End Interface
+
+Rem
+bbdoc: Steam lobby creation, discovery, membership, and metadata.
+End Rem
+Type TSteamMatchmaking Extends TSteamAPI
+	Const STEAMMATCHMAKING_INTERFACE_VERSION:String = "SteamMatchMaking009"
+	Field listener:ISteamMatchmakingListener
+
+	Function _create:TSteamMatchmaking(instancePtr:Byte Ptr)
+		If Not instancePtr Then Return Null
+		Local this:TSteamMatchmaking = New TSteamMatchmaking
+		this.instancePtr = instancePtr
+		this.callbackPtr = bmx_steamsdk_register_steammatchmaking(instancePtr, this)
+		Return this
+	End Function
+
+	Method Delete()
+		If callbackPtr Then bmx_steamsdk_unregister_steammatchmaking(callbackPtr)
+		callbackPtr = Null
+	End Method
+
+	Rem
+	bbdoc: Sets the listener that receives asynchronous results and Steam callbacks for this interface.
+	End Rem
+	Method SetListener(listener:ISteamMatchmakingListener)
+		Self.listener = listener
+	End Method
+
+	Rem
+	bbdoc: Returns the number of entries in the user's favorite and history server list.
+	End Rem
+	Method GetFavoriteGameCount:Int()
+		Return bmx_SteamAPI_ISteamMatchmaking_GetFavoriteGameCount(instancePtr)
+	End Method
+	Rem
+	bbdoc: Returns one favorite or history server entry by index.
+	End Rem
+	Method GetFavoriteGame:Int(index:Int, appID:UInt Var, ip:UInt Var, connectionPort:Short Var, queryPort:Short Var, flags:UInt Var, lastPlayed:UInt Var)
+		Return bmx_SteamAPI_ISteamMatchmaking_GetFavoriteGame(instancePtr, index, appID, ip, connectionPort, queryPort, flags, lastPlayed)
+	End Method
+	Rem
+	bbdoc: Adds a server to the user's favorite or history list.
+	End Rem
+	Method AddFavoriteGame:Int(appID:UInt, ip:UInt, connectionPort:Short, queryPort:Short, flags:UInt, lastPlayed:UInt)
+		Return bmx_SteamAPI_ISteamMatchmaking_AddFavoriteGame(instancePtr, appID, ip, connectionPort, queryPort, flags, lastPlayed)
+	End Method
+	Rem
+	bbdoc: Removes a server from the user's favorite or history list.
+	End Rem
+	Method RemoveFavoriteGame:Int(appID:UInt, ip:UInt, connectionPort:Short, queryPort:Short, flags:UInt)
+		Return bmx_SteamAPI_ISteamMatchmaking_RemoveFavoriteGame(instancePtr, appID, ip, connectionPort, queryPort, flags)
+	End Method
+
+	Rem
+	bbdoc: Adds a string metadata comparison to the next lobby-list request.
+	End Rem
+	Method AddRequestLobbyListStringFilter(key:String, value:String, comparison:ELobbyComparison = ELobbyComparison.k_ELobbyComparisonEqual)
+		bmx_SteamAPI_ISteamMatchmaking_AddRequestLobbyListStringFilter(instancePtr, key, value, comparison)
+	End Method
+
+	Rem
+	bbdoc: Adds a numeric metadata comparison to the next lobby-list request.
+	End Rem
+	Method AddRequestLobbyListNumericalFilter(key:String, value:Int, comparison:ELobbyComparison = ELobbyComparison.k_ELobbyComparisonEqual)
+		bmx_SteamAPI_ISteamMatchmaking_AddRequestLobbyListNumericalFilter(instancePtr, key, value, comparison)
+	End Method
+
+	Rem
+	bbdoc: Orders the next lobby-list result by distance from a numeric metadata value.
+	End Rem
+	Method AddRequestLobbyListNearValueFilter(key:String, value:Int)
+		bmx_SteamAPI_ISteamMatchmaking_AddRequestLobbyListNearValueFilter(instancePtr, key, value)
+	End Method
+
+	Rem
+	bbdoc: Limits the number of lobbies returned by the next lobby-list request.
+	End Rem
+	Method AddRequestLobbyListResultCountFilter(maxResults:Int)
+		bmx_SteamAPI_ISteamMatchmaking_AddRequestLobbyListResultCountFilter(instancePtr, maxResults)
+	End Method
+
+	Rem
+	bbdoc: Requires a minimum number of open slots in the next lobby-list request.
+	End Rem
+	Method AddRequestLobbyListFilterSlotsAvailable(slotsAvailable:Int)
+		bmx_SteamAPI_ISteamMatchmaking_AddRequestLobbyListFilterSlotsAvailable(instancePtr, slotsAvailable)
+	End Method
+
+	Rem
+	bbdoc: Sets the geographic distance used by the next lobby-list request.
+	End Rem
+	Method AddRequestLobbyListDistanceFilter(distance:ELobbyDistanceFilter)
+		bmx_SteamAPI_ISteamMatchmaking_AddRequestLobbyListDistanceFilter(instancePtr, distance)
+	End Method
+
+	Rem
+	bbdoc: Restricts the next lobby-list request to lobbies compatible with members of another lobby.
+	End Rem
+	Method AddRequestLobbyListCompatibleMembersFilter(steamIDLobby:ULong)
+		bmx_SteamAPI_ISteamMatchmaking_AddRequestLobbyListCompatibleMembersFilter(instancePtr, steamIDLobby)
+	End Method
+
+	Rem
+	bbdoc: Starts an asynchronous lobby search using the filters added since the previous request.
+	End Rem
+	Method RequestLobbyList()
+		bmx_SteamAPI_ISteamMatchmaking_RequestLobbyList(callbackPtr)
+	End Method
+
+	Rem
+	bbdoc: Creates a lobby asynchronously and reports the result through #ISteamMatchmakingListener.
+	End Rem
+	Method CreateLobby(lobbyType:ELobbyType, maxMembers:Int)
+		bmx_SteamAPI_ISteamMatchmaking_CreateLobby(callbackPtr, lobbyType, maxMembers)
+	End Method
+
+	Rem
+	bbdoc: Joins a lobby asynchronously and reports entry through #ISteamMatchmakingListener.
+	End Rem
+	Method JoinLobby(steamIDLobby:ULong)
+		bmx_SteamAPI_ISteamMatchmaking_JoinLobby(instancePtr, steamIDLobby)
+	End Method
+
+	Rem
+	bbdoc: Leaves a lobby immediately.
+	End Rem
+	Method LeaveLobby(steamIDLobby:ULong)
+		bmx_SteamAPI_ISteamMatchmaking_LeaveLobby(instancePtr, steamIDLobby)
+	End Method
+
+	Rem
+	bbdoc: Returns a lobby ID from the most recent successful lobby-list result.
+	End Rem
+	Method GetLobbyByIndex:ULong(index:Int)
+		Return bmx_SteamAPI_ISteamMatchmaking_GetLobbyByIndex(instancePtr, index)
+	End Method
+	Rem
+	bbdoc: Returns the current number of members in a joined lobby.
+	End Rem
+	Method GetNumLobbyMembers:Int(steamIDLobby:ULong)
+		Return bmx_SteamAPI_ISteamMatchmaking_GetNumLobbyMembers(instancePtr, steamIDLobby)
+	End Method
+	Rem
+	bbdoc: Returns a member's Steam ID from a joined lobby.
+	End Rem
+	Method GetLobbyMemberByIndex:ULong(steamIDLobby:ULong, member:Int)
+		Return bmx_SteamAPI_ISteamMatchmaking_GetLobbyMemberByIndex(instancePtr, steamIDLobby, member)
+	End Method
+	Rem
+	bbdoc: Returns a lobby metadata value for @key.
+	End Rem
+	Method GetLobbyData:String(steamIDLobby:ULong, key:String)
+		Return bmx_SteamAPI_ISteamMatchmaking_GetLobbyData(instancePtr, steamIDLobby, key)
+	End Method
+	Rem
+	bbdoc: Sets lobby metadata; only the lobby owner may change it.
+	End Rem
+	Method SetLobbyData:Int(steamIDLobby:ULong, key:String, value:String)
+		Return bmx_SteamAPI_ISteamMatchmaking_SetLobbyData(instancePtr, steamIDLobby, key, value)
+	End Method
+	Rem
+	bbdoc: Returns the number of metadata entries associated with a lobby.
+	End Rem
+	Method GetLobbyDataCount:Int(steamIDLobby:ULong)
+		Return bmx_SteamAPI_ISteamMatchmaking_GetLobbyDataCount(instancePtr, steamIDLobby)
+	End Method
+	Rem
+	bbdoc: Returns one lobby metadata key/value pair by index.
+	End Rem
+	Method GetLobbyDataByIndex:Int(steamIDLobby:ULong, index:Int, key:String Var, value:String Var)
+		Return bmx_SteamAPI_ISteamMatchmaking_GetLobbyDataByIndex(instancePtr, steamIDLobby, index, key, value)
+	End Method
+	Rem
+	bbdoc: Deletes lobby metadata; only the lobby owner may change it.
+	End Rem
+	Method DeleteLobbyData:Int(steamIDLobby:ULong, key:String)
+		Return bmx_SteamAPI_ISteamMatchmaking_DeleteLobbyData(instancePtr, steamIDLobby, key)
+	End Method
+	Rem
+	bbdoc: Returns member-specific metadata from a joined lobby.
+	End Rem
+	Method GetLobbyMemberData:String(steamIDLobby:ULong, steamIDUser:ULong, key:String)
+		Return bmx_SteamAPI_ISteamMatchmaking_GetLobbyMemberData(instancePtr, steamIDLobby, steamIDUser, key)
+	End Method
+	Rem
+	bbdoc: Sets metadata for the local member of a joined lobby.
+	End Rem
+	Method SetLobbyMemberData(steamIDLobby:ULong, key:String, value:String)
+		bmx_SteamAPI_ISteamMatchmaking_SetLobbyMemberData(instancePtr, steamIDLobby, key, value)
+	End Method
+	Rem
+	bbdoc: Sends a binary chat message to every member of a joined lobby.
+	End Rem
+	Method SendLobbyChatMsg:Int(steamIDLobby:ULong, data:Byte Ptr, size:Int)
+		Return bmx_SteamAPI_ISteamMatchmaking_SendLobbyChatMsg(instancePtr, steamIDLobby, data, size)
+	End Method
+	Rem
+	bbdoc: Copies a lobby chat entry into @data and returns its byte count.
+	End Rem
+	Method GetLobbyChatEntry:Int(steamIDLobby:ULong, chatID:Int, steamIDUser:ULong Var, data:Byte Ptr, capacity:Int, chatEntryType:EChatEntryType Var)
+		Return bmx_SteamAPI_ISteamMatchmaking_GetLobbyChatEntry(instancePtr, steamIDLobby, chatID, steamIDUser, data, capacity, chatEntryType)
+	End Method
+	Rem
+	bbdoc: Refreshes lobby metadata and reports completion through #ISteamMatchmakingListener.
+	End Rem
+	Method RequestLobbyData:Int(steamIDLobby:ULong)
+		Return bmx_SteamAPI_ISteamMatchmaking_RequestLobbyData(instancePtr, steamIDLobby)
+	End Method
+	Rem
+	bbdoc: Associates a game server endpoint or Steam ID with a lobby.
+	End Rem
+	Method SetLobbyGameServer(steamIDLobby:ULong, ip:UInt, port:Short, steamIDGameServer:ULong)
+		bmx_SteamAPI_ISteamMatchmaking_SetLobbyGameServer(instancePtr, steamIDLobby, ip, port, steamIDGameServer)
+	End Method
+	Rem
+	bbdoc: Returns the game server associated with a lobby.
+	End Rem
+	Method GetLobbyGameServer:Int(steamIDLobby:ULong, ip:UInt Var, port:Short Var, steamIDGameServer:ULong Var)
+		Return bmx_SteamAPI_ISteamMatchmaking_GetLobbyGameServer(instancePtr, steamIDLobby, ip, port, steamIDGameServer)
+	End Method
+	Rem
+	bbdoc: Sets the maximum membership of a lobby.
+	End Rem
+	Method SetLobbyMemberLimit:Int(steamIDLobby:ULong, maxMembers:Int)
+		Return bmx_SteamAPI_ISteamMatchmaking_SetLobbyMemberLimit(instancePtr, steamIDLobby, maxMembers)
+	End Method
+	Rem
+	bbdoc: Returns the maximum membership of a lobby.
+	End Rem
+	Method GetLobbyMemberLimit:Int(steamIDLobby:ULong)
+		Return bmx_SteamAPI_ISteamMatchmaking_GetLobbyMemberLimit(instancePtr, steamIDLobby)
+	End Method
+	Rem
+	bbdoc: Changes a lobby's visibility and join policy.
+	End Rem
+	Method SetLobbyType:Int(steamIDLobby:ULong, lobbyType:ELobbyType)
+		Return bmx_SteamAPI_ISteamMatchmaking_SetLobbyType(instancePtr, steamIDLobby, lobbyType)
+	End Method
+	Rem
+	bbdoc: Controls whether new users may join a lobby.
+	End Rem
+	Method SetLobbyJoinable:Int(steamIDLobby:ULong, joinable:Int)
+		Return bmx_SteamAPI_ISteamMatchmaking_SetLobbyJoinable(instancePtr, steamIDLobby, joinable)
+	End Method
+	Rem
+	bbdoc: Returns the Steam ID of the lobby owner.
+	End Rem
+	Method GetLobbyOwner:ULong(steamIDLobby:ULong)
+		Return bmx_SteamAPI_ISteamMatchmaking_GetLobbyOwner(instancePtr, steamIDLobby)
+	End Method
+	Rem
+	bbdoc: Transfers lobby ownership to another current member.
+	End Rem
+	Method SetLobbyOwner:Int(steamIDLobby:ULong, steamIDNewOwner:ULong)
+		Return bmx_SteamAPI_ISteamMatchmaking_SetLobbyOwner(instancePtr, steamIDLobby, steamIDNewOwner)
+	End Method
+	Rem
+	bbdoc: Links a dependent lobby to a primary lobby.
+	End Rem
+	Method SetLinkedLobby:Int(steamIDLobby:ULong, steamIDLobbyDependent:ULong)
+		Return bmx_SteamAPI_ISteamMatchmaking_SetLinkedLobby(instancePtr, steamIDLobby, steamIDLobbyDependent)
+	End Method
+	Rem
+	bbdoc: Invites a Steam user to a lobby.
+	End Rem
+	Method InviteUserToLobby:Int(steamIDLobby:ULong, steamIDInvitee:ULong)
+		Return bmx_SteamAPI_ISteamMatchmaking_InviteUserToLobby(instancePtr, steamIDLobby, steamIDInvitee)
+	End Method
+
+	Method OnLobbyCreated(result:EResult, steamIDLobby:ULong, ioFailure:Int)
+		If listener Then listener.OnLobbyCreated(result, steamIDLobby, ioFailure)
+	End Method
+	Function _OnLobbyCreated(inst:TSteamMatchmaking, result:EResult, steamIDLobby:ULong, ioFailure:Int) { nomangle }
+		inst.OnLobbyCreated(result, steamIDLobby, ioFailure)
+	End Function
+	Method OnLobbyMatchList(lobbyCount:UInt, ioFailure:Int)
+		If listener Then listener.OnLobbyMatchList(lobbyCount, ioFailure)
+	End Method
+	Function _OnLobbyMatchList(inst:TSteamMatchmaking, lobbyCount:UInt, ioFailure:Int) { nomangle }
+		inst.OnLobbyMatchList(lobbyCount, ioFailure)
+	End Function
+	Method OnLobbyEnter(steamIDLobby:ULong, locked:Int, response:EChatRoomEnterResponse)
+		If listener Then listener.OnLobbyEnter(steamIDLobby, locked, response)
+	End Method
+	Function _OnLobbyEnter(inst:TSteamMatchmaking, steamIDLobby:ULong, locked:Int, response:EChatRoomEnterResponse) { nomangle }
+		inst.OnLobbyEnter(steamIDLobby, locked, response)
+	End Function
+	Method OnLobbyDataUpdate(steamIDLobby:ULong, steamIDMember:ULong, success:Int)
+		If listener Then listener.OnLobbyDataUpdate(steamIDLobby, steamIDMember, success)
+	End Method
+	Function _OnLobbyDataUpdate(inst:TSteamMatchmaking, steamIDLobby:ULong, steamIDMember:ULong, success:Int) { nomangle }
+		inst.OnLobbyDataUpdate(steamIDLobby, steamIDMember, success)
+	End Function
+	Method OnLobbyChatUpdate(steamIDLobby:ULong, steamIDUserChanged:ULong, steamIDMakingChange:ULong, stateChange:EChatMemberStateChange)
+		If listener Then listener.OnLobbyChatUpdate(steamIDLobby, steamIDUserChanged, steamIDMakingChange, stateChange)
+	End Method
+	Function _OnLobbyChatUpdate(inst:TSteamMatchmaking, steamIDLobby:ULong, steamIDUserChanged:ULong, steamIDMakingChange:ULong, stateChange:EChatMemberStateChange) { nomangle }
+		inst.OnLobbyChatUpdate(steamIDLobby, steamIDUserChanged, steamIDMakingChange, stateChange)
+	End Function
+	Method OnLobbyChatMessage(steamIDLobby:ULong, steamIDUser:ULong, chatEntryType:EChatEntryType, chatID:UInt)
+		If listener Then listener.OnLobbyChatMessage(steamIDLobby, steamIDUser, chatEntryType, chatID)
+	End Method
+	Function _OnLobbyChatMessage(inst:TSteamMatchmaking, steamIDLobby:ULong, steamIDUser:ULong, chatEntryType:EChatEntryType, chatID:UInt) { nomangle }
+		inst.OnLobbyChatMessage(steamIDLobby, steamIDUser, chatEntryType, chatID)
+	End Function
+	Method OnLobbyGameCreated(steamIDLobby:ULong, steamIDGameServer:ULong, ip:UInt, port:Short)
+		If listener Then listener.OnLobbyGameCreated(steamIDLobby, steamIDGameServer, ip, port)
+	End Method
+	Function _OnLobbyGameCreated(inst:TSteamMatchmaking, steamIDLobby:ULong, steamIDGameServer:ULong, ip:UInt, port:Short) { nomangle }
+		inst.OnLobbyGameCreated(steamIDLobby, steamIDGameServer, ip, port)
+	End Function
+	Method OnLobbyInvite(steamIDUser:ULong, steamIDLobby:ULong, gameID:ULong)
+		If listener Then listener.OnLobbyInvite(steamIDUser, steamIDLobby, gameID)
+	End Method
+	Function _OnLobbyInvite(inst:TSteamMatchmaking, steamIDUser:ULong, steamIDLobby:ULong, gameID:ULong) { nomangle }
+		inst.OnLobbyInvite(steamIDUser, steamIDLobby, gameID)
+	End Function
+	Method OnLobbyJoinRequested(steamIDLobby:ULong, steamIDFriend:ULong)
+		If listener Then listener.OnLobbyJoinRequested(steamIDLobby, steamIDFriend)
+	End Method
+	Function _OnLobbyJoinRequested(inst:TSteamMatchmaking, steamIDLobby:ULong, steamIDFriend:ULong) { nomangle }
+		inst.OnLobbyJoinRequested(steamIDLobby, steamIDFriend)
+	End Function
+End Type
+
+Const STEAM_NETWORKING_SEND_UNRELIABLE:Int = 0
+Const STEAM_NETWORKING_SEND_NO_NAGLE:Int = 1
+Const STEAM_NETWORKING_SEND_NO_DELAY:Int = 4
+Const STEAM_NETWORKING_SEND_RELIABLE:Int = 8
+Const STEAM_NETWORKING_SEND_AUTO_RESTART:Int = 32
+
+Interface ISteamNetworkingMessagesListener
+	Method OnSteamNetworkingMessagesSessionRequest(steamIDRemote:ULong)
+	Method OnSteamNetworkingMessagesSessionFailed(steamIDRemote:ULong, state:ESteamNetworkingConnectionState, endReason:Int, debugMessage:String)
+End Interface
+
+Rem
+bbdoc: UDP-like reliable and unreliable messages addressed by Steam identity.
+End Rem
+Type TSteamNetworkingMessages Extends TSteamAPI
+	Field listener:ISteamNetworkingMessagesListener
+
+	Function Create:TSteamNetworkingMessages()
+		Local instancePtr:Byte Ptr = bmx_SteamAPI_SteamNetworkingMessages()
+		If Not instancePtr Then Return Null
+		Local this:TSteamNetworkingMessages = New TSteamNetworkingMessages
+		this.instancePtr = instancePtr
+		this.callbackPtr = bmx_steamsdk_register_steamnetworkingmessages(instancePtr, this)
+		Return this
+	End Function
+
+	Method Delete()
+		If callbackPtr Then bmx_steamsdk_unregister_steamnetworkingmessages(callbackPtr)
+		callbackPtr = Null
+	End Method
+
+	Rem
+	bbdoc: Sets the listener that receives asynchronous results and Steam callbacks for this interface.
+	End Rem
+	Method SetListener(listener:ISteamNetworkingMessagesListener)
+		Self.listener = listener
+	End Method
+	Rem
+	bbdoc: Sends one binary networking message to a Steam user on the selected channel.
+	End Rem
+	Method SendMessageToUser:EResult(steamIDRemote:ULong, data:Byte Ptr, size:UInt, sendFlags:Int = STEAM_NETWORKING_SEND_UNRELIABLE, remoteChannel:Int = 0)
+		Return bmx_SteamAPI_ISteamNetworkingMessages_SendMessageToUser(instancePtr, steamIDRemote, data, size, sendFlags, remoteChannel)
+	End Method
+	Rem
+	bbdoc: Receives and consumes one message. Returns 1, 0 when empty, or -1 when capacity was too small.
+	about: Size always receives the original message size when a message was consumed.
+	End Rem
+	Method ReceiveMessage:Int(localChannel:Int, data:Byte Ptr, capacity:UInt, size:UInt Var, steamIDRemote:ULong Var, reliable:Int Var)
+		Return bmx_SteamAPI_ISteamNetworkingMessages_ReceiveMessage(instancePtr, localChannel, data, capacity, size, steamIDRemote, reliable)
+	End Method
+	Rem
+	bbdoc: Accepts an incoming networking-messages session request.
+	End Rem
+	Method AcceptSessionWithUser:Int(steamIDRemote:ULong)
+		Return bmx_SteamAPI_ISteamNetworkingMessages_AcceptSessionWithUser(instancePtr, steamIDRemote)
+	End Method
+	Rem
+	bbdoc: Closes all networking-messages channels to a remote user.
+	End Rem
+	Method CloseSessionWithUser:Int(steamIDRemote:ULong)
+		Return bmx_SteamAPI_ISteamNetworkingMessages_CloseSessionWithUser(instancePtr, steamIDRemote)
+	End Method
+	Rem
+	bbdoc: Closes one local networking-messages channel to a remote user.
+	End Rem
+	Method CloseChannelWithUser:Int(steamIDRemote:ULong, localChannel:Int)
+		Return bmx_SteamAPI_ISteamNetworkingMessages_CloseChannelWithUser(instancePtr, steamIDRemote, localChannel)
+	End Method
+	Rem
+	bbdoc: Returns current connection state and commonly useful real-time diagnostics for a remote user.
+	End Rem
+	Method GetSessionConnectionInfo:ESteamNetworkingConnectionState(steamIDRemote:ULong, endReason:Int Var, endDebug:String Var, ping:Int Var, qualityLocal:Float Var, qualityRemote:Float Var, pendingUnreliable:Int Var, pendingReliable:Int Var, sentUnackedReliable:Int Var, queueTimeMicroseconds:Long Var)
+		Return bmx_SteamAPI_ISteamNetworkingMessages_GetSessionConnectionInfo(instancePtr, steamIDRemote, endReason, endDebug, ping, qualityLocal, qualityRemote, pendingUnreliable, pendingReliable, sentUnackedReliable, queueTimeMicroseconds)
+	End Method
+	Method OnSessionRequest(steamIDRemote:ULong)
+		If listener Then listener.OnSteamNetworkingMessagesSessionRequest(steamIDRemote)
+	End Method
+	Function _OnSessionRequest(inst:TSteamNetworkingMessages, steamIDRemote:ULong) { nomangle }
+		inst.OnSessionRequest(steamIDRemote)
+	End Function
+	Method OnSessionFailed(steamIDRemote:ULong, state:ESteamNetworkingConnectionState, endReason:Int, debugMessage:String)
+		If listener Then listener.OnSteamNetworkingMessagesSessionFailed(steamIDRemote, state, endReason, debugMessage)
+	End Method
+	Function _OnSessionFailed(inst:TSteamNetworkingMessages, steamIDRemote:ULong, state:ESteamNetworkingConnectionState, endReason:Int, debugMessage:String) { nomangle }
+		inst.OnSessionFailed(steamIDRemote, state, endReason, debugMessage)
+	End Function
 End Type
 
 Rem
@@ -193,6 +1148,27 @@ Type TSteamClient Extends TSteamAPI
 	End Rem
 	Method GetISteamFriends:TSteamFriends()
 		Return TSteamFriends._create(bmx_SteamAPI_ISteamClient_GetISteamFriends(instancePtr, _user, _steamPipe, TSteamFriends.STEAMFRIENDS_INTERFACE_VERSION))
+	End Method
+
+	Rem
+	bbdoc: Returns the local Steam user interface.
+	End Rem
+	Method GetISteamUser:TSteamUser()
+		Return TSteamUser._create(bmx_SteamAPI_ISteamClient_GetISteamUser(instancePtr, _user, _steamPipe, TSteamUser.STEAMUSER_INTERFACE_VERSION))
+	End Method
+
+	Rem
+	bbdoc: Returns the Steam lobby matchmaking interface.
+	End Rem
+	Method GetISteamMatchmaking:TSteamMatchmaking()
+		Return TSteamMatchmaking._create(bmx_SteamAPI_ISteamClient_GetISteamMatchmaking(instancePtr, _user, _steamPipe, TSteamMatchmaking.STEAMMATCHMAKING_INTERFACE_VERSION))
+	End Method
+
+	Rem
+	bbdoc: Returns the Steam application information interface.
+	End Rem
+	Method GetISteamApps:TSteamApps()
+		Return TSteamApps._create(bmx_SteamAPI_ISteamClient_GetISteamApps(instancePtr, _user, _steamPipe, TSteamApps.STEAMAPPS_INTERFACE_VERSION))
 	End Method
 	
 End Type
@@ -450,6 +1426,73 @@ Type TSteamUtils Extends TSteamAPI
 		Return bmx_SteamAPI_ISteamUtils_ShowGamepadTextInput(instancePtr, inputMode, lineInputMode, description, charMax, existingText)
 	End Method
 
+	Rem
+	bbdoc: Checks a file's digital signature and reports the result through #ISteamUtilsListener.
+	End Rem
+	Method CheckFileSignature(fileName:String)
+		bmx_SteamAPI_ISteamUtils_CheckFileSignature(instancePtr, fileName)
+	End Method
+	Rem
+	bbdoc: Returns #True when running through the Steam China launcher.
+	End Rem
+	Method IsSteamChinaLauncher:Int()
+		Return bmx_SteamAPI_ISteamUtils_IsSteamChinaLauncher(instancePtr)
+	End Method
+	Rem
+	bbdoc: Initializes Steam's text-filtering dictionaries.
+	End Rem
+	Method InitFilterText:Int(filterOptions:UInt = 0)
+		Return bmx_SteamAPI_ISteamUtils_InitFilterText(instancePtr, filterOptions)
+	End Method
+	Rem
+	bbdoc: Filters user-generated text and returns the number of filtered characters.
+	End Rem
+	Method FilterText:Int(context:ETextFilteringContext, sourceSteamID:ULong, input:String, output:String Var)
+		Return bmx_SteamAPI_ISteamUtils_FilterText(instancePtr, context, sourceSteamID, input, output)
+	End Method
+	Rem
+	bbdoc: Returns Steam's current IPv6 connectivity assessment for @protocol.
+	End Rem
+	Method GetIPv6ConnectivityState:ESteamIPv6ConnectivityState(protocol:ESteamIPv6ConnectivityProtocol)
+		Return bmx_SteamAPI_ISteamUtils_GetIPv6ConnectivityState(instancePtr, protocol)
+	End Method
+	Rem
+	bbdoc: Returns #True when the application is running on a Steam Deck.
+	End Rem
+	Method IsSteamRunningOnSteamDeck:Int()
+		Return bmx_SteamAPI_ISteamUtils_IsSteamRunningOnSteamDeck(instancePtr)
+	End Method
+	Rem
+	bbdoc: Shows the floating gamepad keyboard over the supplied screen rectangle.
+	End Rem
+	Method ShowFloatingGamepadTextInput:Int(keyboardMode:EFloatingGamepadTextInputMode, x:Int, y:Int, width:Int, height:Int)
+		Return bmx_SteamAPI_ISteamUtils_ShowFloatingGamepadTextInput(instancePtr, keyboardMode, x, y, width, height)
+	End Method
+	Rem
+	bbdoc: Dismisses the floating gamepad keyboard if it is visible.
+	End Rem
+	Method DismissFloatingGamepadTextInput:Int()
+		Return bmx_SteamAPI_ISteamUtils_DismissFloatingGamepadTextInput(instancePtr)
+	End Method
+	Rem
+	bbdoc: Tells Steam whether this application is acting as a launcher for other games.
+	End Rem
+	Method SetGameLauncherMode(launcherMode:Int)
+		bmx_SteamAPI_ISteamUtils_SetGameLauncherMode(instancePtr, launcherMode)
+	End Method
+	Rem
+	bbdoc: Returns the Steam universe to which the client is connected.
+	End Rem
+	Method GetConnectedUniverse:EUniverse()
+		Return bmx_SteamAPI_ISteamUtils_GetConnectedUniverse(instancePtr)
+	End Method
+	Rem
+	bbdoc: Returns the number of Steam IPC calls made since the last query.
+	End Rem
+	Method GetIPCCallCount:UInt()
+		Return bmx_SteamAPI_ISteamUtils_GetIPCCallCount(instancePtr)
+	End Method
+
 	' callbacks
 	Private
 	
@@ -549,6 +1592,13 @@ Interface ISteamUserStatsListener
 	End Rem
 	Method OnUserStatsUnloaded(userID:ULong)
 
+End Interface
+
+Rem
+bbdoc: Optional extended listener for leaderboard UGC attachment results.
+End Rem
+Interface ISteamUserStatsUGCListener
+	Method OnLeaderboardUGCSet(result:EResult, leaderboardHandle:ULong, ioFailure:Int)
 End Interface
 
 Rem
@@ -937,7 +1987,7 @@ Type TSteamUserStats Extends TSteamAPI
 	If the call is successful then the unlock status is returned via the @achieved parameter
 	End Rem
 	Method GetUserAchievement:Int(steamID:ULong, name:String, achieved:Int Var)
-		Return bmx_SteamAPI_ISteamGameServerStats_GetUserAchievement(instancePtr, steamID, name, achieved)
+		Return bmx_SteamAPI_ISteamUserStats_GetUserAchievement(instancePtr, steamID, name, achieved)
 	End Method
 	
 	Rem
@@ -967,7 +2017,7 @@ Type TSteamUserStats Extends TSteamAPI
 	* The type does not match the type listed in the App Admin panel of the Steamworks website.
 	End Rem
 	Method GetUserStat:Int(steamID:ULong, name:String, data:Int Var)
-		Return bmx_SteamAPI_ISteamGameServerStats_GetUserStatInt32(instancePtr, steamID, name, data)
+		Return bmx_SteamAPI_ISteamUserStats_GetUserStatInt32(instancePtr, steamID, name, data)
 	End Method
 	
 	Rem
@@ -981,7 +2031,7 @@ Type TSteamUserStats Extends TSteamAPI
 	* The type does not match the type listed in the App Admin panel of the Steamworks website.
 	End Rem
 	Method GetUserStat:Int(steamID:ULong, name:String, data:Float Var)
-		Return bmx_SteamAPI_ISteamGameServerStats_GetUserStatFloat(instancePtr, steamID, name, data)
+		Return bmx_SteamAPI_ISteamUserStats_GetUserStatFloat(instancePtr, steamID, name, data)
 	End Method
 	
 	Rem
@@ -1052,7 +2102,36 @@ Type TSteamUserStats Extends TSteamAPI
 	See Also: #GetUserAchievement, #GetUserAchievementAndUnlockTime, #GetUserStat
 	End Rem
 	Method RequestUserStats(steamID:ULong)
-		bmx_SteamAPI_ISteamGameServerStats_RequestUserStats(callbackPtr, steamID)
+		bmx_SteamAPI_ISteamUserStats_RequestUserStats(callbackPtr, steamID)
+	End Method
+
+	Rem
+	bbdoc: Returns the configured minimum and maximum progress values for an achievement.
+	End Rem
+	Method GetAchievementProgressLimits:Int(name:String, minimum:Int Var, maximum:Int Var)
+		Return bmx_SteamAPI_ISteamUserStats_GetAchievementProgressLimitsInt32(instancePtr, name, minimum, maximum)
+	End Method
+
+	Rem
+	bbdoc: Returns the configured minimum and maximum progress values for an achievement.
+	End Rem
+	Method GetAchievementProgressLimits:Int(name:String, minimum:Float Var, maximum:Float Var)
+		Return bmx_SteamAPI_ISteamUserStats_GetAchievementProgressLimitsFloat(instancePtr, name, minimum, maximum)
+	End Method
+
+	Rem
+	bbdoc: Reads one entry from a downloaded leaderboard result and optionally copies its detail values.
+	End Rem
+	Method GetDownloadedLeaderboardEntry:Int(entriesHandle:ULong, index:Int, steamID:ULong Var, globalRank:Int Var, score:Int Var, details:Int[], detailsCount:Int Var, ugcHandle:ULong Var)
+		If Not details Then details = New Int[0]
+		Return bmx_SteamAPI_ISteamUserStats_GetDownloadedLeaderboardEntry(instancePtr, entriesHandle, index, steamID, globalRank, score, details, details.Length, detailsCount, ugcHandle)
+	End Method
+
+	Rem
+	bbdoc: Attaches a published UGC item to the current user's leaderboard entry asynchronously.
+	End Rem
+	Method AttachLeaderboardUGC(leaderboardHandle:ULong, ugcHandle:ULong)
+		bmx_SteamAPI_ISteamUserStats_AttachLeaderboardUGC(callbackPtr, leaderboardHandle, ugcHandle)
 	End Method
 	
 	Rem
@@ -1251,6 +2330,15 @@ Type TSteamUserStats Extends TSteamAPI
 		inst.OnLeaderboardScoreUploaded(success, leaderboardHandle, score, scoreChanged, globalRankNew, globalRankPrevious)
 	End Function
 
+	Method OnLeaderboardUGCSet(result:EResult, leaderboardHandle:ULong, ioFailure:Int)
+		Local extended:ISteamUserStatsUGCListener = ISteamUserStatsUGCListener(listener)
+		If extended Then extended.OnLeaderboardUGCSet(result, leaderboardHandle, ioFailure)
+	End Method
+
+	Function _OnLeaderboardUGCSet(inst:TSteamUserStats, result:EResult, leaderboardHandle:ULong, ioFailure:Int) { nomangle }
+		inst.OnLeaderboardUGCSet(result, leaderboardHandle, ioFailure)
+	End Function
+
 	Method OnGetNumberOfCurrentPlayers(success:Int, players:Int)
 		If listener Then
 			listener.OnGetNumberOfCurrentPlayers(success, players)
@@ -1317,6 +2405,45 @@ Rem
 bbdoc: Steam UGC listener interface
 about: Implement this and add as a listener to an instance of #TSteamUGC to receive appropriate event callbacks.
 End Rem
+Type TSteamUGCDetails
+	Field publishedFileId:ULong
+	Field result:EResult
+	Field fileType:EWorkshopFileType
+	Field creatorAppID:UInt
+	Field consumerAppID:UInt
+	Field title:String
+	Field description:String
+	Field steamIDOwner:ULong
+	Field timeCreated:UInt
+	Field timeUpdated:UInt
+	Field timeAddedToUserList:UInt
+	Field visibility:ERemoteStoragePublishedFileVisibility
+	Field banned:Int
+	Field acceptedForUse:Int
+	Field tagsTruncated:Int
+	Field tags:String
+	Field fileHandle:ULong
+	Field previewFileHandle:ULong
+	Field fileName:String
+	Field fileSize:Int
+	Field previewFileSize:Int
+	Field url:String
+	Field votesUp:UInt
+	Field votesDown:UInt
+	Field score:Float
+	Field numChildren:UInt
+
+	Function _Create:TSteamUGCDetails(publishedFileId:ULong, result:EResult, fileType:EWorkshopFileType, creatorAppID:UInt, consumerAppID:UInt, title:String, description:String, steamIDOwner:ULong, timeCreated:UInt, timeUpdated:UInt, timeAddedToUserList:UInt, visibility:ERemoteStoragePublishedFileVisibility, banned:Int, acceptedForUse:Int, tagsTruncated:Int, tags:String, fileHandle:ULong, previewFileHandle:ULong, fileName:String, fileSize:Int, previewFileSize:Int, url:String, votesUp:UInt, votesDown:UInt, score:Float, numChildren:UInt) { nomangle }
+		Local details:TSteamUGCDetails = New TSteamUGCDetails
+		details.publishedFileId = publishedFileId; details.result = result; details.fileType = fileType; details.creatorAppID = creatorAppID; details.consumerAppID = consumerAppID
+		details.title = title; details.description = description; details.steamIDOwner = steamIDOwner; details.timeCreated = timeCreated; details.timeUpdated = timeUpdated; details.timeAddedToUserList = timeAddedToUserList
+		details.visibility = visibility; details.banned = banned; details.acceptedForUse = acceptedForUse; details.tagsTruncated = tagsTruncated; details.tags = tags
+		details.fileHandle = fileHandle; details.previewFileHandle = previewFileHandle; details.fileName = fileName; details.fileSize = fileSize; details.previewFileSize = previewFileSize; details.url = url
+		details.votesUp = votesUp; details.votesDown = votesDown; details.score = score; details.numChildren = numChildren
+		Return details
+	End Function
+End Type
+
 Interface ISteamUGCListener
 
 	Rem
@@ -1395,6 +2522,13 @@ Interface ISteamUGCListener
 	End Rem
 	Method OnRemoteStorageUnsubscribePublishedFile(result:EResult, publishedFileId:ULong)
 	
+End Interface
+
+Rem
+bbdoc: Optional extended listener for Workshop EULA status results.
+End Rem
+Interface ISteamUGCEULAListener
+	Method OnWorkshopEULAStatus(result:EResult, appID:UInt, version:UInt, actionTime:UInt, accepted:Int, needsAction:Int, ioFailure:Int)
 End Interface
 
 Rem
@@ -1781,6 +2915,87 @@ Type TSteamUGC Extends TSteamAPI
 	End Rem
 	Method CreateQueryAllUGCRequestPage:ULong(queryType:EUGCQuery, matchingeMatchingUGCTypeFileType:EUGCMatchingUGCType, creatorAppID:UInt, consumerAppID:UInt, page:UInt)
 		Return bmx_SteamAPI_ISteamUGC_CreateQueryAllUGCRequestPage(instancePtr, queryType, matchingeMatchingUGCTypeFileType, creatorAppID, consumerAppID, page)
+	End Method
+
+	Rem
+	bbdoc: Creates a cursor-based UGC query; release the returned handle after the query completes.
+	End Rem
+	Method CreateQueryAllUGCRequestCursor:ULong(queryType:EUGCQuery, matchingUGCType:EUGCMatchingUGCType, creatorAppID:UInt, consumerAppID:UInt, cursor:String = "*")
+		Return bmx_SteamAPI_ISteamUGC_CreateQueryAllUGCRequestCursor(instancePtr, queryType, matchingUGCType, creatorAppID, consumerAppID, cursor)
+	End Method
+
+	Rem
+	bbdoc: Returns the primary details for one item in a completed UGC query.
+	End Rem
+	Method GetQueryUGCResult:TSteamUGCDetails(queryHandle:ULong, index:UInt)
+		Return TSteamUGCDetails(bmx_SteamAPI_ISteamUGC_GetQueryUGCResult(instancePtr, queryHandle, index))
+	End Method
+
+	Rem
+	bbdoc: Returns the number of tags attached to one item in a completed UGC query.
+	End Rem
+	Method GetQueryUGCNumTags:UInt(queryHandle:ULong, index:UInt)
+		Return bmx_SteamAPI_ISteamUGC_GetQueryUGCNumTags(instancePtr, queryHandle, index)
+	End Method
+	Rem
+	bbdoc: Returns one tag from an item in a completed UGC query.
+	End Rem
+	Method GetQueryUGCTag:Int(queryHandle:ULong, index:UInt, tagIndex:UInt, value:String Var)
+		Return bmx_SteamAPI_ISteamUGC_GetQueryUGCTag(instancePtr, queryHandle, index, tagIndex, value)
+	End Method
+	Rem
+	bbdoc: Returns the localized display name of one UGC tag.
+	End Rem
+	Method GetQueryUGCTagDisplayName:Int(queryHandle:ULong, index:UInt, tagIndex:UInt, value:String Var)
+		Return bmx_SteamAPI_ISteamUGC_GetQueryUGCTagDisplayName(instancePtr, queryHandle, index, tagIndex, value)
+	End Method
+	Rem
+	bbdoc: Returns a value for a named key/value tag on a queried UGC item.
+	End Rem
+	Method GetQueryUGCKeyValueTag:Int(queryHandle:ULong, index:UInt, key:String, value:String Var)
+		Return bmx_SteamAPI_ISteamUGC_GetQueryUGCKeyValueTagByKey(instancePtr, queryHandle, index, key, value)
+	End Method
+	Rem
+	bbdoc: Adds a group of tags from which a UGC query result must match at least one.
+	End Rem
+	Method AddRequiredTagGroup:Int(queryHandle:ULong, tags:String[])
+		Return bmx_SteamAPI_ISteamUGC_AddRequiredTagGroup(instancePtr, queryHandle, tags)
+	End Method
+	Rem
+	bbdoc: Restricts a UGC query to items created within a Unix-time range.
+	End Rem
+	Method SetTimeCreatedDateRange:Int(queryHandle:ULong, startTime:UInt, endTime:UInt)
+		Return bmx_SteamAPI_ISteamUGC_SetTimeCreatedDateRange(instancePtr, queryHandle, startTime, endTime)
+	End Method
+	Rem
+	bbdoc: Restricts a UGC query to items updated within a Unix-time range.
+	End Rem
+	Method SetTimeUpdatedDateRange:Int(queryHandle:ULong, startTime:UInt, endTime:UInt)
+		Return bmx_SteamAPI_ISteamUGC_SetTimeUpdatedDateRange(instancePtr, queryHandle, startTime, endTime)
+	End Method
+	Rem
+	bbdoc: Controls whether a UGC update may use the legacy upload path.
+	End Rem
+	Method SetAllowLegacyUpload:Int(updateHandle:ULong, allowLegacyUpload:Int)
+		Return bmx_SteamAPI_ISteamUGC_SetAllowLegacyUpload(instancePtr, updateHandle, allowLegacyUpload)
+	End Method
+	Rem
+	bbdoc: Removes every key/value tag from a pending UGC item update.
+	End Rem
+	Method RemoveAllItemKeyValueTags:Int(updateHandle:ULong)
+		Return bmx_SteamAPI_ISteamUGC_RemoveAllItemKeyValueTags(instancePtr, updateHandle)
+	End Method
+	Rem
+	bbdoc: Opens the Steam Workshop legal agreement in the overlay.
+	End Rem
+	Method ShowWorkshopEULA:Int()
+		Return bmx_SteamAPI_ISteamUGC_ShowWorkshopEULA(instancePtr)
+	End Method
+	Rem
+	bbdoc: Requests Workshop agreement status through #ISteamUGCEULAListener.
+	End Rem
+	Method GetWorkshopEULAStatus()
+		bmx_SteamAPI_ISteamUGC_GetWorkshopEULAStatus(callbackPtr)
 	End Method
 	
 	Rem
@@ -2673,6 +3888,15 @@ Type TSteamUGC Extends TSteamAPI
 		inst.OnRemoteStorageUnsubscribePublishedFile(result, publishedFileId)
 	End Function
 
+	Method OnWorkshopEULAStatus(result:EResult, appID:UInt, version:UInt, actionTime:UInt, accepted:Int, needsAction:Int, ioFailure:Int)
+		Local extended:ISteamUGCEULAListener = ISteamUGCEULAListener(listener)
+		If extended Then extended.OnWorkshopEULAStatus(result, appID, version, actionTime, accepted, needsAction, ioFailure)
+	End Method
+
+	Function _OnWorkshopEULAStatus(inst:TSteamUGC, result:EResult, appID:UInt, version:UInt, actionTime:UInt, accepted:Int, needsAction:Int, ioFailure:Int) { nomangle }
+		inst.OnWorkshopEULAStatus(result, appID, version, actionTime, accepted, needsAction, ioFailure)
+	End Function
+
 End Type
 
 Rem
@@ -2812,6 +4036,34 @@ Type TSteamFriends Extends TSteamAPI
 	End Rem
 	Method ActivateGameOverlayInviteDialog(steamIDLobby:ULong)
 		bmx_SteamAPI_ISteamFriends_ActivateGameOverlayInviteDialog(instancePtr, steamIDLobby)
+	End Method
+
+	Rem
+	bbdoc: Opens the friend invite overlay using a rich-presence connection string.
+	End Rem
+	Method ActivateGameOverlayInviteDialogConnectString(connectString:String)
+		bmx_SteamAPI_ISteamFriends_ActivateGameOverlayInviteDialogConnectString(instancePtr, connectString)
+	End Method
+
+	Rem
+	bbdoc: Opens the Remote Play Together invite overlay for a lobby.
+	End Rem
+	Method ActivateGameOverlayRemotePlayTogetherInviteDialog(steamIDLobby:ULong)
+		bmx_SteamAPI_ISteamFriends_ActivateGameOverlayRemotePlayTogetherInviteDialog(instancePtr, steamIDLobby)
+	End Method
+
+	Rem
+	bbdoc: Returns the number of chats containing unread priority messages.
+	End Rem
+	Method GetNumChatsWithUnreadPriorityMessages:Int()
+		Return bmx_SteamAPI_ISteamFriends_GetNumChatsWithUnreadPriorityMessages(instancePtr)
+	End Method
+
+	Rem
+	bbdoc: Registers a custom URL protocol for navigation from Steam's overlay browser.
+	End Rem
+	Method RegisterProtocolInOverlayBrowser:Int(protocol:String)
+		Return bmx_SteamAPI_ISteamFriends_RegisterProtocolInOverlayBrowser(instancePtr, protocol)
 	End Method
 	
 	Rem
