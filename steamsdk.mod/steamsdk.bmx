@@ -23,11 +23,13 @@ bbdoc: Steam SDK
 End Rem
 Module Steam.SteamSDK
 
-ModuleInfo "Version: 1.08"
+ModuleInfo "Version: 1.09"
 ModuleInfo "License: zlib/libpng"
 ModuleInfo "Copyright: Steam SDK - Valve Corporation"
 ModuleInfo "Copyright: Wrapper - 2019-2026 Bruce A Henderson"
 
+ModuleInfo "History: 1.09"
+ModuleInfo "History: Added Steam Input actions, devices, glyphs, motion, feedback, and callbacks."
 ModuleInfo "History: 1.08"
 ModuleInfo "History: Added Steam Remote Storage and Steam Cloud file support."
 ModuleInfo "History: 1.07"
@@ -1109,6 +1111,467 @@ Type TSteamNetworkingMessages Extends TSteamAPI
 	End Function
 End Type
 
+Const STEAM_INPUT_MAX_COUNT:Int = 16
+Const STEAM_INPUT_MAX_ORIGINS:Int = 8
+Const STEAM_INPUT_MAX_ACTIVE_LAYERS:Int = 16
+Const STEAM_INPUT_HANDLE_ALL_CONTROLLERS:ULong = $ffffffffffffffff:ULong
+Const STEAM_INPUT_MIN_ANALOG_ACTION_DATA:Float = -1.0
+Const STEAM_INPUT_MAX_ANALOG_ACTION_DATA:Float = 1.0
+
+Rem
+bbdoc: Current state of a Steam Input digital action.
+End Rem
+Struct SSteamInputDigitalActionData
+	Field state:Int
+	Field active:Int
+End Struct
+
+Rem
+bbdoc: Current state of a Steam Input analog action.
+End Rem
+Struct SSteamInputAnalogActionData
+	Field mode:EInputSourceMode
+	Field x:Float
+	Field y:Float
+	Field active:Int
+End Struct
+
+Rem
+bbdoc: Sensor-fused rotation, acceleration, and angular velocity reported by a Steam Input device.
+End Rem
+Struct SSteamInputMotionData
+	Field rotQuatX:Float
+	Field rotQuatY:Float
+	Field rotQuatZ:Float
+	Field rotQuatW:Float
+	Field posAccelX:Float
+	Field posAccelY:Float
+	Field posAccelZ:Float
+	Field rotVelX:Float
+	Field rotVelY:Float
+	Field rotVelZ:Float
+End Struct
+
+Rem
+bbdoc: Receives Steam Input device and configuration notifications.
+End Rem
+Interface ISteamInputListener
+	Method OnSteamInputDeviceConnected(inputHandle:ULong)
+	Method OnSteamInputDeviceDisconnected(inputHandle:ULong)
+	Method OnSteamInputConfigurationLoaded(appID:UInt, inputHandle:ULong, mappingCreator:ULong, majorRevision:UInt, minorRevision:UInt, usesSteamInputAPI:Int, usesGamepadAPI:Int)
+End Interface
+
+Rem
+bbdoc: Optional listener extension for low-latency Steam Input action events.
+about: Implement this in addition to #ISteamInputListener and call #TSteamInput.EnableActionEventCallbacks.
+End Rem
+Interface ISteamInputActionListener
+	Method OnSteamInputDigitalAction(inputHandle:ULong, actionHandle:ULong, data:SSteamInputDigitalActionData)
+	Method OnSteamInputAnalogAction(inputHandle:ULong, actionHandle:ULong, data:SSteamInputAnalogActionData)
+End Interface
+
+Rem
+bbdoc: Provides action-based controller input through Steam Input.
+about: Call #Init before reading devices and #Shutdown when finished. Games normally define action sets and actions in a Steam Input action manifest, cache their handles at startup, then read action data each frame. The data structures are unmanaged values and can be reused without per-frame allocation.
+End Rem
+Type TSteamInput Extends TSteamAPI
+	Const STEAMINPUT_INTERFACE_VERSION:String = "SteamInput006"
+
+	Field listener:ISteamInputListener
+
+	Function _create:TSteamInput(instancePtr:Byte Ptr)
+		If Not instancePtr Then Return Null
+		Local this:TSteamInput = New TSteamInput
+		this.instancePtr = instancePtr
+		this.callbackPtr = bmx_steamsdk_register_steaminput(instancePtr, this)
+		Return this
+	End Function
+
+	Method Delete()
+		If callbackPtr Then bmx_steamsdk_unregister_steaminput(callbackPtr)
+		callbackPtr = Null
+	End Method
+
+	Rem
+	bbdoc: Sets the listener that receives device, configuration, and optional action notifications.
+	End Rem
+	Method SetListener(listener:ISteamInputListener)
+		Self.listener = listener
+	End Method
+
+	Rem
+	bbdoc: Initializes Steam Input.
+	about: Set @explicitlyCallRunFrame when the game will call #RunFrame itself. Otherwise Steam updates input while callbacks are processed.
+	End Rem
+	Method Init:Int(explicitlyCallRunFrame:Int = False)
+		Return bmx_SteamAPI_ISteamInput_Init(instancePtr, explicitlyCallRunFrame)
+	End Method
+
+	Rem
+	bbdoc: Shuts down Steam Input after the game has finished using it.
+	End Rem
+	Method Shutdown:Int()
+		Return bmx_SteamAPI_ISteamInput_Shutdown(instancePtr)
+	End Method
+
+	Rem
+	bbdoc: Selects an absolute path to the game's Steam Input action manifest.
+	about: Call this before #Init when shipping the manifest inside the game depot.
+	End Rem
+	Method SetInputActionManifestFilePath:Int(path:String)
+		Return bmx_SteamAPI_ISteamInput_SetInputActionManifestFilePath(instancePtr, path)
+	End Method
+
+	Rem
+	bbdoc: Refreshes Steam Input state immediately before the game reads action data.
+	End Rem
+	Method RunFrame()
+		bmx_SteamAPI_ISteamInput_RunFrame(instancePtr)
+	End Method
+
+	Rem
+	bbdoc: Waits for new controller data, optionally until data arrives.
+	about: This is intended for a dedicated input thread. @timeout is measured in milliseconds.
+	End Rem
+	Method WaitForData:Int(waitForever:Int, timeout:UInt = 0)
+		Return bmx_SteamAPI_ISteamInput_BWaitForData(instancePtr, waitForever, timeout)
+	End Method
+
+	Rem
+	bbdoc: Returns #True when new data has arrived since action data was last read.
+	End Rem
+	Method NewDataAvailable:Int()
+		Return bmx_SteamAPI_ISteamInput_BNewDataAvailable(instancePtr)
+	End Method
+
+	Rem
+	bbdoc: Copies connected device handles into @handles and returns the number copied.
+	about: Steam supports at most #STEAM_INPUT_MAX_COUNT connected handles. Call #RunFrame or process Steam callbacks before enumeration.
+	End Rem
+	Method GetConnectedControllers:Int(handles:ULong Ptr, capacity:Int)
+		If Not handles Or capacity <= 0 Then Return 0
+		Return bmx_SteamAPI_ISteamInput_GetConnectedControllers(instancePtr, handles, Min(capacity, STEAM_INPUT_MAX_COUNT))
+	End Method
+
+	Rem
+	bbdoc: Enables connected and disconnected device notifications for this process.
+	End Rem
+	Method EnableDeviceCallbacks()
+		bmx_SteamAPI_ISteamInput_EnableDeviceCallbacks(instancePtr)
+	End Method
+
+	Rem
+	bbdoc: Enables low-latency action notifications for the current listener.
+	about: Steam supports one action-event callback for the process. Polling with #GetDigitalActionData and #GetAnalogActionData remains available.
+	End Rem
+	Method EnableActionEventCallbacks()
+		bmx_SteamAPI_ISteamInput_EnableActionEventCallbacks(callbackPtr)
+	End Method
+
+	Rem
+	bbdoc: Returns the cached handle for a named action set, or 0 when not found.
+	End Rem
+	Method GetActionSetHandle:ULong(name:String)
+		Return bmx_SteamAPI_ISteamInput_GetActionSetHandle(instancePtr, name)
+	End Method
+
+	Rem
+	bbdoc: Activates an action set for one controller or #STEAM_INPUT_HANDLE_ALL_CONTROLLERS.
+	End Rem
+	Method ActivateActionSet(inputHandle:ULong, actionSetHandle:ULong)
+		bmx_SteamAPI_ISteamInput_ActivateActionSet(instancePtr, inputHandle, actionSetHandle)
+	End Method
+
+	Rem
+	bbdoc: Returns the controller's currently active action set.
+	End Rem
+	Method GetCurrentActionSet:ULong(inputHandle:ULong)
+		Return bmx_SteamAPI_ISteamInput_GetCurrentActionSet(instancePtr, inputHandle)
+	End Method
+
+	Rem
+	bbdoc: Activates an action-set layer for a controller.
+	End Rem
+	Method ActivateActionSetLayer(inputHandle:ULong, actionSetLayerHandle:ULong)
+		bmx_SteamAPI_ISteamInput_ActivateActionSetLayer(instancePtr, inputHandle, actionSetLayerHandle)
+	End Method
+
+	Rem
+	bbdoc: Deactivates one action-set layer for a controller.
+	End Rem
+	Method DeactivateActionSetLayer(inputHandle:ULong, actionSetLayerHandle:ULong)
+		bmx_SteamAPI_ISteamInput_DeactivateActionSetLayer(instancePtr, inputHandle, actionSetLayerHandle)
+	End Method
+
+	Rem
+	bbdoc: Deactivates all action-set layers for a controller.
+	End Rem
+	Method DeactivateAllActionSetLayers(inputHandle:ULong)
+		bmx_SteamAPI_ISteamInput_DeactivateAllActionSetLayers(instancePtr, inputHandle)
+	End Method
+
+	Rem
+	bbdoc: Copies active action-set layer handles into @handles and returns the number copied.
+	End Rem
+	Method GetActiveActionSetLayers:Int(inputHandle:ULong, handles:ULong Ptr, capacity:Int)
+		If Not handles Or capacity <= 0 Then Return 0
+		Return bmx_SteamAPI_ISteamInput_GetActiveActionSetLayers(instancePtr, inputHandle, handles, Min(capacity, STEAM_INPUT_MAX_ACTIVE_LAYERS))
+	End Method
+
+	Rem
+	bbdoc: Returns the cached handle for a named digital action, or 0 when not found.
+	End Rem
+	Method GetDigitalActionHandle:ULong(name:String)
+		Return bmx_SteamAPI_ISteamInput_GetDigitalActionHandle(instancePtr, name)
+	End Method
+
+	Rem
+	bbdoc: Writes the current state of a digital action into @data.
+	End Rem
+	Method GetDigitalActionData(inputHandle:ULong, actionHandle:ULong, data:SSteamInputDigitalActionData Var)
+		bmx_SteamAPI_ISteamInput_GetDigitalActionData(instancePtr, inputHandle, actionHandle, data.state, data.active)
+	End Method
+
+	Rem
+	bbdoc: Copies the physical origins currently bound to a digital action and returns the number copied.
+	End Rem
+	Method GetDigitalActionOrigins:Int(inputHandle:ULong, actionSetHandle:ULong, actionHandle:ULong, origins:Int Ptr, capacity:Int)
+		If Not origins Or capacity <= 0 Then Return 0
+		Return bmx_SteamAPI_ISteamInput_GetDigitalActionOrigins(instancePtr, inputHandle, actionSetHandle, actionHandle, origins, Min(capacity, STEAM_INPUT_MAX_ORIGINS))
+	End Method
+
+	Rem
+	bbdoc: Returns the localized display name of a digital action.
+	End Rem
+	Method GetStringForDigitalActionName:String(actionHandle:ULong)
+		Return bmx_SteamAPI_ISteamInput_GetStringForDigitalActionName(instancePtr, actionHandle)
+	End Method
+
+	Rem
+	bbdoc: Returns the cached handle for a named analog action, or 0 when not found.
+	End Rem
+	Method GetAnalogActionHandle:ULong(name:String)
+		Return bmx_SteamAPI_ISteamInput_GetAnalogActionHandle(instancePtr, name)
+	End Method
+
+	Rem
+	bbdoc: Writes the current state of an analog action into @data.
+	End Rem
+	Method GetAnalogActionData(inputHandle:ULong, actionHandle:ULong, data:SSteamInputAnalogActionData Var)
+		bmx_SteamAPI_ISteamInput_GetAnalogActionData(instancePtr, inputHandle, actionHandle, data.mode, data.x, data.y, data.active)
+	End Method
+
+	Rem
+	bbdoc: Copies the physical origins currently bound to an analog action and returns the number copied.
+	End Rem
+	Method GetAnalogActionOrigins:Int(inputHandle:ULong, actionSetHandle:ULong, actionHandle:ULong, origins:Int Ptr, capacity:Int)
+		If Not origins Or capacity <= 0 Then Return 0
+		Return bmx_SteamAPI_ISteamInput_GetAnalogActionOrigins(instancePtr, inputHandle, actionSetHandle, actionHandle, origins, Min(capacity, STEAM_INPUT_MAX_ORIGINS))
+	End Method
+
+	Rem
+	bbdoc: Returns a local PNG glyph path for an action origin.
+	End Rem
+	Method GetGlyphPNGForActionOrigin:String(origin:EInputActionOrigin, size:ESteamInputGlyphSize = ESteamInputGlyphSize.k_ESteamInputGlyphSize_Medium, flags:ESteamInputGlyphStyle = ESteamInputGlyphStyle.ESteamInputGlyphStyle_Knockout)
+		Return bmx_SteamAPI_ISteamInput_GetGlyphPNGForActionOrigin(instancePtr, origin, size, flags)
+	End Method
+
+	Rem
+	bbdoc: Returns a local SVG glyph path for an action origin.
+	End Rem
+	Method GetGlyphSVGForActionOrigin:String(origin:EInputActionOrigin, flags:ESteamInputGlyphStyle = ESteamInputGlyphStyle.ESteamInputGlyphStyle_Knockout)
+		Return bmx_SteamAPI_ISteamInput_GetGlyphSVGForActionOrigin(instancePtr, origin, flags)
+	End Method
+
+	Rem
+	bbdoc: Returns the localized display name for an action origin.
+	End Rem
+	Method GetStringForActionOrigin:String(origin:EInputActionOrigin)
+		Return bmx_SteamAPI_ISteamInput_GetStringForActionOrigin(instancePtr, origin)
+	End Method
+
+	Rem
+	bbdoc: Returns the localized display name of an analog action.
+	End Rem
+	Method GetStringForAnalogActionName:String(actionHandle:ULong)
+		Return bmx_SteamAPI_ISteamInput_GetStringForAnalogActionName(instancePtr, actionHandle)
+	End Method
+
+	Rem
+	bbdoc: Stops trackball-style momentum for an analog action.
+	End Rem
+	Method StopAnalogActionMomentum(inputHandle:ULong, actionHandle:ULong)
+		bmx_SteamAPI_ISteamInput_StopAnalogActionMomentum(instancePtr, inputHandle, actionHandle)
+	End Method
+
+	Rem
+	bbdoc: Writes the controller's current motion sensor data into @data.
+	End Rem
+	Method GetMotionData(inputHandle:ULong, data:SSteamInputMotionData Var)
+		bmx_SteamAPI_ISteamInput_GetMotionData(instancePtr, inputHandle, data.rotQuatX, data.rotQuatY, data.rotQuatZ, data.rotQuatW, data.posAccelX, data.posAccelY, data.posAccelZ, data.rotVelX, data.rotVelY, data.rotVelZ)
+	End Method
+
+	Rem
+	bbdoc: Sets left and right vibration motor speeds in the range 0 through 65535.
+	End Rem
+	Method TriggerVibration(inputHandle:ULong, leftSpeed:Int, rightSpeed:Int)
+		bmx_SteamAPI_ISteamInput_TriggerVibration(instancePtr, inputHandle, Max(0, Min(65535, leftSpeed)), Max(0, Min(65535, rightSpeed)))
+	End Method
+
+	Rem
+	bbdoc: Sets main and trigger vibration motor speeds in the range 0 through 65535.
+	End Rem
+	Method TriggerVibrationExtended(inputHandle:ULong, leftSpeed:Int, rightSpeed:Int, leftTriggerSpeed:Int, rightTriggerSpeed:Int)
+		bmx_SteamAPI_ISteamInput_TriggerVibrationExtended(instancePtr, inputHandle, Max(0, Min(65535, leftSpeed)), Max(0, Min(65535, rightSpeed)), Max(0, Min(65535, leftTriggerSpeed)), Max(0, Min(65535, rightTriggerSpeed)))
+	End Method
+
+	Rem
+	bbdoc: Sends a simple haptic event to Steam Deck or Steam Controller hardware.
+	End Rem
+	Method TriggerSimpleHapticEvent(inputHandle:ULong, location:EControllerHapticLocation, intensity:Int, gainDB:Int, otherIntensity:Int = 0, otherGainDB:Int = 0)
+		bmx_SteamAPI_ISteamInput_TriggerSimpleHapticEvent(instancePtr, inputHandle, location, Max(0, Min(255, intensity)), Max(-128, Min(127, gainDB)), Max(0, Min(255, otherIntensity)), Max(-128, Min(127, otherGainDB)))
+	End Method
+
+	Rem
+	bbdoc: Sets or restores the LED colour on supported controllers.
+	End Rem
+	Method SetLEDColor(inputHandle:ULong, red:Int, green:Int, blue:Int, flags:ESteamInputLEDFlag = ESteamInputLEDFlag.k_ESteamInputLEDFlag_SetColor)
+		bmx_SteamAPI_ISteamInput_SetLEDColor(instancePtr, inputHandle, Max(0, Min(255, red)), Max(0, Min(255, green)), Max(0, Min(255, blue)), flags)
+	End Method
+
+	Rem
+	bbdoc: Opens Steam's binding panel for the controller.
+	End Rem
+	Method ShowBindingPanel:Int(inputHandle:ULong)
+		Return bmx_SteamAPI_ISteamInput_ShowBindingPanel(instancePtr, inputHandle)
+	End Method
+
+	Rem
+	bbdoc: Returns the stable device category for a controller handle.
+	End Rem
+	Method GetInputTypeForHandle:ESteamInputType(inputHandle:ULong)
+		Return bmx_SteamAPI_ISteamInput_GetInputTypeForHandle(instancePtr, inputHandle)
+	End Method
+
+	Rem
+	bbdoc: Returns the Steam Input handle associated with an emulated gamepad index, or 0.
+	End Rem
+	Method GetControllerForGamepadIndex:ULong(index:Int)
+		Return bmx_SteamAPI_ISteamInput_GetControllerForGamepadIndex(instancePtr, index)
+	End Method
+
+	Rem
+	bbdoc: Returns the emulated gamepad index associated with a controller, or -1.
+	End Rem
+	Method GetGamepadIndexForController:Int(inputHandle:ULong)
+		Return bmx_SteamAPI_ISteamInput_GetGamepadIndexForController(instancePtr, inputHandle)
+	End Method
+
+	Rem
+	bbdoc: Returns Steam's localized name for a conventional Xbox origin.
+	End Rem
+	Method GetStringForXboxOrigin:String(origin:EXboxOrigin)
+		Return bmx_SteamAPI_ISteamInput_GetStringForXboxOrigin(instancePtr, origin)
+	End Method
+
+	Rem
+	bbdoc: Returns a local glyph path for a conventional Xbox origin.
+	End Rem
+	Method GetGlyphForXboxOrigin:String(origin:EXboxOrigin)
+		Return bmx_SteamAPI_ISteamInput_GetGlyphForXboxOrigin(instancePtr, origin)
+	End Method
+
+	Rem
+	bbdoc: Maps a conventional Xbox origin to the equivalent origin for a controller.
+	End Rem
+	Method GetActionOriginFromXboxOrigin:EInputActionOrigin(inputHandle:ULong, origin:EXboxOrigin)
+		Return bmx_SteamAPI_ISteamInput_GetActionOriginFromXboxOrigin(instancePtr, inputHandle, origin)
+	End Method
+
+	Rem
+	bbdoc: Translates an action origin to its equivalent on another controller type.
+	End Rem
+	Method TranslateActionOrigin:EInputActionOrigin(destinationType:ESteamInputType, sourceOrigin:EInputActionOrigin)
+		Return bmx_SteamAPI_ISteamInput_TranslateActionOrigin(instancePtr, destinationType, sourceOrigin)
+	End Method
+
+	Rem
+	bbdoc: Returns the major and minor binding revisions loaded for a controller.
+	End Rem
+	Method GetDeviceBindingRevision:Int(inputHandle:ULong, major:Int Var, minor:Int Var)
+		Return bmx_SteamAPI_ISteamInput_GetDeviceBindingRevision(instancePtr, inputHandle, major, minor)
+	End Method
+
+	Rem
+	bbdoc: Returns the Remote Play session that supplies a controller, or 0 for a local controller.
+	End Rem
+	Method GetRemotePlaySessionID:UInt(inputHandle:ULong)
+		Return bmx_SteamAPI_ISteamInput_GetRemotePlaySessionID(instancePtr, inputHandle)
+	End Method
+
+	Rem
+	bbdoc: Returns a bitmask of #ESteamInputConfigurationEnableType values enabled for this session.
+	End Rem
+	Method GetSessionInputConfigurationSettings:ESteamInputConfigurationEnableType()
+		Return bmx_SteamAPI_ISteamInput_GetSessionInputConfigurationSettings(instancePtr)
+	End Method
+
+	Private
+	Method OnDeviceConnected(inputHandle:ULong)
+		If listener Then listener.OnSteamInputDeviceConnected(inputHandle)
+	End Method
+
+	Method OnDeviceDisconnected(inputHandle:ULong)
+		If listener Then listener.OnSteamInputDeviceDisconnected(inputHandle)
+	End Method
+
+	Method OnConfigurationLoaded(appID:UInt, inputHandle:ULong, mappingCreator:ULong, majorRevision:UInt, minorRevision:UInt, usesSteamInputAPI:Int, usesGamepadAPI:Int)
+		If listener Then listener.OnSteamInputConfigurationLoaded(appID, inputHandle, mappingCreator, majorRevision, minorRevision, usesSteamInputAPI, usesGamepadAPI)
+	End Method
+
+	Method OnDigitalAction(inputHandle:ULong, actionHandle:ULong, state:Int, active:Int)
+		Local actionListener:ISteamInputActionListener = ISteamInputActionListener(listener)
+		If actionListener Then
+			Local data:SSteamInputDigitalActionData
+			data.state = state
+			data.active = active
+			actionListener.OnSteamInputDigitalAction(inputHandle, actionHandle, data)
+		End If
+	End Method
+
+	Method OnAnalogAction(inputHandle:ULong, actionHandle:ULong, mode:EInputSourceMode, x:Float, y:Float, active:Int)
+		Local actionListener:ISteamInputActionListener = ISteamInputActionListener(listener)
+		If actionListener Then
+			Local data:SSteamInputAnalogActionData
+			data.mode = mode
+			data.x = x
+			data.y = y
+			data.active = active
+			actionListener.OnSteamInputAnalogAction(inputHandle, actionHandle, data)
+		End If
+	End Method
+
+	Function _OnDeviceConnected(inst:TSteamInput, inputHandle:ULong) { nomangle }
+		inst.OnDeviceConnected(inputHandle)
+	End Function
+
+	Function _OnDeviceDisconnected(inst:TSteamInput, inputHandle:ULong) { nomangle }
+		inst.OnDeviceDisconnected(inputHandle)
+	End Function
+
+	Function _OnConfigurationLoaded(inst:TSteamInput, appID:UInt, inputHandle:ULong, mappingCreator:ULong, majorRevision:UInt, minorRevision:UInt, usesSteamInputAPI:Int, usesGamepadAPI:Int) { nomangle }
+		inst.OnConfigurationLoaded(appID, inputHandle, mappingCreator, majorRevision, minorRevision, usesSteamInputAPI, usesGamepadAPI)
+	End Function
+
+	Function _OnDigitalAction(inst:TSteamInput, inputHandle:ULong, actionHandle:ULong, state:Int, active:Int) { nomangle }
+		inst.OnDigitalAction(inputHandle, actionHandle, state, active)
+	End Function
+
+	Function _OnAnalogAction(inst:TSteamInput, inputHandle:ULong, actionHandle:ULong, mode:EInputSourceMode, x:Float, y:Float, active:Int) { nomangle }
+		inst.OnAnalogAction(inputHandle, actionHandle, mode, x, y, active)
+	End Function
+End Type
+
 Const STEAM_REMOTE_STORAGE_MAX_CLOUD_FILE_CHUNK_SIZE:Int = 100 * 1024 * 1024
 
 Rem
@@ -1464,6 +1927,13 @@ Type TSteamClient Extends TSteamAPI
 	End Rem
 	Method GetISteamRemoteStorage:TSteamRemoteStorage()
 		Return TSteamRemoteStorage._create(bmx_SteamAPI_ISteamClient_GetISteamRemoteStorage(instancePtr, _user, _steamPipe))
+	End Method
+
+	Rem
+	bbdoc: Returns the Steam Input action-based controller interface.
+	End Rem
+	Method GetISteamInput:TSteamInput()
+		Return TSteamInput._create(bmx_SteamAPI_ISteamClient_GetISteamInput(instancePtr, _user, _steamPipe))
 	End Method
 	
 End Type

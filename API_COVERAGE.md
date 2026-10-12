@@ -33,6 +33,12 @@ versioned ABI contracts.
   write batching. Asynchronous writes retain their own data and concurrent
   operations have independent call-result ownership. Legacy Workshop calls are
   omitted in favour of `ISteamUGC`.
+- `ISteamInput`: controller discovery and classification, action sets and
+  layers, allocation-free digital, analog, and motion state reads, action
+  origins and localized glyphs, vibration, haptics, LEDs, binding UI, device
+  notifications, and optional low-latency action events. The deprecated Steam
+  Controller API and its legacy-only glyph and haptic methods are intentionally
+  omitted.
 - `ISteamUserStats`: achievements, local and remote stats, global stats,
   leaderboards, downloaded entries, progress limits, attached UGC, and callbacks.
 - `ISteamUtils`: application/platform information, images, overlay and text
@@ -49,7 +55,6 @@ versioned ABI contracts.
 
 These are complete service areas, not accidental holes in the interfaces above:
 
-- Steam Input and the deprecated Steam Controller interface
 - Inventory
 - HTTP
 - Networking Sockets and Networking Utils
