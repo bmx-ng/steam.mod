@@ -59,6 +59,54 @@ Extern
 	Function bmx_SteamAPI_ISteamClient_GetISteamMatchmaking:Byte Ptr(inst:Byte Ptr, user:Int, pipe:UInt)
 	Function bmx_SteamAPI_ISteamClient_GetISteamApps:Byte Ptr(inst:Byte Ptr, user:Int, pipe:UInt)
 	Function bmx_SteamAPI_ISteamClient_GetISteamRemoteStorage:Byte Ptr(inst:Byte Ptr, user:Int, pipe:UInt)
+	Function bmx_SteamAPI_ISteamClient_GetISteamInput:Byte Ptr(inst:Byte Ptr, user:Int, pipe:UInt)
+
+	Function bmx_steamsdk_register_steaminput:Byte Ptr(inst:Byte Ptr, obj:Object)
+	Function bmx_steamsdk_unregister_steaminput(callbackPtr:Byte Ptr)
+	Function bmx_SteamAPI_ISteamInput_Init:Int(inst:Byte Ptr, explicitlyCallRunFrame:Int)
+	Function bmx_SteamAPI_ISteamInput_Shutdown:Int(inst:Byte Ptr)
+	Function bmx_SteamAPI_ISteamInput_SetInputActionManifestFilePath:Int(inst:Byte Ptr, path:String)
+	Function bmx_SteamAPI_ISteamInput_RunFrame(inst:Byte Ptr)
+	Function bmx_SteamAPI_ISteamInput_BWaitForData:Int(inst:Byte Ptr, waitForever:Int, timeout:UInt)
+	Function bmx_SteamAPI_ISteamInput_BNewDataAvailable:Int(inst:Byte Ptr)
+	Function bmx_SteamAPI_ISteamInput_GetConnectedControllers:Int(inst:Byte Ptr, handles:ULong Ptr, capacity:Int)
+	Function bmx_SteamAPI_ISteamInput_EnableDeviceCallbacks(inst:Byte Ptr)
+	Function bmx_SteamAPI_ISteamInput_EnableActionEventCallbacks(callbackPtr:Byte Ptr)
+	Function bmx_SteamAPI_ISteamInput_GetActionSetHandle:ULong(inst:Byte Ptr, name:String)
+	Function bmx_SteamAPI_ISteamInput_ActivateActionSet(inst:Byte Ptr, inputHandle:ULong, actionSetHandle:ULong)
+	Function bmx_SteamAPI_ISteamInput_GetCurrentActionSet:ULong(inst:Byte Ptr, inputHandle:ULong)
+	Function bmx_SteamAPI_ISteamInput_ActivateActionSetLayer(inst:Byte Ptr, inputHandle:ULong, actionSetLayerHandle:ULong)
+	Function bmx_SteamAPI_ISteamInput_DeactivateActionSetLayer(inst:Byte Ptr, inputHandle:ULong, actionSetLayerHandle:ULong)
+	Function bmx_SteamAPI_ISteamInput_DeactivateAllActionSetLayers(inst:Byte Ptr, inputHandle:ULong)
+	Function bmx_SteamAPI_ISteamInput_GetActiveActionSetLayers:Int(inst:Byte Ptr, inputHandle:ULong, handles:ULong Ptr, capacity:Int)
+	Function bmx_SteamAPI_ISteamInput_GetDigitalActionHandle:ULong(inst:Byte Ptr, name:String)
+	Function bmx_SteamAPI_ISteamInput_GetDigitalActionData(inst:Byte Ptr, inputHandle:ULong, actionHandle:ULong, state:Int Var, active:Int Var)
+	Function bmx_SteamAPI_ISteamInput_GetDigitalActionOrigins:Int(inst:Byte Ptr, inputHandle:ULong, actionSetHandle:ULong, actionHandle:ULong, origins:Int Ptr, capacity:Int)
+	Function bmx_SteamAPI_ISteamInput_GetStringForDigitalActionName:String(inst:Byte Ptr, actionHandle:ULong)
+	Function bmx_SteamAPI_ISteamInput_GetAnalogActionHandle:ULong(inst:Byte Ptr, name:String)
+	Function bmx_SteamAPI_ISteamInput_GetAnalogActionData(inst:Byte Ptr, inputHandle:ULong, actionHandle:ULong, mode:EInputSourceMode Var, x:Float Var, y:Float Var, active:Int Var)
+	Function bmx_SteamAPI_ISteamInput_GetAnalogActionOrigins:Int(inst:Byte Ptr, inputHandle:ULong, actionSetHandle:ULong, actionHandle:ULong, origins:Int Ptr, capacity:Int)
+	Function bmx_SteamAPI_ISteamInput_GetGlyphPNGForActionOrigin:String(inst:Byte Ptr, origin:EInputActionOrigin, size:ESteamInputGlyphSize, flags:ESteamInputGlyphStyle)
+	Function bmx_SteamAPI_ISteamInput_GetGlyphSVGForActionOrigin:String(inst:Byte Ptr, origin:EInputActionOrigin, flags:ESteamInputGlyphStyle)
+	Function bmx_SteamAPI_ISteamInput_GetStringForActionOrigin:String(inst:Byte Ptr, origin:EInputActionOrigin)
+	Function bmx_SteamAPI_ISteamInput_GetStringForAnalogActionName:String(inst:Byte Ptr, actionHandle:ULong)
+	Function bmx_SteamAPI_ISteamInput_StopAnalogActionMomentum(inst:Byte Ptr, inputHandle:ULong, actionHandle:ULong)
+	Function bmx_SteamAPI_ISteamInput_GetMotionData(inst:Byte Ptr, inputHandle:ULong, rotQuatX:Float Var, rotQuatY:Float Var, rotQuatZ:Float Var, rotQuatW:Float Var, posAccelX:Float Var, posAccelY:Float Var, posAccelZ:Float Var, rotVelX:Float Var, rotVelY:Float Var, rotVelZ:Float Var)
+	Function bmx_SteamAPI_ISteamInput_TriggerVibration(inst:Byte Ptr, inputHandle:ULong, leftSpeed:Int, rightSpeed:Int)
+	Function bmx_SteamAPI_ISteamInput_TriggerVibrationExtended(inst:Byte Ptr, inputHandle:ULong, leftSpeed:Int, rightSpeed:Int, leftTriggerSpeed:Int, rightTriggerSpeed:Int)
+	Function bmx_SteamAPI_ISteamInput_TriggerSimpleHapticEvent(inst:Byte Ptr, inputHandle:ULong, location:EControllerHapticLocation, intensity:Int, gainDB:Int, otherIntensity:Int, otherGainDB:Int)
+	Function bmx_SteamAPI_ISteamInput_SetLEDColor(inst:Byte Ptr, inputHandle:ULong, red:Int, green:Int, blue:Int, flags:ESteamInputLEDFlag)
+	Function bmx_SteamAPI_ISteamInput_ShowBindingPanel:Int(inst:Byte Ptr, inputHandle:ULong)
+	Function bmx_SteamAPI_ISteamInput_GetInputTypeForHandle:ESteamInputType(inst:Byte Ptr, inputHandle:ULong)
+	Function bmx_SteamAPI_ISteamInput_GetControllerForGamepadIndex:ULong(inst:Byte Ptr, index:Int)
+	Function bmx_SteamAPI_ISteamInput_GetGamepadIndexForController:Int(inst:Byte Ptr, inputHandle:ULong)
+	Function bmx_SteamAPI_ISteamInput_GetStringForXboxOrigin:String(inst:Byte Ptr, origin:EXboxOrigin)
+	Function bmx_SteamAPI_ISteamInput_GetGlyphForXboxOrigin:String(inst:Byte Ptr, origin:EXboxOrigin)
+	Function bmx_SteamAPI_ISteamInput_GetActionOriginFromXboxOrigin:EInputActionOrigin(inst:Byte Ptr, inputHandle:ULong, origin:EXboxOrigin)
+	Function bmx_SteamAPI_ISteamInput_TranslateActionOrigin:EInputActionOrigin(inst:Byte Ptr, destinationType:ESteamInputType, sourceOrigin:EInputActionOrigin)
+	Function bmx_SteamAPI_ISteamInput_GetDeviceBindingRevision:Int(inst:Byte Ptr, inputHandle:ULong, major:Int Var, minor:Int Var)
+	Function bmx_SteamAPI_ISteamInput_GetRemotePlaySessionID:UInt(inst:Byte Ptr, inputHandle:ULong)
+	Function bmx_SteamAPI_ISteamInput_GetSessionInputConfigurationSettings:ESteamInputConfigurationEnableType(inst:Byte Ptr)
 
 	Function bmx_steamsdk_register_steamremotestorage:Byte Ptr(inst:Byte Ptr, obj:Object)
 	Function bmx_steamsdk_unregister_steamremotestorage(callbackPtr:Byte Ptr)
@@ -1774,7 +1822,7 @@ Enum ESteamInputType
 	k_ESteamInputType_MaximumPossibleValue = 255
 End Enum
 
-Enum ESteamInputConfigurationEnableType
+Enum ESteamInputConfigurationEnableType Flags
 	k_ESteamInputConfigurationEnableType_None = 0
 	k_ESteamInputConfigurationEnableType_Playstation = 1
 	k_ESteamInputConfigurationEnableType_Xbox = 2
@@ -1794,7 +1842,7 @@ Enum ESteamInputGlyphSize
 	k_ESteamInputGlyphSize_Count = 3
 End Enum
 
-Enum ESteamInputGlyphStyle
+Enum ESteamInputGlyphStyle Flags
 	ESteamInputGlyphStyle_Knockout = 0
 	ESteamInputGlyphStyle_Light = 1
 	ESteamInputGlyphStyle_Dark = 2

@@ -5,7 +5,8 @@ Steamworks SDK support for BlitzMax NG.
 `Steam.SteamSDK` currently wraps utilities, users and identity, achievements
 and leaderboards, Workshop/UGC, friends and overlays, matchmaking lobbies, and
 Steam Networking Messages. Direct Steam Cloud file access is available through
-`TSteamRemoteStorage`.
+`TSteamRemoteStorage`, while `TSteamInput` provides action-based controller
+input, controller glyphs, motion data, and feedback.
 
 The currently wrapped interface families now include their contemporary public
 feature APIs from the bundled Steamworks SDK. See [API_COVERAGE.md](API_COVERAGE.md)
@@ -25,3 +26,8 @@ copied into a caller-owned buffer and released inside the wrapper.
 Cloud-enabled applications can use `TSteamRemoteStorage` for saves and settings.
 Related multi-file updates should be enclosed by `BeginFileWriteBatch` and
 `EndFileWriteBatch` so Steam treats them as one logical state change.
+
+Steam Input applications should define actions and action sets in an input
+action manifest, cache their handles after `TSteamInput.Init`, and read action
+state each frame. The supplied action-state structs are unmanaged values, so a
+game can reuse them without allocating managed objects in its input loop.
