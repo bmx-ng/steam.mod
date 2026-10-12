@@ -23,11 +23,13 @@ bbdoc: Steam SDK
 End Rem
 Module Steam.SteamSDK
 
-ModuleInfo "Version: 1.07"
+ModuleInfo "Version: 1.08"
 ModuleInfo "License: zlib/libpng"
 ModuleInfo "Copyright: Steam SDK - Valve Corporation"
 ModuleInfo "Copyright: Wrapper - 2019-2026 Bruce A Henderson"
 
+ModuleInfo "History: 1.08"
+ModuleInfo "History: Added Steam Remote Storage and Steam Cloud file support."
 ModuleInfo "History: 1.07"
 ModuleInfo "History: Completed Apps, User, Friends, matchmaking, Networking Messages, UserStats, Utils, and UGC feature coverage."
 ModuleInfo "History: 1.06"
@@ -1107,15 +1109,301 @@ Type TSteamNetworkingMessages Extends TSteamAPI
 	End Function
 End Type
 
+Const STEAM_REMOTE_STORAGE_MAX_CLOUD_FILE_CHUNK_SIZE:Int = 100 * 1024 * 1024
+
+Rem
+bbdoc: Receives notifications when Steam Cloud changes files during the current application session.
+End Rem
+Interface ISteamRemoteStorageListener
+	Rem
+	bbdoc: Called when an asynchronous file write completes.
+	End Rem
+	Method OnFileWriteAsyncComplete(callHandle:ULong, result:EResult, ioFailure:Int)
+	Rem
+	bbdoc: Called when an asynchronous file read is ready to be copied.
+	about: When @result is k_EResultOK, call #TSteamRemoteStorage.FileReadAsyncComplete from this callback using @callHandle and @bytesRead.
+	End Rem
+	Method OnFileReadAsyncComplete(callHandle:ULong, result:EResult, offset:UInt, bytesRead:UInt, ioFailure:Int)
+	Rem
+	bbdoc: Called when one or more local files changed after Steam synchronized changes from another session.
+	about: Use #TSteamRemoteStorage.GetLocalFileChangeCount and #TSteamRemoteStorage.GetLocalFileChange to inspect the changes.
+	End Rem
+	Method OnLocalFileChange()
+End Interface
+
+Rem
+bbdoc: Provides direct access to files managed by Steam Cloud.
+about: Filenames are case-insensitive and Steam normalizes them to lowercase.
+Use #BeginFileWriteBatch and #EndFileWriteBatch when one logical save operation
+updates more than one file. Workshop publishing is provided by #TSteamUGC rather
+than the legacy Workshop methods on ISteamRemoteStorage.
+End Rem
+Type TSteamRemoteStorage Extends TSteamAPI
+	Const STEAMREMOTESTORAGE_INTERFACE_VERSION:String = "STEAMREMOTESTORAGE_INTERFACE_VERSION016"
+
+	Field listener:ISteamRemoteStorageListener
+
+	Function _create:TSteamRemoteStorage(instancePtr:Byte Ptr)
+		If Not instancePtr Then Return Null
+		Local this:TSteamRemoteStorage = New TSteamRemoteStorage
+		this.instancePtr = instancePtr
+		this.callbackPtr = bmx_steamsdk_register_steamremotestorage(instancePtr, this)
+		Return this
+	End Function
+
+	Method Delete()
+		If callbackPtr Then bmx_steamsdk_unregister_steamremotestorage(callbackPtr)
+		callbackPtr = Null
+	End Method
+
+	Rem
+	bbdoc: Sets the listener that receives Steam Cloud file-change notifications.
+	End Rem
+	Method SetListener(listener:ISteamRemoteStorageListener)
+		Self.listener = listener
+	End Method
+
+	Rem
+	bbdoc: Writes @size bytes to a Steam Cloud file.
+	returns: #True when the data was accepted, otherwise #False.
+	about: A single write may not exceed #STEAM_REMOTE_STORAGE_MAX_CLOUD_FILE_CHUNK_SIZE. Use the stream methods for larger files.
+	End Rem
+	Method FileWrite:Int(file:String, data:Byte Ptr, size:Int)
+		If size < 0 Or size > STEAM_REMOTE_STORAGE_MAX_CLOUD_FILE_CHUNK_SIZE Or (size > 0 And Not data) Then Return False
+		Return bmx_SteamAPI_ISteamRemoteStorage_FileWrite(instancePtr, file, data, size)
+	End Method
+
+	Rem
+	bbdoc: Reads up to @capacity bytes from a Steam Cloud file into @data.
+	returns: The number of bytes read, or -1 when the operation failed.
+	End Rem
+	Method FileRead:Int(file:String, data:Byte Ptr, capacity:Int)
+		If capacity < 0 Or (capacity > 0 And Not data) Then Return -1
+		Return bmx_SteamAPI_ISteamRemoteStorage_FileRead(instancePtr, file, data, capacity)
+	End Method
+
+	Rem
+	bbdoc: Starts an asynchronous write of @size bytes to a Steam Cloud file.
+	returns: A call handle delivered to #ISteamRemoteStorageListener.OnFileWriteAsyncComplete, or 0 when the request could not start.
+	about: The wrapper retains its own copy of the supplied data until Steam completes the operation, so the caller may reuse or release its buffer immediately.
+	End Rem
+	Method FileWriteAsync:ULong(file:String, data:Byte Ptr, size:UInt)
+		If Not data Or size > UInt(STEAM_REMOTE_STORAGE_MAX_CLOUD_FILE_CHUNK_SIZE) Then Return 0
+		Return bmx_SteamAPI_ISteamRemoteStorage_FileWriteAsync(callbackPtr, file, data, size)
+	End Method
+
+	Rem
+	bbdoc: Starts an asynchronous read from @file.
+	returns: A call handle delivered to #ISteamRemoteStorageListener.OnFileReadAsyncComplete, or 0 when the request could not start.
+	about: Only one asynchronous read may be active for the same file. Use #FileReadAsyncComplete from the completion callback to copy the data.
+	End Rem
+	Method FileReadAsync:ULong(file:String, offset:UInt, bytesToRead:UInt)
+		If bytesToRead = 0 Then Return 0
+		Return bmx_SteamAPI_ISteamRemoteStorage_FileReadAsync(callbackPtr, file, offset, bytesToRead)
+	End Method
+
+	Rem
+	bbdoc: Copies data produced by a completed asynchronous read into @data.
+	about: Call this only from #ISteamRemoteStorageListener.OnFileReadAsyncComplete, using that callback's @callHandle and normally its @bytesRead value.
+	End Rem
+	Method FileReadAsyncComplete:Int(readCall:ULong, data:Byte Ptr, bytesToRead:UInt)
+		If Not data Or bytesToRead = 0 Then Return False
+		Return bmx_SteamAPI_ISteamRemoteStorage_FileReadAsyncComplete(instancePtr, readCall, data, bytesToRead)
+	End Method
+
+	Rem
+	bbdoc: Stops synchronizing @file while retaining its local copy.
+	End Rem
+	Method FileForget:Int(file:String)
+		Return bmx_SteamAPI_ISteamRemoteStorage_FileForget(instancePtr, file)
+	End Method
+
+	Rem
+	bbdoc: Deletes @file from both the local cache and Steam Cloud.
+	End Rem
+	Method FileDelete:Int(file:String)
+		Return bmx_SteamAPI_ISteamRemoteStorage_FileDelete(instancePtr, file)
+	End Method
+
+	Rem
+	bbdoc: Selects the platforms on which @file should synchronize.
+	End Rem
+	Method SetSyncPlatforms:Int(file:String, platforms:ERemoteStoragePlatform)
+		Return bmx_SteamAPI_ISteamRemoteStorage_SetSyncPlatforms(instancePtr, file, platforms)
+	End Method
+
+	Rem
+	bbdoc: Opens a streamed write to @file.
+	returns: A stream handle, or ULong(-1) when the stream could not be opened.
+	End Rem
+	Method FileWriteStreamOpen:ULong(file:String)
+		Return bmx_SteamAPI_ISteamRemoteStorage_FileWriteStreamOpen(instancePtr, file)
+	End Method
+
+	Rem
+	bbdoc: Appends one chunk to an open file-write stream.
+	about: Each chunk must be no larger than #STEAM_REMOTE_STORAGE_MAX_CLOUD_FILE_CHUNK_SIZE.
+	End Rem
+	Method FileWriteStreamWriteChunk:Int(streamHandle:ULong, data:Byte Ptr, size:Int)
+		If size < 0 Or size > STEAM_REMOTE_STORAGE_MAX_CLOUD_FILE_CHUNK_SIZE Or (size > 0 And Not data) Then Return False
+		Return bmx_SteamAPI_ISteamRemoteStorage_FileWriteStreamWriteChunk(instancePtr, streamHandle, data, size)
+	End Method
+
+	Rem
+	bbdoc: Commits and closes an open file-write stream.
+	End Rem
+	Method FileWriteStreamClose:Int(streamHandle:ULong)
+		Return bmx_SteamAPI_ISteamRemoteStorage_FileWriteStreamClose(instancePtr, streamHandle)
+	End Method
+
+	Rem
+	bbdoc: Cancels an open file-write stream without committing it.
+	End Rem
+	Method FileWriteStreamCancel:Int(streamHandle:ULong)
+		Return bmx_SteamAPI_ISteamRemoteStorage_FileWriteStreamCancel(instancePtr, streamHandle)
+	End Method
+
+	Rem
+	bbdoc: Returns #True when @file exists in the local Steam Cloud cache.
+	End Rem
+	Method FileExists:Int(file:String)
+		Return bmx_SteamAPI_ISteamRemoteStorage_FileExists(instancePtr, file)
+	End Method
+
+	Rem
+	bbdoc: Returns #True when @file is currently persisted in Steam Cloud.
+	End Rem
+	Method FilePersisted:Int(file:String)
+		Return bmx_SteamAPI_ISteamRemoteStorage_FilePersisted(instancePtr, file)
+	End Method
+
+	Rem
+	bbdoc: Returns the size of @file in bytes, or 0 when it does not exist.
+	End Rem
+	Method GetFileSize:Int(file:String)
+		Return bmx_SteamAPI_ISteamRemoteStorage_GetFileSize(instancePtr, file)
+	End Method
+
+	Rem
+	bbdoc: Returns the last modification time of @file as a Unix timestamp.
+	End Rem
+	Method GetFileTimestamp:Long(file:String)
+		Return bmx_SteamAPI_ISteamRemoteStorage_GetFileTimestamp(instancePtr, file)
+	End Method
+
+	Rem
+	bbdoc: Returns the platforms on which @file is configured to synchronize.
+	End Rem
+	Method GetSyncPlatforms:ERemoteStoragePlatform(file:String)
+		Return bmx_SteamAPI_ISteamRemoteStorage_GetSyncPlatforms(instancePtr, file)
+	End Method
+
+	Rem
+	bbdoc: Returns the number of files in the application's Steam Cloud cache.
+	End Rem
+	Method GetFileCount:Int()
+		Return bmx_SteamAPI_ISteamRemoteStorage_GetFileCount(instancePtr)
+	End Method
+
+	Rem
+	bbdoc: Returns a cached file's normalized name and writes its byte size to @size.
+	End Rem
+	Method GetFileNameAndSize:String(index:Int, size:Int Var)
+		Return bmx_SteamAPI_ISteamRemoteStorage_GetFileNameAndSize(instancePtr, index, size)
+	End Method
+
+	Rem
+	bbdoc: Returns the application's total and currently available Steam Cloud quota in bytes.
+	End Rem
+	Method GetQuota:Int(totalBytes:ULong Var, availableBytes:ULong Var)
+		Return bmx_SteamAPI_ISteamRemoteStorage_GetQuota(instancePtr, totalBytes, availableBytes)
+	End Method
+
+	Rem
+	bbdoc: Returns #True when Steam Cloud is enabled for the current account.
+	End Rem
+	Method IsCloudEnabledForAccount:Int()
+		Return bmx_SteamAPI_ISteamRemoteStorage_IsCloudEnabledForAccount(instancePtr)
+	End Method
+
+	Rem
+	bbdoc: Returns #True when the user has enabled Steam Cloud for this application.
+	End Rem
+	Method IsCloudEnabledForApp:Int()
+		Return bmx_SteamAPI_ISteamRemoteStorage_IsCloudEnabledForApp(instancePtr)
+	End Method
+
+	Rem
+	bbdoc: Enables or disables Steam Cloud for this application for the current user.
+	End Rem
+	Method SetCloudEnabledForApp(enabled:Int)
+		bmx_SteamAPI_ISteamRemoteStorage_SetCloudEnabledForApp(instancePtr, enabled)
+	End Method
+
+	Rem
+	bbdoc: Returns the number of pending local file-change records produced by cloud synchronization.
+	End Rem
+	Method GetLocalFileChangeCount:Int()
+		Return bmx_SteamAPI_ISteamRemoteStorage_GetLocalFileChangeCount(instancePtr)
+	End Method
+
+	Rem
+	bbdoc: Returns one changed path and its change and path types.
+	about: Call this after #ISteamRemoteStorageListener.OnLocalFileChange. The path may be an API filename or an absolute Auto-Cloud path according to @pathType.
+	End Rem
+	Method GetLocalFileChange:String(index:Int, changeType:ERemoteStorageLocalFileChange Var, pathType:ERemoteStorageFilePathType Var)
+		Return bmx_SteamAPI_ISteamRemoteStorage_GetLocalFileChange(instancePtr, index, changeType, pathType)
+	End Method
+
+	Rem
+	bbdoc: Begins a logical batch of related file writes and deletions.
+	about: Always balance a successful call with #EndFileWriteBatch.
+	End Rem
+	Method BeginFileWriteBatch:Int()
+		Return bmx_SteamAPI_ISteamRemoteStorage_BeginFileWriteBatch(instancePtr)
+	End Method
+
+	Rem
+	bbdoc: Ends a logical batch begun by #BeginFileWriteBatch.
+	End Rem
+	Method EndFileWriteBatch:Int()
+		Return bmx_SteamAPI_ISteamRemoteStorage_EndFileWriteBatch(instancePtr)
+	End Method
+
+	Method OnLocalFileChange()
+		If listener Then listener.OnLocalFileChange()
+	End Method
+
+	Method OnFileWriteAsyncComplete(callHandle:ULong, result:EResult, ioFailure:Int)
+		If listener Then listener.OnFileWriteAsyncComplete(callHandle, result, ioFailure)
+	End Method
+
+	Method OnFileReadAsyncComplete(callHandle:ULong, result:EResult, offset:UInt, bytesRead:UInt, ioFailure:Int)
+		If listener Then listener.OnFileReadAsyncComplete(callHandle, result, offset, bytesRead, ioFailure)
+	End Method
+
+	Function _OnLocalFileChange(inst:TSteamRemoteStorage) { nomangle }
+		inst.OnLocalFileChange()
+	End Function
+
+	Function _OnFileWriteAsyncComplete(inst:TSteamRemoteStorage, callHandle:ULong, result:EResult, ioFailure:Int) { nomangle }
+		inst.OnFileWriteAsyncComplete(callHandle, result, ioFailure)
+	End Function
+
+	Function _OnFileReadAsyncComplete(inst:TSteamRemoteStorage, callHandle:ULong, result:EResult, offset:UInt, bytesRead:UInt, ioFailure:Int) { nomangle }
+		inst.OnFileReadAsyncComplete(callHandle, result, offset, bytesRead, ioFailure)
+	End Function
+End Type
+
 Rem
 bbdoc: Provides an interface to a steam instance.
 End Rem
 Type TSteamClient Extends TSteamAPI
 
-	Const STEAMCLIENT_INTERFACE_VERSION:String = "SteamClient018"
+	Const STEAMCLIENT_INTERFACE_VERSION:String = "SteamClient020"
 
 	Method New()
-		instancePtr = bmx_SteamInternal_CreateInterface(STEAMCLIENT_INTERFACE_VERSION)
+		instancePtr = bmx_SteamAPI_SteamClient()
 
 		If Not _user Then
 			_user = bmx_SteamAPI_ISteamClient_ConnectToGlobalUser(instancePtr, _steamPipe)
@@ -1126,49 +1414,56 @@ Type TSteamClient Extends TSteamAPI
 	bbdoc: Returns a new instance of #TSteamUtils.
 	End Rem
 	Method GetISteamUtils:TSteamUtils()
-		Return TSteamUtils._create(bmx_SteamAPI_ISteamClient_GetISteamUtils(instancePtr, _steamPipe, TSteamUtils.STEAMUTILS_INTERFACE_VERSION))
+		Return TSteamUtils._create(bmx_SteamAPI_ISteamClient_GetISteamUtils(instancePtr, _steamPipe))
 	End Method
 	
 	Rem
 	bbdoc: Returns a new instance of #TSteamUserStats.
 	End Rem
 	Method GetISteamUserStats:TSteamUserStats()
-		Return TSteamUserStats._create(bmx_SteamAPI_ISteamClient_GetISteamUserStats(instancePtr, _user, _steamPipe, TSteamUserStats.STEAMUSERSTATS_INTERFACE_VERSION))
+		Return TSteamUserStats._create(bmx_SteamAPI_ISteamClient_GetISteamUserStats(instancePtr, _user, _steamPipe))
 	End Method
 
 	Rem
 	bbdoc: Returns a new instance of #TSteamUGC.
 	End Rem
 	Method GetISteamUGC:TSteamUGC()
-		Return TSteamUGC._create(bmx_SteamAPI_ISteamClient_GetISteamUGC(instancePtr, _user, _steamPipe, TSteamUGC.STEAMUGC_INTERFACE_VERSION))
+		Return TSteamUGC._create(bmx_SteamAPI_ISteamClient_GetISteamUGC(instancePtr, _user, _steamPipe))
 	End Method
 
 	Rem
 	bbdoc: Returns a new instance of #TSteamFriends.
 	End Rem
 	Method GetISteamFriends:TSteamFriends()
-		Return TSteamFriends._create(bmx_SteamAPI_ISteamClient_GetISteamFriends(instancePtr, _user, _steamPipe, TSteamFriends.STEAMFRIENDS_INTERFACE_VERSION))
+		Return TSteamFriends._create(bmx_SteamAPI_ISteamClient_GetISteamFriends(instancePtr, _user, _steamPipe))
 	End Method
 
 	Rem
 	bbdoc: Returns the local Steam user interface.
 	End Rem
 	Method GetISteamUser:TSteamUser()
-		Return TSteamUser._create(bmx_SteamAPI_ISteamClient_GetISteamUser(instancePtr, _user, _steamPipe, TSteamUser.STEAMUSER_INTERFACE_VERSION))
+		Return TSteamUser._create(bmx_SteamAPI_ISteamClient_GetISteamUser(instancePtr, _user, _steamPipe))
 	End Method
 
 	Rem
 	bbdoc: Returns the Steam lobby matchmaking interface.
 	End Rem
 	Method GetISteamMatchmaking:TSteamMatchmaking()
-		Return TSteamMatchmaking._create(bmx_SteamAPI_ISteamClient_GetISteamMatchmaking(instancePtr, _user, _steamPipe, TSteamMatchmaking.STEAMMATCHMAKING_INTERFACE_VERSION))
+		Return TSteamMatchmaking._create(bmx_SteamAPI_ISteamClient_GetISteamMatchmaking(instancePtr, _user, _steamPipe))
 	End Method
 
 	Rem
 	bbdoc: Returns the Steam application information interface.
 	End Rem
 	Method GetISteamApps:TSteamApps()
-		Return TSteamApps._create(bmx_SteamAPI_ISteamClient_GetISteamApps(instancePtr, _user, _steamPipe, TSteamApps.STEAMAPPS_INTERFACE_VERSION))
+		Return TSteamApps._create(bmx_SteamAPI_ISteamClient_GetISteamApps(instancePtr, _user, _steamPipe))
+	End Method
+
+	Rem
+	bbdoc: Returns the Steam Remote Storage and Steam Cloud file interface.
+	End Rem
+	Method GetISteamRemoteStorage:TSteamRemoteStorage()
+		Return TSteamRemoteStorage._create(bmx_SteamAPI_ISteamClient_GetISteamRemoteStorage(instancePtr, _user, _steamPipe))
 	End Method
 	
 End Type
@@ -1203,7 +1498,7 @@ bbdoc: Provides access to a range of miscellaneous utility functions.
 End Rem
 Type TSteamUtils Extends TSteamAPI
 
-	Const STEAMUTILS_INTERFACE_VERSION:String = "SteamUtils009"
+	Const STEAMUTILS_INTERFACE_VERSION:String = "SteamUtils010"
 
 	Field listener:ISteamUtilsListener
 
@@ -1606,7 +1901,7 @@ bbdoc: Provides methods for accessing and submitting stats, achievements, and le
 End Rem
 Type TSteamUserStats Extends TSteamAPI
 
-	Const STEAMUSERSTATS_INTERFACE_VERSION:String = "STEAMUSERSTATS_INTERFACE_VERSION011"
+	Const STEAMUSERSTATS_INTERFACE_VERSION:String = "STEAMUSERSTATS_INTERFACE_VERSION012"
 	
 	Field listener:ISteamUserStatsListener
 	
@@ -2743,7 +3038,7 @@ The majority of #TSteamUGC methods return boolean values. For additional informa
 End Rem
 Type TSteamUGC Extends TSteamAPI
 
-	Const STEAMUGC_INTERFACE_VERSION:String = "STEAMUGC_INTERFACE_VERSION012"
+	Const STEAMUGC_INTERFACE_VERSION:String = "STEAMUGC_INTERFACE_VERSION016"
 
 	Field listener:ISteamUGCListener
 

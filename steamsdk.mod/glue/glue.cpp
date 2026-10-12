@@ -29,6 +29,7 @@
 #include <thread>
 #include <functional>
 #include <vector>
+#include <algorithm>
 
 class MaxUtils;
 class MaxUserStats;
@@ -38,6 +39,13 @@ class MaxFriends;
 class MaxApps;
 class MaxMatchmaking;
 class MaxNetworkingMessages;
+class MaxRemoteStorage;
+class MaxRemoteStorageWriteRequest;
+class MaxRemoteStorageReadRequest;
+
+static std::vector<MaxRemoteStorageWriteRequest*> g_remoteStorageWriteRequests;
+static std::vector<MaxRemoteStorageReadRequest*> g_remoteStorageReadRequests;
+static void CancelRemoteStorageRequests();
 
 #define BUFFER_SIZE 2048
 #define VALUE_SIZE 16384
@@ -126,6 +134,9 @@ extern "C" {
 	void steam_steamsdk_TSteamUser__OnStoreAuthURL(BBObject * maxHandle, BBString * url, int failure);
 	void steam_steamsdk_TSteamUser__OnMarketEligibility(BBObject * maxHandle, int allowed, EMarketNotAllowedReasonFlags reason, uint32 allowedAtTime, int steamGuardRequiredDays, int newDeviceCooldown, int failure);
 	void steam_steamsdk_TSteamUser__OnDurationControl(BBObject * maxHandle, EResult result, uint32 appID, int applicable, int secondsLast5h, EDurationControlProgress progress, EDurationControlNotification notification, int secondsToday, int secondsRemaining, int failure);
+	void steam_steamsdk_TSteamRemoteStorage__OnLocalFileChange(BBObject * maxHandle);
+	void steam_steamsdk_TSteamRemoteStorage__OnFileWriteAsyncComplete(BBObject * maxHandle, uint64 callHandle, EResult result, int failure);
+	void steam_steamsdk_TSteamRemoteStorage__OnFileReadAsyncComplete(BBObject * maxHandle, uint64 callHandle, EResult result, uint32 offset, uint32 bytesRead, int failure);
 
 	int bmx_SteamAPI_Init();
 	void bmx_SteamAPI_Shutdown();
@@ -136,19 +147,49 @@ extern "C" {
 		
 	HSteamPipe bmx_SteamAPI_GetHSteamPipe();
 
-	void * bmx_SteamInternal_CreateInterface(BBString * version);
+	void * bmx_SteamAPI_SteamClient();
 
 	void *  bmx_steamsdk_register_steamutils(ISteamUtils* instancePtr, BBObject * obj);
 	void bmx_steamsdk_unregister_steamutils(void * callbackPtr);
 
-	void * bmx_SteamAPI_ISteamClient_GetISteamUtils(ISteamClient* instancePtr, HSteamPipe pipe, BBString * version);
+	void * bmx_SteamAPI_ISteamClient_GetISteamUtils(ISteamClient* instancePtr, HSteamPipe pipe);
 	HSteamUser bmx_SteamAPI_ISteamClient_ConnectToGlobalUser(ISteamClient* instancePtr, HSteamPipe pipe);
-	void * bmx_SteamAPI_ISteamClient_GetISteamUserStats(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe, BBString * version);
-	void * bmx_SteamAPI_ISteamClient_GetISteamUGC(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe, BBString * version);
-	void * bmx_SteamAPI_ISteamClient_GetISteamFriends(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe, BBString * version);
-	void * bmx_SteamAPI_ISteamClient_GetISteamUser(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe, BBString * version);
-	void * bmx_SteamAPI_ISteamClient_GetISteamMatchmaking(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe, BBString * version);
-	void * bmx_SteamAPI_ISteamClient_GetISteamApps(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe, BBString * version);
+	void * bmx_SteamAPI_ISteamClient_GetISteamUserStats(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe);
+	void * bmx_SteamAPI_ISteamClient_GetISteamUGC(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe);
+	void * bmx_SteamAPI_ISteamClient_GetISteamFriends(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe);
+	void * bmx_SteamAPI_ISteamClient_GetISteamUser(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe);
+	void * bmx_SteamAPI_ISteamClient_GetISteamMatchmaking(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe);
+	void * bmx_SteamAPI_ISteamClient_GetISteamApps(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe);
+	void * bmx_SteamAPI_ISteamClient_GetISteamRemoteStorage(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe);
+	void * bmx_steamsdk_register_steamremotestorage(ISteamRemoteStorage* instancePtr, BBObject * obj);
+	void bmx_steamsdk_unregister_steamremotestorage(void * callbackPtr);
+	int bmx_SteamAPI_ISteamRemoteStorage_FileWrite(ISteamRemoteStorage* instancePtr, BBString * file, const void * data, int size);
+	int bmx_SteamAPI_ISteamRemoteStorage_FileRead(ISteamRemoteStorage* instancePtr, BBString * file, void * data, int capacity);
+	uint64 bmx_SteamAPI_ISteamRemoteStorage_FileWriteAsync(MaxRemoteStorage * storage, BBString * file, const void * data, uint32 size);
+	uint64 bmx_SteamAPI_ISteamRemoteStorage_FileReadAsync(MaxRemoteStorage * storage, BBString * file, uint32 offset, uint32 bytesToRead);
+	int bmx_SteamAPI_ISteamRemoteStorage_FileReadAsyncComplete(ISteamRemoteStorage* instancePtr, uint64 readCall, void * data, uint32 bytesToRead);
+	int bmx_SteamAPI_ISteamRemoteStorage_FileForget(ISteamRemoteStorage* instancePtr, BBString * file);
+	int bmx_SteamAPI_ISteamRemoteStorage_FileDelete(ISteamRemoteStorage* instancePtr, BBString * file);
+	int bmx_SteamAPI_ISteamRemoteStorage_SetSyncPlatforms(ISteamRemoteStorage* instancePtr, BBString * file, ERemoteStoragePlatform platforms);
+	uint64 bmx_SteamAPI_ISteamRemoteStorage_FileWriteStreamOpen(ISteamRemoteStorage* instancePtr, BBString * file);
+	int bmx_SteamAPI_ISteamRemoteStorage_FileWriteStreamWriteChunk(ISteamRemoteStorage* instancePtr, uint64 streamHandle, const void * data, int size);
+	int bmx_SteamAPI_ISteamRemoteStorage_FileWriteStreamClose(ISteamRemoteStorage* instancePtr, uint64 streamHandle);
+	int bmx_SteamAPI_ISteamRemoteStorage_FileWriteStreamCancel(ISteamRemoteStorage* instancePtr, uint64 streamHandle);
+	int bmx_SteamAPI_ISteamRemoteStorage_FileExists(ISteamRemoteStorage* instancePtr, BBString * file);
+	int bmx_SteamAPI_ISteamRemoteStorage_FilePersisted(ISteamRemoteStorage* instancePtr, BBString * file);
+	int bmx_SteamAPI_ISteamRemoteStorage_GetFileSize(ISteamRemoteStorage* instancePtr, BBString * file);
+	int64 bmx_SteamAPI_ISteamRemoteStorage_GetFileTimestamp(ISteamRemoteStorage* instancePtr, BBString * file);
+	ERemoteStoragePlatform bmx_SteamAPI_ISteamRemoteStorage_GetSyncPlatforms(ISteamRemoteStorage* instancePtr, BBString * file);
+	int bmx_SteamAPI_ISteamRemoteStorage_GetFileCount(ISteamRemoteStorage* instancePtr);
+	BBString * bmx_SteamAPI_ISteamRemoteStorage_GetFileNameAndSize(ISteamRemoteStorage* instancePtr, int index, int * size);
+	int bmx_SteamAPI_ISteamRemoteStorage_GetQuota(ISteamRemoteStorage* instancePtr, uint64 * totalBytes, uint64 * availableBytes);
+	int bmx_SteamAPI_ISteamRemoteStorage_IsCloudEnabledForAccount(ISteamRemoteStorage* instancePtr);
+	int bmx_SteamAPI_ISteamRemoteStorage_IsCloudEnabledForApp(ISteamRemoteStorage* instancePtr);
+	void bmx_SteamAPI_ISteamRemoteStorage_SetCloudEnabledForApp(ISteamRemoteStorage* instancePtr, int enabled);
+	int bmx_SteamAPI_ISteamRemoteStorage_GetLocalFileChangeCount(ISteamRemoteStorage* instancePtr);
+	BBString * bmx_SteamAPI_ISteamRemoteStorage_GetLocalFileChange(ISteamRemoteStorage* instancePtr, int index, ERemoteStorageLocalFileChange * changeType, ERemoteStorageFilePathType * pathType);
+	int bmx_SteamAPI_ISteamRemoteStorage_BeginFileWriteBatch(ISteamRemoteStorage* instancePtr);
+	int bmx_SteamAPI_ISteamRemoteStorage_EndFileWriteBatch(ISteamRemoteStorage* instancePtr);
 	int bmx_SteamAPI_ISteamUser_BLoggedOn(ISteamUser* instancePtr);
 	uint64 bmx_SteamAPI_ISteamUser_GetSteamID(ISteamUser* instancePtr);
 	void * bmx_steamsdk_register_steamuser(ISteamUser* instancePtr, BBObject * obj);
@@ -524,6 +565,7 @@ int bmx_SteamAPI_Init() {
 }
 
 void bmx_SteamAPI_Shutdown() {
+	CancelRemoteStorageRequests();
 	SteamAPI_Shutdown();
 }
 
@@ -531,11 +573,8 @@ HSteamPipe bmx_SteamAPI_GetHSteamPipe() {
 	return SteamAPI_GetHSteamPipe();
 }
 
-void * bmx_SteamInternal_CreateInterface(BBString * version) {
-	char * v = (char*)bbStringToUTF8String(version);
-	void * inst = SteamInternal_CreateInterface(v);
-	bbMemFree(v);
-	return inst;
+void * bmx_SteamAPI_SteamClient() {
+	return SteamInternal_CreateInterface(STEAMCLIENT_INTERFACE_VERSION);
 }
 
 void bmx_SteamAPI_RunCallbacks() {
@@ -606,57 +645,310 @@ void bmx_SteamAPI_stopBackgroundTimer() {
 
 // ISteamClient -------------------------------------------
 
-void * bmx_SteamAPI_ISteamClient_GetISteamUtils(ISteamClient* instancePtr, HSteamPipe pipe, BBString * version) {
-	char * v = (char*)bbStringToUTF8String(version);
-	void * inst = SteamAPI_ISteamClient_GetISteamUtils(instancePtr, pipe, v);
-	bbMemFree(v);
-	return inst;
+void * bmx_SteamAPI_ISteamClient_GetISteamUtils(ISteamClient* instancePtr, HSteamPipe pipe) {
+	return SteamAPI_ISteamClient_GetISteamUtils(instancePtr, pipe, STEAMUTILS_INTERFACE_VERSION);
 }
 
 HSteamUser bmx_SteamAPI_ISteamClient_ConnectToGlobalUser(ISteamClient* instancePtr, HSteamPipe pipe) {
 	return SteamAPI_ISteamClient_ConnectToGlobalUser(instancePtr, pipe);
 }
 
-void * bmx_SteamAPI_ISteamClient_GetISteamUserStats(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe, BBString * version) {
-	char * v = (char*)bbStringToUTF8String(version);
-	void * inst = SteamAPI_ISteamClient_GetISteamUserStats(instancePtr, user, pipe, v);
-	bbMemFree(v);
-	return inst;
+void * bmx_SteamAPI_ISteamClient_GetISteamUserStats(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe) {
+	return SteamAPI_ISteamClient_GetISteamUserStats(instancePtr, user, pipe, STEAMUSERSTATS_INTERFACE_VERSION);
 }
 
-void * bmx_SteamAPI_ISteamClient_GetISteamUGC(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe, BBString * version) {
-	char * v = (char*)bbStringToUTF8String(version);
-	void * inst = SteamAPI_ISteamClient_GetISteamUGC(instancePtr, user, pipe, v);
-	bbMemFree(v);
-	return inst;
+void * bmx_SteamAPI_ISteamClient_GetISteamUGC(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe) {
+	return SteamAPI_ISteamClient_GetISteamUGC(instancePtr, user, pipe, STEAMUGC_INTERFACE_VERSION);
 }
 
-void * bmx_SteamAPI_ISteamClient_GetISteamFriends(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe, BBString * version) {
-	char * v = (char*)bbStringToUTF8String(version);
-	void * inst = SteamAPI_ISteamClient_GetISteamFriends(instancePtr, user, pipe, v);
-	bbMemFree(v);
-	return inst;
+void * bmx_SteamAPI_ISteamClient_GetISteamFriends(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe) {
+	return SteamAPI_ISteamClient_GetISteamFriends(instancePtr, user, pipe, STEAMFRIENDS_INTERFACE_VERSION);
 }
 
-void * bmx_SteamAPI_ISteamClient_GetISteamUser(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe, BBString * version) {
-	char * v = (char*)bbStringToUTF8String(version);
-	void * inst = SteamAPI_ISteamClient_GetISteamUser(instancePtr, user, pipe, v);
-	bbMemFree(v);
-	return inst;
+void * bmx_SteamAPI_ISteamClient_GetISteamUser(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe) {
+	return SteamAPI_ISteamClient_GetISteamUser(instancePtr, user, pipe, STEAMUSER_INTERFACE_VERSION);
 }
 
-void * bmx_SteamAPI_ISteamClient_GetISteamMatchmaking(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe, BBString * version) {
-	char * v = (char*)bbStringToUTF8String(version);
-	void * inst = SteamAPI_ISteamClient_GetISteamMatchmaking(instancePtr, user, pipe, v);
-	bbMemFree(v);
-	return inst;
+void * bmx_SteamAPI_ISteamClient_GetISteamMatchmaking(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe) {
+	return SteamAPI_ISteamClient_GetISteamMatchmaking(instancePtr, user, pipe, STEAMMATCHMAKING_INTERFACE_VERSION);
 }
 
-void * bmx_SteamAPI_ISteamClient_GetISteamApps(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe, BBString * version) {
-	char * v = (char*)bbStringToUTF8String(version);
-	void * inst = SteamAPI_ISteamClient_GetISteamApps(instancePtr, user, pipe, v);
-	bbMemFree(v);
-	return inst;
+void * bmx_SteamAPI_ISteamClient_GetISteamApps(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe) {
+	return SteamAPI_ISteamClient_GetISteamApps(instancePtr, user, pipe, STEAMAPPS_INTERFACE_VERSION);
+}
+
+void * bmx_SteamAPI_ISteamClient_GetISteamRemoteStorage(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe) {
+	return SteamAPI_ISteamClient_GetISteamRemoteStorage(instancePtr, user, pipe, STEAMREMOTESTORAGE_INTERFACE_VERSION);
+}
+
+// ISteamRemoteStorage ------------------------------------
+
+class MaxRemoteStorageWriteRequest
+{
+private:
+	ISteamRemoteStorage * instancePtr;
+	BBObject * maxHandle;
+	SteamAPICall_t callHandle;
+	std::vector<uint8> data;
+	CCallResult<MaxRemoteStorageWriteRequest, RemoteStorageFileWriteAsyncComplete_t> callResult;
+public:
+	MaxRemoteStorageWriteRequest(ISteamRemoteStorage * instancePtr, BBObject * maxHandle, const void * source, uint32 size) :
+		instancePtr(instancePtr), maxHandle(maxHandle), callHandle(k_uAPICallInvalid), data((const uint8*)source, (const uint8*)source + size) {
+		BBRETAIN(maxHandle);
+		g_remoteStorageWriteRequests.push_back(this);
+	}
+
+	~MaxRemoteStorageWriteRequest() {
+		g_remoteStorageWriteRequests.erase(std::remove(g_remoteStorageWriteRequests.begin(), g_remoteStorageWriteRequests.end(), this), g_remoteStorageWriteRequests.end());
+		BBRELEASE(maxHandle);
+	}
+
+	SteamAPICall_t Start(const char * file) {
+		const void * buffer = data.empty() ? nullptr : data.data();
+		callHandle = SteamAPI_ISteamRemoteStorage_FileWriteAsync(instancePtr, file, buffer, (uint32)data.size());
+		if (callHandle != k_uAPICallInvalid) {
+			callResult.Set(callHandle, this, &MaxRemoteStorageWriteRequest::OnComplete);
+		}
+		return callHandle;
+	}
+
+	void OnComplete(RemoteStorageFileWriteAsyncComplete_t * result, bool failure) {
+		steam_steamsdk_TSteamRemoteStorage__OnFileWriteAsyncComplete(maxHandle, callHandle, result->m_eResult, failure);
+		delete this;
+	}
+};
+
+class MaxRemoteStorageReadRequest
+{
+private:
+	ISteamRemoteStorage * instancePtr;
+	BBObject * maxHandle;
+	SteamAPICall_t callHandle;
+	CCallResult<MaxRemoteStorageReadRequest, RemoteStorageFileReadAsyncComplete_t> callResult;
+public:
+	MaxRemoteStorageReadRequest(ISteamRemoteStorage * instancePtr, BBObject * maxHandle) :
+		instancePtr(instancePtr), maxHandle(maxHandle), callHandle(k_uAPICallInvalid) {
+		BBRETAIN(maxHandle);
+		g_remoteStorageReadRequests.push_back(this);
+	}
+
+	~MaxRemoteStorageReadRequest() {
+		g_remoteStorageReadRequests.erase(std::remove(g_remoteStorageReadRequests.begin(), g_remoteStorageReadRequests.end(), this), g_remoteStorageReadRequests.end());
+		BBRELEASE(maxHandle);
+	}
+
+	SteamAPICall_t Start(const char * file, uint32 offset, uint32 bytesToRead) {
+		callHandle = SteamAPI_ISteamRemoteStorage_FileReadAsync(instancePtr, file, offset, bytesToRead);
+		if (callHandle != k_uAPICallInvalid) {
+			callResult.Set(callHandle, this, &MaxRemoteStorageReadRequest::OnComplete);
+		}
+		return callHandle;
+	}
+
+	void OnComplete(RemoteStorageFileReadAsyncComplete_t * result, bool failure) {
+		steam_steamsdk_TSteamRemoteStorage__OnFileReadAsyncComplete(maxHandle, callHandle, result->m_eResult, result->m_nOffset, result->m_cubRead, failure);
+		delete this;
+	}
+};
+
+class MaxRemoteStorage
+{
+private:
+	ISteamRemoteStorage * instancePtr;
+	BBObject * maxHandle;
+public:
+	STEAM_CALLBACK(MaxRemoteStorage, OnLocalFileChange, RemoteStorageLocalFileChange_t, m_CallbackLocalFileChange);
+
+	MaxRemoteStorage(ISteamRemoteStorage * instancePtr, BBObject * handle) : instancePtr(instancePtr), maxHandle(handle),
+		m_CallbackLocalFileChange(this, &MaxRemoteStorage::OnLocalFileChange) {}
+
+	SteamAPICall_t FileWriteAsync(const char * file, const void * data, uint32 size) {
+		MaxRemoteStorageWriteRequest * request = new MaxRemoteStorageWriteRequest(instancePtr, maxHandle, data, size);
+		SteamAPICall_t call = request->Start(file);
+		if (call == k_uAPICallInvalid) {
+			delete request;
+		}
+		return call;
+	}
+
+	SteamAPICall_t FileReadAsync(const char * file, uint32 offset, uint32 bytesToRead) {
+		MaxRemoteStorageReadRequest * request = new MaxRemoteStorageReadRequest(instancePtr, maxHandle);
+		SteamAPICall_t call = request->Start(file, offset, bytesToRead);
+		if (call == k_uAPICallInvalid) {
+			delete request;
+		}
+		return call;
+	}
+};
+
+void MaxRemoteStorage::OnLocalFileChange(RemoteStorageLocalFileChange_t *) {
+	steam_steamsdk_TSteamRemoteStorage__OnLocalFileChange(maxHandle);
+}
+
+static void CancelRemoteStorageRequests() {
+	while (!g_remoteStorageWriteRequests.empty()) {
+		delete g_remoteStorageWriteRequests.back();
+	}
+	while (!g_remoteStorageReadRequests.empty()) {
+		delete g_remoteStorageReadRequests.back();
+	}
+}
+
+void * bmx_steamsdk_register_steamremotestorage(ISteamRemoteStorage* instancePtr, BBObject * obj) {
+	return new MaxRemoteStorage(instancePtr, obj);
+}
+
+void bmx_steamsdk_unregister_steamremotestorage(void * callbackPtr) {
+	delete static_cast<MaxRemoteStorage*>(callbackPtr);
+}
+
+int bmx_SteamAPI_ISteamRemoteStorage_FileWrite(ISteamRemoteStorage* instancePtr, BBString * file, const void * data, int size) {
+	char * name = (char*)bbStringToUTF8String(file);
+	bool result = SteamAPI_ISteamRemoteStorage_FileWrite(instancePtr, name, data, size);
+	bbMemFree(name);
+	return result;
+}
+
+int bmx_SteamAPI_ISteamRemoteStorage_FileRead(ISteamRemoteStorage* instancePtr, BBString * file, void * data, int capacity) {
+	char * name = (char*)bbStringToUTF8String(file);
+	int result = SteamAPI_ISteamRemoteStorage_FileRead(instancePtr, name, data, capacity);
+	bbMemFree(name);
+	return result;
+}
+
+uint64 bmx_SteamAPI_ISteamRemoteStorage_FileWriteAsync(MaxRemoteStorage * storage, BBString * file, const void * data, uint32 size) {
+	char * name = (char*)bbStringToUTF8String(file);
+	uint64 result = storage->FileWriteAsync(name, data, size);
+	bbMemFree(name);
+	return result;
+}
+
+uint64 bmx_SteamAPI_ISteamRemoteStorage_FileReadAsync(MaxRemoteStorage * storage, BBString * file, uint32 offset, uint32 bytesToRead) {
+	char * name = (char*)bbStringToUTF8String(file);
+	uint64 result = storage->FileReadAsync(name, offset, bytesToRead);
+	bbMemFree(name);
+	return result;
+}
+
+int bmx_SteamAPI_ISteamRemoteStorage_FileReadAsyncComplete(ISteamRemoteStorage* instancePtr, uint64 readCall, void * data, uint32 bytesToRead) {
+	return SteamAPI_ISteamRemoteStorage_FileReadAsyncComplete(instancePtr, readCall, data, bytesToRead);
+}
+
+int bmx_SteamAPI_ISteamRemoteStorage_FileForget(ISteamRemoteStorage* instancePtr, BBString * file) {
+	char * name = (char*)bbStringToUTF8String(file);
+	bool result = SteamAPI_ISteamRemoteStorage_FileForget(instancePtr, name);
+	bbMemFree(name);
+	return result;
+}
+
+int bmx_SteamAPI_ISteamRemoteStorage_FileDelete(ISteamRemoteStorage* instancePtr, BBString * file) {
+	char * name = (char*)bbStringToUTF8String(file);
+	bool result = SteamAPI_ISteamRemoteStorage_FileDelete(instancePtr, name);
+	bbMemFree(name);
+	return result;
+}
+
+int bmx_SteamAPI_ISteamRemoteStorage_SetSyncPlatforms(ISteamRemoteStorage* instancePtr, BBString * file, ERemoteStoragePlatform platforms) {
+	char * name = (char*)bbStringToUTF8String(file);
+	bool result = SteamAPI_ISteamRemoteStorage_SetSyncPlatforms(instancePtr, name, platforms);
+	bbMemFree(name);
+	return result;
+}
+
+uint64 bmx_SteamAPI_ISteamRemoteStorage_FileWriteStreamOpen(ISteamRemoteStorage* instancePtr, BBString * file) {
+	char * name = (char*)bbStringToUTF8String(file);
+	uint64 result = SteamAPI_ISteamRemoteStorage_FileWriteStreamOpen(instancePtr, name);
+	bbMemFree(name);
+	return result;
+}
+
+int bmx_SteamAPI_ISteamRemoteStorage_FileWriteStreamWriteChunk(ISteamRemoteStorage* instancePtr, uint64 streamHandle, const void * data, int size) {
+	return SteamAPI_ISteamRemoteStorage_FileWriteStreamWriteChunk(instancePtr, streamHandle, data, size);
+}
+
+int bmx_SteamAPI_ISteamRemoteStorage_FileWriteStreamClose(ISteamRemoteStorage* instancePtr, uint64 streamHandle) {
+	return SteamAPI_ISteamRemoteStorage_FileWriteStreamClose(instancePtr, streamHandle);
+}
+
+int bmx_SteamAPI_ISteamRemoteStorage_FileWriteStreamCancel(ISteamRemoteStorage* instancePtr, uint64 streamHandle) {
+	return SteamAPI_ISteamRemoteStorage_FileWriteStreamCancel(instancePtr, streamHandle);
+}
+
+int bmx_SteamAPI_ISteamRemoteStorage_FileExists(ISteamRemoteStorage* instancePtr, BBString * file) {
+	char * name = (char*)bbStringToUTF8String(file);
+	bool result = SteamAPI_ISteamRemoteStorage_FileExists(instancePtr, name);
+	bbMemFree(name);
+	return result;
+}
+
+int bmx_SteamAPI_ISteamRemoteStorage_FilePersisted(ISteamRemoteStorage* instancePtr, BBString * file) {
+	char * name = (char*)bbStringToUTF8String(file);
+	bool result = SteamAPI_ISteamRemoteStorage_FilePersisted(instancePtr, name);
+	bbMemFree(name);
+	return result;
+}
+
+int bmx_SteamAPI_ISteamRemoteStorage_GetFileSize(ISteamRemoteStorage* instancePtr, BBString * file) {
+	char * name = (char*)bbStringToUTF8String(file);
+	int result = SteamAPI_ISteamRemoteStorage_GetFileSize(instancePtr, name);
+	bbMemFree(name);
+	return result;
+}
+
+int64 bmx_SteamAPI_ISteamRemoteStorage_GetFileTimestamp(ISteamRemoteStorage* instancePtr, BBString * file) {
+	char * name = (char*)bbStringToUTF8String(file);
+	int64 result = SteamAPI_ISteamRemoteStorage_GetFileTimestamp(instancePtr, name);
+	bbMemFree(name);
+	return result;
+}
+
+ERemoteStoragePlatform bmx_SteamAPI_ISteamRemoteStorage_GetSyncPlatforms(ISteamRemoteStorage* instancePtr, BBString * file) {
+	char * name = (char*)bbStringToUTF8String(file);
+	ERemoteStoragePlatform result = SteamAPI_ISteamRemoteStorage_GetSyncPlatforms(instancePtr, name);
+	bbMemFree(name);
+	return result;
+}
+
+int bmx_SteamAPI_ISteamRemoteStorage_GetFileCount(ISteamRemoteStorage* instancePtr) {
+	return SteamAPI_ISteamRemoteStorage_GetFileCount(instancePtr);
+}
+
+BBString * bmx_SteamAPI_ISteamRemoteStorage_GetFileNameAndSize(ISteamRemoteStorage* instancePtr, int index, int * size) {
+	const char * name = SteamAPI_ISteamRemoteStorage_GetFileNameAndSize(instancePtr, index, size);
+	return name ? bbStringFromUTF8String((unsigned char*)name) : &bbEmptyString;
+}
+
+int bmx_SteamAPI_ISteamRemoteStorage_GetQuota(ISteamRemoteStorage* instancePtr, uint64 * totalBytes, uint64 * availableBytes) {
+	return SteamAPI_ISteamRemoteStorage_GetQuota(instancePtr, totalBytes, availableBytes);
+}
+
+int bmx_SteamAPI_ISteamRemoteStorage_IsCloudEnabledForAccount(ISteamRemoteStorage* instancePtr) {
+	return SteamAPI_ISteamRemoteStorage_IsCloudEnabledForAccount(instancePtr);
+}
+
+int bmx_SteamAPI_ISteamRemoteStorage_IsCloudEnabledForApp(ISteamRemoteStorage* instancePtr) {
+	return SteamAPI_ISteamRemoteStorage_IsCloudEnabledForApp(instancePtr);
+}
+
+void bmx_SteamAPI_ISteamRemoteStorage_SetCloudEnabledForApp(ISteamRemoteStorage* instancePtr, int enabled) {
+	SteamAPI_ISteamRemoteStorage_SetCloudEnabledForApp(instancePtr, enabled);
+}
+
+int bmx_SteamAPI_ISteamRemoteStorage_GetLocalFileChangeCount(ISteamRemoteStorage* instancePtr) {
+	return SteamAPI_ISteamRemoteStorage_GetLocalFileChangeCount(instancePtr);
+}
+
+BBString * bmx_SteamAPI_ISteamRemoteStorage_GetLocalFileChange(ISteamRemoteStorage* instancePtr, int index, ERemoteStorageLocalFileChange * changeType, ERemoteStorageFilePathType * pathType) {
+	const char * path = SteamAPI_ISteamRemoteStorage_GetLocalFileChange(instancePtr, index, changeType, pathType);
+	return path ? bbStringFromUTF8String((unsigned char*)path) : &bbEmptyString;
+}
+
+int bmx_SteamAPI_ISteamRemoteStorage_BeginFileWriteBatch(ISteamRemoteStorage* instancePtr) {
+	return SteamAPI_ISteamRemoteStorage_BeginFileWriteBatch(instancePtr);
+}
+
+int bmx_SteamAPI_ISteamRemoteStorage_EndFileWriteBatch(ISteamRemoteStorage* instancePtr) {
+	return SteamAPI_ISteamRemoteStorage_EndFileWriteBatch(instancePtr);
 }
 
 BBString * bmx_SteamAPI_ISteamApps_GetLaunchCommandLine(ISteamApps* instancePtr) {

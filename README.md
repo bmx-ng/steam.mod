@@ -4,7 +4,8 @@ Steamworks SDK support for BlitzMax NG.
 
 `Steam.SteamSDK` currently wraps utilities, users and identity, achievements
 and leaderboards, Workshop/UGC, friends and overlays, matchmaking lobbies, and
-Steam Networking Messages.
+Steam Networking Messages. Direct Steam Cloud file access is available through
+`TSteamRemoteStorage`.
 
 The currently wrapped interface families now include their contemporary public
 feature APIs from the bundled Steamworks SDK. See [API_COVERAGE.md](API_COVERAGE.md)
@@ -20,3 +21,7 @@ Lobby applications use `TSteamMatchmaking` and an
 `ISteamMatchmakingListener`. `TSteamNetworkingMessages` provides reliable and
 unreliable peer messages addressed by 64-bit Steam IDs. Received messages are
 copied into a caller-owned buffer and released inside the wrapper.
+
+Cloud-enabled applications can use `TSteamRemoteStorage` for saves and settings.
+Related multi-file updates should be enclosed by `BeginFileWriteBatch` and
+`EndFileWriteBatch` so Steam treats them as one logical state change.

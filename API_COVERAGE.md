@@ -3,6 +3,11 @@
 This module wraps selected Steamworks interface families rather than presenting
 the entire SDK as one undifferentiated API. The list below describes the bundled
 Steamworks SDK (1.53a); a future SDK update may add more methods or interfaces.
+The native bridge obtains interfaces using the version macros from the bundled
+SDK headers, rather than duplicating those strings in bridge calls. The public
+constants mirror those header versions for reference. When the SDK is updated,
+the affected interfaces still need review because Steam interfaces are
+versioned ABI contracts.
 
 ## Covered interface families
 
@@ -22,6 +27,12 @@ Steamworks SDK (1.53a); a future SDK update may add more methods or interfaces.
   acceptance and closure, failure callbacks, and connection diagnostics. The
   wrapper's `ReceiveMessage` consumes one native message safely rather than
   exposing Steam-owned message pointers.
+- `ISteamRemoteStorage`: synchronous and asynchronous Steam Cloud reads and
+  writes, streamed writes, file enumeration and metadata, quota and enablement
+  state, platform sync selection, synchronized-change inspection, and related
+  write batching. Asynchronous writes retain their own data and concurrent
+  operations have independent call-result ownership. Legacy Workshop calls are
+  omitted in favour of `ISteamUGC`.
 - `ISteamUserStats`: achievements, local and remote stats, global stats,
   leaderboards, downloaded entries, progress limits, attached UGC, and callbacks.
 - `ISteamUtils`: application/platform information, images, overlay and text
@@ -39,7 +50,6 @@ Steamworks SDK (1.53a); a future SDK update may add more methods or interfaces.
 These are complete service areas, not accidental holes in the interfaces above:
 
 - Steam Input and the deprecated Steam Controller interface
-- Remote Storage / Steam Cloud
 - Inventory
 - HTTP
 - Networking Sockets and Networking Utils
