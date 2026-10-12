@@ -23,11 +23,14 @@ bbdoc: Steam SDK
 End Rem
 Module Steam.SteamSDK
 
-ModuleInfo "Version: 1.09"
+ModuleInfo "Version: 1.10"
 ModuleInfo "License: zlib/libpng"
 ModuleInfo "Copyright: Steam SDK - Valve Corporation"
 ModuleInfo "Copyright: Wrapper - 2019-2026 Bruce A Henderson"
 
+ModuleInfo "History: 1.10"
+ModuleInfo "History: Updated to Steamworks SDK 1.65."
+ModuleInfo "History: Added Timeline, DualSense trigger effects, web API tickets, profile items, and new Apps, Utils, and UGC APIs."
 ModuleInfo "History: 1.09"
 ModuleInfo "History: Added Steam Input actions, devices, glyphs, motion, feedback, and callbacks."
 ModuleInfo "History: 1.08"
@@ -62,6 +65,9 @@ ModuleInfo "LD_OPTS: -L%PWD%/sdk/redistributable_bin/linux32"
 ModuleInfo "LD_OPTS: -Wl,-rpath,'$ORIGIN'"
 ?linuxx64
 ModuleInfo "LD_OPTS: -L%PWD%/sdk/redistributable_bin/linux64"
+ModuleInfo "LD_OPTS: -Wl,-rpath,'$ORIGIN'"
+?linuxarm64
+ModuleInfo "LD_OPTS: -L%PWD%/sdk/redistributable_bin/linuxarm64"
 ModuleInfo "LD_OPTS: -Wl,-rpath,'$ORIGIN'"
 ?macosx64
 ModuleInfo "LD_OPTS: -L%PWD%/sdk/redistributable_bin/osx"
@@ -189,6 +195,7 @@ End Rem
 Interface ISteamUserListener
 	Method OnValidateAuthTicket(steamID:ULong, response:EAuthSessionResponse, ownerSteamID:ULong)
 	Method OnGetAuthSessionTicket(authTicket:UInt, result:EResult)
+	Method OnGetTicketForWebApi(authTicket:UInt, result:EResult, ticket:Byte Ptr, ticketSize:Int)
 	Method OnEncryptedAppTicket(result:EResult, ioFailure:Int)
 	Method OnStoreAuthURL(url:String, ioFailure:Int)
 	Method OnMarketEligibility(allowed:Int, reason:EMarketNotAllowedReasonFlags, allowedAtTime:UInt, steamGuardRequiredDays:Int, newDeviceCooldown:Int, ioFailure:Int)
@@ -196,7 +203,7 @@ Interface ISteamUserListener
 End Interface
 
 Type TSteamUser Extends TSteamAPI
-	Const STEAMUSER_INTERFACE_VERSION:String = "SteamUser021"
+	Const STEAMUSER_INTERFACE_VERSION:String = "SteamUser023"
 	Field listener:ISteamUserListener
 
 	Function _create:TSteamUser(instancePtr:Byte Ptr)
@@ -286,6 +293,14 @@ Type TSteamUser Extends TSteamAPI
 	End Rem
 	Method GetAuthSessionTicket:UInt(ticket:Byte Ptr, capacity:Int, ticketSize:UInt Var)
 		Return bmx_SteamAPI_ISteamUser_GetAuthSessionTicket(instancePtr, ticket, capacity, ticketSize)
+	End Method
+
+	Rem
+	bbdoc: Requests an authentication ticket for the AuthenticateUserTicket Web API.
+	about: The ticket bytes delivered to #ISteamUserListener are valid only during the callback and should be copied before returning.
+	End Rem
+	Method GetAuthTicketForWebApi:UInt(identity:String = "")
+		Return bmx_SteamAPI_ISteamUser_GetAuthTicketForWebApi(instancePtr, identity)
 	End Method
 	Rem
 	bbdoc: Begins validating a remote user's authentication ticket.
@@ -414,6 +429,12 @@ Type TSteamUser Extends TSteamAPI
 	Function _OnGetAuthSessionTicket(inst:TSteamUser, authTicket:UInt, result:EResult) { nomangle }
 		inst.OnGetAuthSessionTicket(authTicket, result)
 	End Function
+	Method OnGetTicketForWebApi(authTicket:UInt, result:EResult, ticket:Byte Ptr, ticketSize:Int)
+		If listener Then listener.OnGetTicketForWebApi(authTicket, result, ticket, ticketSize)
+	End Method
+	Function _OnGetTicketForWebApi(inst:TSteamUser, authTicket:UInt, result:EResult, ticket:Byte Ptr, ticketSize:Int) { nomangle }
+		inst.OnGetTicketForWebApi(authTicket, result, ticket, ticketSize)
+	End Function
 	Method OnEncryptedAppTicket(result:EResult, ioFailure:Int)
 		If listener Then listener.OnEncryptedAppTicket(result, ioFailure)
 	End Method
@@ -452,7 +473,7 @@ Interface ISteamAppsListener
 End Interface
 
 Type TSteamApps Extends TSteamAPI
-	Const STEAMAPPS_INTERFACE_VERSION:String = "STEAMAPPS_INTERFACE_VERSION008"
+	Const STEAMAPPS_INTERFACE_VERSION:String = "STEAMAPPS_INTERFACE_VERSION009"
 	Field listener:ISteamAppsListener
 
 	Function _create:TSteamApps(instancePtr:Byte Ptr)
@@ -650,6 +671,48 @@ Type TSteamApps Extends TSteamAPI
 	End Rem
 	Method GetLaunchCommandLine:String()
 		Return bmx_SteamAPI_ISteamApps_GetLaunchCommandLine(instancePtr)
+	End Method
+
+	Rem
+	bbdoc: Selects the DLC context currently being played, or zero to clear it.
+	End Rem
+	Method SetDlcContext:Int(appID:UInt)
+		Return bmx_SteamAPI_ISteamApps_SetDlcContext(instancePtr, appID)
+	End Method
+
+	Rem
+	bbdoc: Returns the number of known beta branches and writes availability counts.
+	End Rem
+	Method GetNumBetas:Int(available:Int Var, privateBetas:Int Var)
+		Return bmx_SteamAPI_ISteamApps_GetNumBetas(instancePtr, available, privateBetas)
+	End Method
+
+	Rem
+	bbdoc: Retrieves details for a beta branch by index.
+	End Rem
+	Method GetBetaInfo:Int(index:Int, flags:UInt Var, buildID:UInt Var, name:String Var, description:String Var, lastUpdated:UInt Var)
+		Return bmx_SteamAPI_ISteamApps_GetBetaInfo(instancePtr, index, flags, buildID, name, description, lastUpdated)
+	End Method
+
+	Rem
+	bbdoc: Selects the active beta branch. Pass an empty name for the public branch.
+	End Rem
+	Method SetActiveBeta:Int(name:String)
+		Return bmx_SteamAPI_ISteamApps_SetActiveBeta(instancePtr, name)
+	End Method
+
+	Rem
+	bbdoc: Reports the performance preset selected by the game.
+	End Rem
+	Method SetGamePerformanceSetting(setting:EGamePerformanceSetting)
+		bmx_SteamAPI_ISteamApps_SetGamePerformanceSetting(instancePtr, setting)
+	End Method
+
+	Rem
+	bbdoc: Reports the current game render resolution to Steam.
+	End Rem
+	Method SetGameRenderResolution(width:UInt, height:UInt)
+		bmx_SteamAPI_ISteamApps_SetGameRenderResolution(instancePtr, width, height)
 	End Method
 
 	Method OnDlcInstalled(appID:UInt)
@@ -1175,7 +1238,7 @@ bbdoc: Provides action-based controller input through Steam Input.
 about: Call #Init before reading devices and #Shutdown when finished. Games normally define action sets and actions in a Steam Input action manifest, cache their handles at startup, then read action data each frame. The data structures are unmanaged values and can be reused without per-frame allocation.
 End Rem
 Type TSteamInput Extends TSteamAPI
-	Const STEAMINPUT_INTERFACE_VERSION:String = "SteamInput006"
+	Const STEAMINPUT_INTERFACE_VERSION:String = "SteamInput007"
 
 	Field listener:ISteamInputListener
 
@@ -1516,6 +1579,61 @@ Type TSteamInput Extends TSteamAPI
 		Return bmx_SteamAPI_ISteamInput_GetSessionInputConfigurationSettings(instancePtr)
 	End Method
 
+	Rem
+	bbdoc: Stops the adaptive-trigger effect on one or both DualSense triggers.
+	End Rem
+	Method SetDualSenseTriggerOff:Int(inputHandle:ULong, trigger:EDualSenseTrigger)
+		Return bmx_SteamAPI_ISteamInput_SetDualSenseTriggerEffect(instancePtr, inputHandle, trigger, EDualSenseTriggerEffectMode.k_EDualSenseTriggerEffectMode_Off, 0, 0, 0, 0, Null, 0)
+	End Method
+
+	Rem
+	bbdoc: Applies constant resistance to one or both DualSense triggers.
+	about: @position is 0 through 9 and @strength is 0 through 8.
+	End Rem
+	Method SetDualSenseTriggerFeedback:Int(inputHandle:ULong, trigger:EDualSenseTrigger, position:Int, strength:Int)
+		Return bmx_SteamAPI_ISteamInput_SetDualSenseTriggerEffect(instancePtr, inputHandle, trigger, EDualSenseTriggerEffectMode.k_EDualSenseTriggerEffectMode_Feedback, position, strength, 0, 0, Null, 0)
+	End Method
+
+	Rem
+	bbdoc: Configures one or both DualSense triggers to emulate a weapon trigger.
+	about: @startPosition is 2 through 7, @endPosition is greater than @startPosition and at most 8, and @strength is 0 through 8.
+	End Rem
+	Method SetDualSenseTriggerWeapon:Int(inputHandle:ULong, trigger:EDualSenseTrigger, startPosition:Int, endPosition:Int, strength:Int)
+		Return bmx_SteamAPI_ISteamInput_SetDualSenseTriggerEffect(instancePtr, inputHandle, trigger, EDualSenseTriggerEffectMode.k_EDualSenseTriggerEffectMode_Weapon, startPosition, endPosition, strength, 0, Null, 0)
+	End Method
+
+	Rem
+	bbdoc: Vibrates one or both DualSense triggers from a control position.
+	about: @position is 0 through 9, @amplitude is 0 through 8, and @frequency is 0 through 255 Hz.
+	End Rem
+	Method SetDualSenseTriggerVibration:Int(inputHandle:ULong, trigger:EDualSenseTrigger, position:Int, amplitude:Int, frequency:Int)
+		Return bmx_SteamAPI_ISteamInput_SetDualSenseTriggerEffect(instancePtr, inputHandle, trigger, EDualSenseTriggerEffectMode.k_EDualSenseTriggerEffectMode_Vibration, position, amplitude, frequency, 0, Null, 0)
+	End Method
+
+	Rem
+	bbdoc: Sets resistance independently at the ten DualSense trigger control positions.
+	about: @strengths must point to at least ten bytes, each containing a strength from 0 through 8.
+	End Rem
+	Method SetDualSenseTriggerMultiplePositionFeedback:Int(inputHandle:ULong, trigger:EDualSenseTrigger, strengths:Byte Ptr, count:Int = 10)
+		Return bmx_SteamAPI_ISteamInput_SetDualSenseTriggerEffect(instancePtr, inputHandle, trigger, EDualSenseTriggerEffectMode.k_EDualSenseTriggerEffectMode_MultiplePositionFeedback, 0, 0, 0, 0, strengths, count)
+	End Method
+
+	Rem
+	bbdoc: Applies a changing resistance between two DualSense trigger positions.
+	about: Positions are 0 through 9 and strengths are 1 through 8.
+	End Rem
+	Method SetDualSenseTriggerSlopeFeedback:Int(inputHandle:ULong, trigger:EDualSenseTrigger, startPosition:Int, endPosition:Int, startStrength:Int, endStrength:Int)
+		Return bmx_SteamAPI_ISteamInput_SetDualSenseTriggerEffect(instancePtr, inputHandle, trigger, EDualSenseTriggerEffectMode.k_EDualSenseTriggerEffectMode_SlopeFeedback, startPosition, endPosition, startStrength, endStrength, Null, 0)
+	End Method
+
+	Rem
+	bbdoc: Sets vibration amplitude independently at the ten DualSense trigger control positions.
+	about: @amplitudes must point to at least ten bytes containing values from 0 through 8. @frequency is 0 through 255 Hz.
+	End Rem
+	Method SetDualSenseTriggerMultiplePositionVibration:Int(inputHandle:ULong, trigger:EDualSenseTrigger, frequency:Int, amplitudes:Byte Ptr, count:Int = 10)
+		Return bmx_SteamAPI_ISteamInput_SetDualSenseTriggerEffect(instancePtr, inputHandle, trigger, EDualSenseTriggerEffectMode.k_EDualSenseTriggerEffectMode_MultiplePositionVibration, frequency, 0, 0, 0, amplitudes, count)
+	End Method
+
 	Private
 	Method OnDeviceConnected(inputHandle:ULong)
 		If listener Then listener.OnSteamInputDeviceConnected(inputHandle)
@@ -1569,6 +1687,198 @@ Type TSteamInput Extends TSteamAPI
 
 	Function _OnAnalogAction(inst:TSteamInput, inputHandle:ULong, actionHandle:ULong, mode:EInputSourceMode, x:Float, y:Float, active:Int) { nomangle }
 		inst.OnAnalogAction(inputHandle, actionHandle, mode, x, y, active)
+	End Function
+End Type
+
+Const STEAM_TIMELINE_MAX_PRIORITY:UInt = 1000
+Const STEAM_TIMELINE_KEEP_CURRENT_PRIORITY:UInt = 1000000
+Const STEAM_TIMELINE_MAX_EVENT_DURATION:Float = 600.0
+
+Rem
+bbdoc: Receives asynchronous Steam Timeline recording queries.
+End Rem
+Interface ISteamTimelineListener
+	Rem
+	bbdoc: Reports whether a recording exists for a timeline event.
+	End Rem
+	Method OnTimelineEventRecordingExists(eventHandle:ULong, recordingExists:Int, ioFailure:Int)
+	Rem
+	bbdoc: Reports recording and clip information for a game phase.
+	End Rem
+	Method OnTimelineGamePhaseRecordingExists(phaseID:String, recordingMS:ULong, longestClipMS:ULong, clipCount:UInt, screenshotCount:UInt, ioFailure:Int)
+End Interface
+
+Rem
+bbdoc: Adds game state, events, phases, and navigation to Steam Timeline.
+about: Titles, descriptions, tags, and attributes should already be localized for the language returned by Steam. Timeline event handles are valid only for the current game process.
+End Rem
+Type TSteamTimeline Extends TSteamAPI
+	Const STEAMTIMELINE_INTERFACE_VERSION:String = "STEAMTIMELINE_INTERFACE_V004"
+
+	Field listener:ISteamTimelineListener
+
+	Function _create:TSteamTimeline(instancePtr:Byte Ptr)
+		If Not instancePtr Then Return Null
+		Local this:TSteamTimeline = New TSteamTimeline
+		this.instancePtr = instancePtr
+		this.callbackPtr = bmx_steamsdk_register_steamtimeline(instancePtr, this)
+		Return this
+	End Function
+
+	Method Delete()
+		If callbackPtr Then bmx_steamsdk_unregister_steamtimeline(callbackPtr)
+		callbackPtr = Null
+	End Method
+
+	Rem
+	bbdoc: Sets the listener that receives recording-query results.
+	End Rem
+	Method SetListener(listener:ISteamTimelineListener)
+		Self.listener = listener
+	End Method
+
+	Rem
+	bbdoc: Describes the current game state at the supplied time offset.
+	End Rem
+	Method SetTimelineTooltip(description:String, timeDelta:Float = 0.0)
+		bmx_SteamAPI_ISteamTimeline_SetTimelineTooltip(instancePtr, description, timeDelta)
+	End Method
+
+	Rem
+	bbdoc: Clears the timeline tooltip at the supplied time offset.
+	End Rem
+	Method ClearTimelineTooltip(timeDelta:Float = 0.0)
+		bmx_SteamAPI_ISteamTimeline_ClearTimelineTooltip(instancePtr, timeDelta)
+	End Method
+
+	Rem
+	bbdoc: Selects the current game mode used to colour the timeline bar.
+	End Rem
+	Method SetTimelineGameMode(mode:ETimelineGameMode)
+		bmx_SteamAPI_ISteamTimeline_SetTimelineGameMode(instancePtr, mode)
+	End Method
+
+	Rem
+	bbdoc: Adds a point event and returns its process-local handle.
+	End Rem
+	Method AddInstantaneousTimelineEvent:ULong(title:String, description:String, icon:String, iconPriority:UInt, startOffsetSeconds:Float = 0.0, clipPriority:ETimelineEventClipPriority = ETimelineEventClipPriority.k_ETimelineEventClipPriority_None)
+		Return bmx_SteamAPI_ISteamTimeline_AddInstantaneousTimelineEvent(instancePtr, title, description, icon, iconPriority, startOffsetSeconds, clipPriority)
+	End Method
+
+	Rem
+	bbdoc: Adds a completed range event and returns its process-local handle.
+	End Rem
+	Method AddRangeTimelineEvent:ULong(title:String, description:String, icon:String, iconPriority:UInt, startOffsetSeconds:Float = 0.0, duration:Float = 0.0, clipPriority:ETimelineEventClipPriority = ETimelineEventClipPriority.k_ETimelineEventClipPriority_None)
+		Return bmx_SteamAPI_ISteamTimeline_AddRangeTimelineEvent(instancePtr, title, description, icon, iconPriority, startOffsetSeconds, duration, clipPriority)
+	End Method
+
+	Rem
+	bbdoc: Starts an open range event that must later be ended with #EndRangeTimelineEvent.
+	End Rem
+	Method StartRangeTimelineEvent:ULong(title:String, description:String, icon:String, priority:UInt, startOffsetSeconds:Float = 0.0, clipPriority:ETimelineEventClipPriority = ETimelineEventClipPriority.k_ETimelineEventClipPriority_None)
+		Return bmx_SteamAPI_ISteamTimeline_StartRangeTimelineEvent(instancePtr, title, description, icon, priority, startOffsetSeconds, clipPriority)
+	End Method
+
+	Rem
+	bbdoc: Updates an open range event.
+	about: Use #STEAM_TIMELINE_KEEP_CURRENT_PRIORITY to retain its current priority.
+	End Rem
+	Method UpdateRangeTimelineEvent(eventHandle:ULong, title:String, description:String, icon:String, priority:UInt = STEAM_TIMELINE_KEEP_CURRENT_PRIORITY, clipPriority:ETimelineEventClipPriority = ETimelineEventClipPriority.k_ETimelineEventClipPriority_None)
+		bmx_SteamAPI_ISteamTimeline_UpdateRangeTimelineEvent(instancePtr, eventHandle, title, description, icon, priority, clipPriority)
+	End Method
+
+	Rem
+	bbdoc: Ends an open range event and makes it visible in Steam Timeline.
+	End Rem
+	Method EndRangeTimelineEvent(eventHandle:ULong, endOffsetSeconds:Float = 0.0)
+		bmx_SteamAPI_ISteamTimeline_EndRangeTimelineEvent(instancePtr, eventHandle, endOffsetSeconds)
+	End Method
+
+	Rem
+	bbdoc: Removes a timeline event created by this game process.
+	End Rem
+	Method RemoveTimelineEvent(eventHandle:ULong)
+		bmx_SteamAPI_ISteamTimeline_RemoveTimelineEvent(instancePtr, eventHandle)
+	End Method
+
+	Rem
+	bbdoc: Asynchronously asks whether a background recording contains this event.
+	End Rem
+	Method DoesEventRecordingExist:ULong(eventHandle:ULong)
+		Return bmx_SteamAPI_ISteamTimeline_DoesEventRecordingExist(callbackPtr, eventHandle)
+	End Method
+
+	Rem
+	bbdoc: Starts a new game phase, ending any current phase.
+	End Rem
+	Method StartGamePhase()
+		bmx_SteamAPI_ISteamTimeline_StartGamePhase(instancePtr)
+	End Method
+
+	Rem
+	bbdoc: Ends the current game phase.
+	End Rem
+	Method EndGamePhase()
+		bmx_SteamAPI_ISteamTimeline_EndGamePhase(instancePtr)
+	End Method
+
+	Rem
+	bbdoc: Assigns a persistent identifier to the current game phase.
+	End Rem
+	Method SetGamePhaseID(phaseID:String)
+		bmx_SteamAPI_ISteamTimeline_SetGamePhaseID(instancePtr, phaseID)
+	End Method
+
+	Rem
+	bbdoc: Asynchronously asks whether a background recording contains a phase.
+	End Rem
+	Method DoesGamePhaseRecordingExist:ULong(phaseID:String)
+		Return bmx_SteamAPI_ISteamTimeline_DoesGamePhaseRecordingExist(callbackPtr, phaseID)
+	End Method
+
+	Rem
+	bbdoc: Adds a localized tag to the current game phase.
+	End Rem
+	Method AddGamePhaseTag(tagName:String, tagIcon:String, tagGroup:String, priority:UInt)
+		bmx_SteamAPI_ISteamTimeline_AddGamePhaseTag(instancePtr, tagName, tagIcon, tagGroup, priority)
+	End Method
+
+	Rem
+	bbdoc: Sets or replaces a localized text attribute on the current game phase.
+	End Rem
+	Method SetGamePhaseAttribute(attributeGroup:String, attributeValue:String, priority:UInt)
+		bmx_SteamAPI_ISteamTimeline_SetGamePhaseAttribute(instancePtr, attributeGroup, attributeValue, priority)
+	End Method
+
+	Rem
+	bbdoc: Opens the Steam overlay at a previously identified game phase.
+	End Rem
+	Method OpenOverlayToGamePhase(phaseID:String)
+		bmx_SteamAPI_ISteamTimeline_OpenOverlayToGamePhase(instancePtr, phaseID)
+	End Method
+
+	Rem
+	bbdoc: Opens the Steam overlay at a timeline event.
+	End Rem
+	Method OpenOverlayToTimelineEvent(eventHandle:ULong)
+		bmx_SteamAPI_ISteamTimeline_OpenOverlayToTimelineEvent(instancePtr, eventHandle)
+	End Method
+
+	Private
+	Method OnEventRecordingExists(eventHandle:ULong, recordingExists:Int, ioFailure:Int)
+		If listener Then listener.OnTimelineEventRecordingExists(eventHandle, recordingExists, ioFailure)
+	End Method
+
+	Method OnGamePhaseRecordingExists(phaseID:String, recordingMS:ULong, longestClipMS:ULong, clipCount:UInt, screenshotCount:UInt, ioFailure:Int)
+		If listener Then listener.OnTimelineGamePhaseRecordingExists(phaseID, recordingMS, longestClipMS, clipCount, screenshotCount, ioFailure)
+	End Method
+
+	Function _OnEventRecordingExists(inst:TSteamTimeline, eventHandle:ULong, recordingExists:Int, ioFailure:Int) { nomangle }
+		inst.OnEventRecordingExists(eventHandle, recordingExists, ioFailure)
+	End Function
+
+	Function _OnGamePhaseRecordingExists(inst:TSteamTimeline, phaseID:String, recordingMS:ULong, longestClipMS:ULong, clipCount:UInt, screenshotCount:UInt, ioFailure:Int) { nomangle }
+		inst.OnGamePhaseRecordingExists(phaseID, recordingMS, longestClipMS, clipCount, screenshotCount, ioFailure)
 	End Function
 End Type
 
@@ -1863,7 +2173,7 @@ bbdoc: Provides an interface to a steam instance.
 End Rem
 Type TSteamClient Extends TSteamAPI
 
-	Const STEAMCLIENT_INTERFACE_VERSION:String = "SteamClient020"
+	Const STEAMCLIENT_INTERFACE_VERSION:String = "SteamClient023"
 
 	Method New()
 		instancePtr = bmx_SteamAPI_SteamClient()
@@ -1935,6 +2245,13 @@ Type TSteamClient Extends TSteamAPI
 	Method GetISteamInput:TSteamInput()
 		Return TSteamInput._create(bmx_SteamAPI_ISteamClient_GetISteamInput(instancePtr, _user, _steamPipe))
 	End Method
+
+	Rem
+	bbdoc: Returns the Steam Timeline interface for gameplay events, phases, and recordings.
+	End Rem
+	Method GetISteamTimeline:TSteamTimeline()
+		Return TSteamTimeline._create(bmx_SteamAPI_SteamTimeline())
+	End Method
 	
 End Type
 
@@ -1968,7 +2285,7 @@ bbdoc: Provides access to a range of miscellaneous utility functions.
 End Rem
 Type TSteamUtils Extends TSteamAPI
 
-	Const STEAMUTILS_INTERFACE_VERSION:String = "SteamUtils010"
+	Const STEAMUTILS_INTERFACE_VERSION:String = "SteamUtils011"
 
 	Field listener:ISteamUtilsListener
 
@@ -2225,7 +2542,28 @@ Type TSteamUtils Extends TSteamAPI
 	bbdoc: Returns #True when the application is running on a Steam Deck.
 	End Rem
 	Method IsSteamRunningOnSteamDeck:Int()
-		Return bmx_SteamAPI_ISteamUtils_IsSteamRunningOnSteamDeck(instancePtr)
+		Return IsRunningOnSteamHardware() = ESteamHardwareType.k_ESteamHardwareTypeSteamDeck
+	End Method
+
+	Rem
+	bbdoc: Returns the Steam hardware family on which the process is running.
+	End Rem
+	Method IsRunningOnSteamHardware:ESteamHardwareType()
+		Return bmx_SteamAPI_ISteamUtils_IsRunningOnSteamHardware(instancePtr)
+	End Method
+
+	Rem
+	bbdoc: Returns the default performance configuration recommended by Steam for the current hardware.
+	End Rem
+	Method GetSteamHardwareDefaultConfig:ESteamHardwareDefaultConfig()
+		Return bmx_SteamAPI_ISteamUtils_GetSteamHardwareDefaultConfig(instancePtr)
+	End Method
+
+	Rem
+	bbdoc: Returns True when the process is running through Proton on Linux.
+	End Rem
+	Method IsRunningUnderProton:Int()
+		Return bmx_SteamAPI_ISteamUtils_IsRunningUnderProton(instancePtr)
 	End Method
 	Rem
 	bbdoc: Shows the floating gamepad keyboard over the supplied screen rectangle.
@@ -2238,6 +2576,13 @@ Type TSteamUtils Extends TSteamAPI
 	End Rem
 	Method DismissFloatingGamepadTextInput:Int()
 		Return bmx_SteamAPI_ISteamUtils_DismissFloatingGamepadTextInput(instancePtr)
+	End Method
+
+	Rem
+	bbdoc: Dismisses the full-screen Steam gamepad text-input dialog.
+	End Rem
+	Method DismissGamepadTextInput:Int()
+		Return bmx_SteamAPI_ISteamUtils_DismissGamepadTextInput(instancePtr)
 	End Method
 	Rem
 	bbdoc: Tells Steam whether this application is acting as a launcher for other games.
@@ -2371,7 +2716,7 @@ bbdoc: Provides methods for accessing and submitting stats, achievements, and le
 End Rem
 Type TSteamUserStats Extends TSteamAPI
 
-	Const STEAMUSERSTATS_INTERFACE_VERSION:String = "STEAMUSERSTATS_INTERFACE_VERSION012"
+	Const STEAMUSERSTATS_INTERFACE_VERSION:String = "STEAMUSERSTATS_INTERFACE_VERSION013"
 	
 	Field listener:ISteamUserStatsListener
 	
@@ -2826,7 +3171,9 @@ Type TSteamUserStats Extends TSteamAPI
 	See Also: #GetStat, #SetStat, #SetAchievement, #StoreStats
 	End Rem
 	Method RequestCurrentStats:Int()
-		Return bmx_SteamAPI_ISteamUserStats_RequestCurrentStats(instancePtr)
+		' Steamworks 1.61 synchronizes current stats before the game launches.
+		' Retained as a successful compatibility no-op for existing applications.
+		Return True
 	End Method
 	
 	Rem
@@ -3508,7 +3855,7 @@ The majority of #TSteamUGC methods return boolean values. For additional informa
 End Rem
 Type TSteamUGC Extends TSteamAPI
 
-	Const STEAMUGC_INTERFACE_VERSION:String = "STEAMUGC_INTERFACE_VERSION016"
+	Const STEAMUGC_INTERFACE_VERSION:String = "STEAMUGC_INTERFACE_VERSION021"
 
 	Field listener:ISteamUGCListener
 
@@ -3881,8 +4228,8 @@ Type TSteamUGC Extends TSteamAPI
 	bbdoc: Gets the total number of items the current user is subscribed to for the game or application.
 	returns: 0 if called from a game server.
 	End Rem
-	Method GetNumSubscribedItems:UInt()
-		Return bmx_SteamAPI_ISteamUGC_GetNumSubscribedItems(instancePtr)
+	Method GetNumSubscribedItems:UInt(includeLocallyDisabled:Int = False)
+		Return bmx_SteamAPI_ISteamUGC_GetNumSubscribedItems(instancePtr, includeLocallyDisabled)
 	End Method
 	
 	Rem
@@ -3995,8 +4342,60 @@ Type TSteamUGC Extends TSteamAPI
 	returns: The number of subscribed workshop items that were populated into @publishedFileIDs. Returns 0 if called from a game server.
 	about: You create an array with the size provided by #GetNumSubscribedItems before calling this.
 	End Rem
-	Method GetSubscribedItems:UInt(publishedFileIDs:ULong Ptr, maxEntries:UInt)
-		Return bmx_SteamAPI_ISteamUGC_GetSubscribedItems(instancePtr, publishedFileIDs, maxEntries)
+	Method GetSubscribedItems:UInt(publishedFileIDs:ULong Ptr, maxEntries:UInt, includeLocallyDisabled:Int = False)
+		Return bmx_SteamAPI_ISteamUGC_GetSubscribedItems(instancePtr, publishedFileIDs, maxEntries, includeLocallyDisabled)
+	End Method
+
+	Method GetNumSupportedGameVersions:UInt(queryHandle:ULong, index:UInt)
+		Return bmx_SteamAPI_ISteamUGC_GetNumSupportedGameVersions(instancePtr, queryHandle, index)
+	End Method
+
+	Method GetSupportedGameVersionData:Int(queryHandle:ULong, index:UInt, versionIndex:UInt, minimum:String Var, maximum:String Var)
+		Return bmx_SteamAPI_ISteamUGC_GetSupportedGameVersionData(instancePtr, queryHandle, index, versionIndex, minimum, maximum)
+	End Method
+
+	Method GetQueryUGCContentDescriptors:UInt(queryHandle:ULong, index:UInt, descriptors:EUGCContentDescriptorID Ptr, maxEntries:UInt)
+		Return bmx_SteamAPI_ISteamUGC_GetQueryUGCContentDescriptors(instancePtr, queryHandle, index, descriptors, maxEntries)
+	End Method
+
+	Method SetAdminQuery:Int(queryHandle:ULong, adminQuery:Int)
+		Return bmx_SteamAPI_ISteamUGC_SetAdminQuery(instancePtr, queryHandle, adminQuery)
+	End Method
+
+	Method AddContentDescriptor:Int(updateHandle:ULong, descriptor:EUGCContentDescriptorID)
+		Return bmx_SteamAPI_ISteamUGC_AddContentDescriptor(instancePtr, updateHandle, descriptor)
+	End Method
+
+	Method RemoveContentDescriptor:Int(updateHandle:ULong, descriptor:EUGCContentDescriptorID)
+		Return bmx_SteamAPI_ISteamUGC_RemoveContentDescriptor(instancePtr, updateHandle, descriptor)
+	End Method
+
+	Method SetRequiredGameVersions:Int(updateHandle:ULong, minimum:String, maximum:String)
+		Return bmx_SteamAPI_ISteamUGC_SetRequiredGameVersions(instancePtr, updateHandle, minimum, maximum)
+	End Method
+
+	Method GetUserContentDescriptorPreferences:UInt(descriptors:EUGCContentDescriptorID Ptr, maxEntries:UInt)
+		Return bmx_SteamAPI_ISteamUGC_GetUserContentDescriptorPreferences(instancePtr, descriptors, maxEntries)
+	End Method
+
+	Method SetItemsDisabledLocally:Int(publishedFileIDs:ULong Ptr, count:UInt, disabled:Int)
+		Return bmx_SteamAPI_ISteamUGC_SetItemsDisabledLocally(instancePtr, publishedFileIDs, count, disabled)
+	End Method
+
+	Method SetSubscriptionsLoadOrder:Int(publishedFileIDs:ULong Ptr, count:UInt)
+		Return bmx_SteamAPI_ISteamUGC_SetSubscriptionsLoadOrder(instancePtr, publishedFileIDs, count)
+	End Method
+
+	Method MarkDownloadedItemAsUnused:Int(publishedFileID:ULong)
+		Return bmx_SteamAPI_ISteamUGC_MarkDownloadedItemAsUnused(instancePtr, publishedFileID)
+	End Method
+
+	Method GetNumDownloadedItems:UInt()
+		Return bmx_SteamAPI_ISteamUGC_GetNumDownloadedItems(instancePtr)
+	End Method
+
+	Method GetDownloadedItems:UInt(publishedFileIDs:ULong Ptr, maxEntries:UInt)
+		Return bmx_SteamAPI_ISteamUGC_GetDownloadedItems(instancePtr, publishedFileIDs, maxEntries)
 	End Method
 	
 	Rem
@@ -4166,8 +4565,8 @@ Type TSteamUGC Extends TSteamAPI
 
 	> NOTE: This must be set before you submit the UGC update handle using #SubmitItemUpdate.
 	End Rem
-	Method SetItemTags:Int(updateHandle:ULong, tags:String[])
-		Return bmx_SteamAPI_ISteamUGC_SetItemTags(instancePtr, updateHandle, tags)
+	Method SetItemTags:Int(updateHandle:ULong, tags:String[], allowAdminTags:Int = False)
+		Return bmx_SteamAPI_ISteamUGC_SetItemTags(instancePtr, updateHandle, tags, allowAdminTags)
 	End Method
 	
 	Rem
@@ -4749,11 +5148,8 @@ Interface ISteamFriendsListener
 	bbdoc: Posted when the user has attempted to join a Steam group chat via #JoinClanChatRoom.
 	End Rem
 	Method OnJoinClanChatRoomCompletion(steamIDClanChat:ULong, chatRoomEnterResponse:EChatRoomEnterResponse)
-	Rem
-	bbdoc: Reports the result of an attempt to change the current user's persona name.
-	End Rem
-	Method OnSetPersonaName(result:EResult, success:Int, localSuccess:Int)
-
+	Method OnEquippedProfileItemsChanged(steamID:ULong)
+	Method OnEquippedProfileItems(result:EResult, steamID:ULong, animatedAvatar:Int, avatarFrame:Int, profileModifier:Int, profileBackground:Int, miniProfileBackground:Int, fromCache:Int)
 End Interface
 
 Rem
@@ -4761,7 +5157,7 @@ bbdoc: Interface to access information about individual users and interact with 
 End Rem
 Type TSteamFriends Extends TSteamAPI
 
-	Const STEAMFRIENDS_INTERFACE_VERSION:String = "SteamFriends017"
+	Const STEAMFRIENDS_INTERFACE_VERSION:String = "SteamFriends018"
 
 	Field listener:ISteamFriendsListener
 
@@ -5329,16 +5725,6 @@ Type TSteamFriends Extends TSteamAPI
 	End Method
 	
 	Rem
-	bbdoc: Checks if current user is chat restricted.
-	about: If they are restricted, then they can't send or receive any text/voice chat messages, can't see custom avatars.
-	A chat restricted user can't add friends or join any groups.
-	Restricted users can still be online and send/receive game invites.
-	End Rem
-	Method GetUserRestrictions:UInt()
-		Return bmx_SteamAPI_ISteamFriends_GetUserRestrictions(instancePtr)
-	End Method
-	
-	Rem
 	bbdoc: Checks if the user meets the specified criteria. (Friends, blocked, users on the same server, etc)
 	returns: #True if the specified user meets any of the criteria specified in @friendFlags; otherwise, #False.
 	End Rem
@@ -5535,17 +5921,6 @@ Type TSteamFriends Extends TSteamAPI
 	End Method
 	
 	Rem
-	bbdoc: Sets the current users persona name, stores it on the server and publishes the changes to all friends who are online.
-	about: Changes take place locally immediately, and an #OnPersonaStateChanged callback is posted, presuming success.
-
-	If the name change fails to happen on the server, then an additional #OnPersonaStateChanged callback will be posted to change the name back,
-	in addition to the final result available in the call result.
-	End Rem
-	Method SetPersonaName(personaName:String)
-		bmx_SteamAPI_ISteamFriends_SetPersonaName(callbackPtr, personaName)
-	End Method
-	
-	Rem
 	bbdoc: Marks a target user as 'played with'.
 	about: 
 	> NOTE: The current user must be in game with the other player for the association to work.
@@ -5581,6 +5956,25 @@ Type TSteamFriends Extends TSteamAPI
 	End Rem
 	Method SetRichPresence:Int(key:String, value:String)
 		Return bmx_SteamAPI_ISteamFriends_SetRichPresence(instancePtr, key, value)
+	End Method
+
+	Rem
+	bbdoc: Requests the Steam Community profile items equipped by a user.
+	End Rem
+	Method RequestEquippedProfileItems(steamID:ULong)
+		bmx_SteamAPI_ISteamFriends_RequestEquippedProfileItems(callbackPtr, steamID)
+	End Method
+
+	Method BHasEquippedProfileItem:Int(steamID:ULong, itemType:ECommunityProfileItemType)
+		Return bmx_SteamAPI_ISteamFriends_BHasEquippedProfileItem(instancePtr, steamID, itemType)
+	End Method
+
+	Method GetProfileItemPropertyString:String(steamID:ULong, itemType:ECommunityProfileItemType, property:ECommunityProfileItemProperty)
+		Return bmx_SteamAPI_ISteamFriends_GetProfileItemPropertyString(instancePtr, steamID, itemType, property)
+	End Method
+
+	Method GetProfileItemPropertyUint:UInt(steamID:ULong, itemType:ECommunityProfileItemType, property:ECommunityProfileItemProperty)
+		Return bmx_SteamAPI_ISteamFriends_GetProfileItemPropertyUint(instancePtr, steamID, itemType, property)
 	End Method
 
 	' callbacks
@@ -5756,14 +6150,20 @@ Type TSteamFriends Extends TSteamAPI
 		inst.OnJoinClanChatRoomCompletion(steamIDClanChat, chatRoomEnterResponse)
 	End Function
 
-	Method OnSetPersonaName(result:EResult, success:Int, localSuccess:Int)
-		If listener Then
-			listener.OnSetPersonaName(result, success, localSuccess)
-		End If
+	Method OnEquippedProfileItemsChanged(steamID:ULong)
+		If listener Then listener.OnEquippedProfileItemsChanged(steamID)
 	End Method
 
-	Function _OnSetPersonaName(inst:TSteamFriends, result:EResult, success:Int, localSuccess:Int) { nomangle }
-		inst.OnSetPersonaName(result, success, localSuccess)
+	Function _OnEquippedProfileItemsChanged(inst:TSteamFriends, steamID:ULong) { nomangle }
+		inst.OnEquippedProfileItemsChanged(steamID)
 	End Function
-	
+
+	Method OnEquippedProfileItems(result:EResult, steamID:ULong, animatedAvatar:Int, avatarFrame:Int, profileModifier:Int, profileBackground:Int, miniProfileBackground:Int, fromCache:Int)
+		If listener Then listener.OnEquippedProfileItems(result, steamID, animatedAvatar, avatarFrame, profileModifier, profileBackground, miniProfileBackground, fromCache)
+	End Method
+
+	Function _OnEquippedProfileItems(inst:TSteamFriends, result:EResult, steamID:ULong, animatedAvatar:Int, avatarFrame:Int, profileModifier:Int, profileBackground:Int, miniProfileBackground:Int, fromCache:Int) { nomangle }
+		inst.OnEquippedProfileItems(result, steamID, animatedAvatar, avatarFrame, profileModifier, profileBackground, miniProfileBackground, fromCache)
+	End Function
+
 End Type

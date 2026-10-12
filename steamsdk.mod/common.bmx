@@ -26,6 +26,8 @@ Import "-l:steam_api64.dll"
 Import "-lsteam_api"
 ?linuxx64
 Import "-lsteam_api"
+?linuxarm64
+Import "-lsteam_api"
 ?macosx64
 Import "-lsteam_api"
 ?macosarm64
@@ -60,6 +62,7 @@ Extern
 	Function bmx_SteamAPI_ISteamClient_GetISteamApps:Byte Ptr(inst:Byte Ptr, user:Int, pipe:UInt)
 	Function bmx_SteamAPI_ISteamClient_GetISteamRemoteStorage:Byte Ptr(inst:Byte Ptr, user:Int, pipe:UInt)
 	Function bmx_SteamAPI_ISteamClient_GetISteamInput:Byte Ptr(inst:Byte Ptr, user:Int, pipe:UInt)
+	Function bmx_SteamAPI_SteamTimeline:Byte Ptr()
 
 	Function bmx_steamsdk_register_steaminput:Byte Ptr(inst:Byte Ptr, obj:Object)
 	Function bmx_steamsdk_unregister_steaminput(callbackPtr:Byte Ptr)
@@ -107,6 +110,28 @@ Extern
 	Function bmx_SteamAPI_ISteamInput_GetDeviceBindingRevision:Int(inst:Byte Ptr, inputHandle:ULong, major:Int Var, minor:Int Var)
 	Function bmx_SteamAPI_ISteamInput_GetRemotePlaySessionID:UInt(inst:Byte Ptr, inputHandle:ULong)
 	Function bmx_SteamAPI_ISteamInput_GetSessionInputConfigurationSettings:ESteamInputConfigurationEnableType(inst:Byte Ptr)
+	Function bmx_SteamAPI_ISteamInput_SetDualSenseTriggerEffect:Int(inst:Byte Ptr, inputHandle:ULong, trigger:EDualSenseTrigger, mode:EDualSenseTriggerEffectMode, first:Int, second:Int, third:Int, fourth:Int, values:Byte Ptr, count:Int)
+
+	Function bmx_steamsdk_register_steamtimeline:Byte Ptr(inst:Byte Ptr, obj:Object)
+	Function bmx_steamsdk_unregister_steamtimeline(callbackPtr:Byte Ptr)
+	Function bmx_SteamAPI_ISteamTimeline_SetTimelineTooltip(inst:Byte Ptr, description:String, timeDelta:Float)
+	Function bmx_SteamAPI_ISteamTimeline_ClearTimelineTooltip(inst:Byte Ptr, timeDelta:Float)
+	Function bmx_SteamAPI_ISteamTimeline_SetTimelineGameMode(inst:Byte Ptr, mode:ETimelineGameMode)
+	Function bmx_SteamAPI_ISteamTimeline_AddInstantaneousTimelineEvent:ULong(inst:Byte Ptr, title:String, description:String, icon:String, iconPriority:UInt, startOffsetSeconds:Float, clipPriority:ETimelineEventClipPriority)
+	Function bmx_SteamAPI_ISteamTimeline_AddRangeTimelineEvent:ULong(inst:Byte Ptr, title:String, description:String, icon:String, iconPriority:UInt, startOffsetSeconds:Float, duration:Float, clipPriority:ETimelineEventClipPriority)
+	Function bmx_SteamAPI_ISteamTimeline_StartRangeTimelineEvent:ULong(inst:Byte Ptr, title:String, description:String, icon:String, priority:UInt, startOffsetSeconds:Float, clipPriority:ETimelineEventClipPriority)
+	Function bmx_SteamAPI_ISteamTimeline_UpdateRangeTimelineEvent(inst:Byte Ptr, eventHandle:ULong, title:String, description:String, icon:String, priority:UInt, clipPriority:ETimelineEventClipPriority)
+	Function bmx_SteamAPI_ISteamTimeline_EndRangeTimelineEvent(inst:Byte Ptr, eventHandle:ULong, endOffsetSeconds:Float)
+	Function bmx_SteamAPI_ISteamTimeline_RemoveTimelineEvent(inst:Byte Ptr, eventHandle:ULong)
+	Function bmx_SteamAPI_ISteamTimeline_DoesEventRecordingExist:ULong(callbackPtr:Byte Ptr, eventHandle:ULong)
+	Function bmx_SteamAPI_ISteamTimeline_StartGamePhase(inst:Byte Ptr)
+	Function bmx_SteamAPI_ISteamTimeline_EndGamePhase(inst:Byte Ptr)
+	Function bmx_SteamAPI_ISteamTimeline_SetGamePhaseID(inst:Byte Ptr, phaseID:String)
+	Function bmx_SteamAPI_ISteamTimeline_DoesGamePhaseRecordingExist:ULong(callbackPtr:Byte Ptr, phaseID:String)
+	Function bmx_SteamAPI_ISteamTimeline_AddGamePhaseTag(inst:Byte Ptr, tagName:String, tagIcon:String, tagGroup:String, priority:UInt)
+	Function bmx_SteamAPI_ISteamTimeline_SetGamePhaseAttribute(inst:Byte Ptr, attributeGroup:String, attributeValue:String, priority:UInt)
+	Function bmx_SteamAPI_ISteamTimeline_OpenOverlayToGamePhase(inst:Byte Ptr, phaseID:String)
+	Function bmx_SteamAPI_ISteamTimeline_OpenOverlayToTimelineEvent(inst:Byte Ptr, eventHandle:ULong)
 
 	Function bmx_steamsdk_register_steamremotestorage:Byte Ptr(inst:Byte Ptr, obj:Object)
 	Function bmx_steamsdk_unregister_steamremotestorage(callbackPtr:Byte Ptr)
@@ -151,6 +176,7 @@ Extern
 	Function bmx_SteamAPI_ISteamUser_DecompressVoice:EVoiceResult(inst:Byte Ptr, compressed:Byte Ptr, compressedSize:UInt, destination:Byte Ptr, capacity:UInt, bytesWritten:UInt Var, sampleRate:UInt)
 	Function bmx_SteamAPI_ISteamUser_GetVoiceOptimalSampleRate:UInt(inst:Byte Ptr)
 	Function bmx_SteamAPI_ISteamUser_GetAuthSessionTicket:UInt(inst:Byte Ptr, ticket:Byte Ptr, capacity:Int, ticketSize:UInt Var)
+	Function bmx_SteamAPI_ISteamUser_GetAuthTicketForWebApi:UInt(inst:Byte Ptr, identity:String)
 	Function bmx_SteamAPI_ISteamUser_BeginAuthSession:EBeginAuthSessionResult(inst:Byte Ptr, ticket:Byte Ptr, ticketSize:Int, steamID:ULong)
 	Function bmx_SteamAPI_ISteamUser_EndAuthSession(inst:Byte Ptr, steamID:ULong)
 	Function bmx_SteamAPI_ISteamUser_CancelAuthTicket(inst:Byte Ptr, authTicket:UInt)
@@ -201,6 +227,12 @@ Extern
 	Function bmx_SteamAPI_ISteamApps_GetFileDetails(callbackPtr:Byte Ptr, fileName:String)
 	Function bmx_SteamAPI_ISteamApps_BIsSubscribedFromFamilySharing:Int(inst:Byte Ptr)
 	Function bmx_SteamAPI_ISteamApps_BIsTimedTrial:Int(inst:Byte Ptr, secondsAllowed:UInt Var, secondsPlayed:UInt Var)
+	Function bmx_SteamAPI_ISteamApps_SetDlcContext:Int(inst:Byte Ptr, appID:UInt)
+	Function bmx_SteamAPI_ISteamApps_GetNumBetas:Int(inst:Byte Ptr, available:Int Var, privateBetas:Int Var)
+	Function bmx_SteamAPI_ISteamApps_GetBetaInfo:Int(inst:Byte Ptr, index:Int, flags:UInt Var, buildID:UInt Var, name:String Var, description:String Var, lastUpdated:UInt Var)
+	Function bmx_SteamAPI_ISteamApps_SetActiveBeta:Int(inst:Byte Ptr, name:String)
+	Function bmx_SteamAPI_ISteamApps_SetGamePerformanceSetting(inst:Byte Ptr, setting:EGamePerformanceSetting)
+	Function bmx_SteamAPI_ISteamApps_SetGameRenderResolution(inst:Byte Ptr, width:UInt, height:UInt)
 
 	Function bmx_steamsdk_register_steammatchmaking:Byte Ptr(inst:Byte Ptr, obj:Object)
 	Function bmx_steamsdk_unregister_steammatchmaking(callbackPtr:Byte Ptr)
@@ -282,14 +314,16 @@ Extern
 	Function bmx_SteamAPI_ISteamUtils_InitFilterText:Int(inst:Byte Ptr, filterOptions:UInt)
 	Function bmx_SteamAPI_ISteamUtils_FilterText:Int(inst:Byte Ptr, context:ETextFilteringContext, sourceSteamID:ULong, input:String, output:String Var)
 	Function bmx_SteamAPI_ISteamUtils_GetIPv6ConnectivityState:ESteamIPv6ConnectivityState(inst:Byte Ptr, protocol:ESteamIPv6ConnectivityProtocol)
-	Function bmx_SteamAPI_ISteamUtils_IsSteamRunningOnSteamDeck:Int(inst:Byte Ptr)
+	Function bmx_SteamAPI_ISteamUtils_IsRunningOnSteamHardware:ESteamHardwareType(inst:Byte Ptr)
+	Function bmx_SteamAPI_ISteamUtils_GetSteamHardwareDefaultConfig:ESteamHardwareDefaultConfig(inst:Byte Ptr)
+	Function bmx_SteamAPI_ISteamUtils_IsRunningUnderProton:Int(inst:Byte Ptr)
 	Function bmx_SteamAPI_ISteamUtils_ShowFloatingGamepadTextInput:Int(inst:Byte Ptr, keyboardMode:EFloatingGamepadTextInputMode, x:Int, y:Int, width:Int, height:Int)
 	Function bmx_SteamAPI_ISteamUtils_DismissFloatingGamepadTextInput:Int(inst:Byte Ptr)
+	Function bmx_SteamAPI_ISteamUtils_DismissGamepadTextInput:Int(inst:Byte Ptr)
 	Function bmx_SteamAPI_ISteamUtils_SetGameLauncherMode(inst:Byte Ptr, launcherMode:Int)
 	Function bmx_SteamAPI_ISteamUtils_GetConnectedUniverse:EUniverse(inst:Byte Ptr)
 	Function bmx_SteamAPI_ISteamUtils_GetIPCCallCount:UInt(inst:Byte Ptr)
 
-	Function bmx_SteamAPI_ISteamUserStats_RequestCurrentStats:Int(inst:Byte Ptr)
 	Function bmx_SteamAPI_ISteamUserStats_GetNumberOfCurrentPlayers(callback:Byte Ptr)
 	Function bmx_SteamAPI_ISteamUserStats_GetMostAchievedAchievementInfo:Int(inst:Byte Ptr, name:String Var, percent:Float Var, achieved:Int Var)
 	Function bmx_SteamAPI_ISteamUserStats_GetNextMostAchievedAchievementInfo:Int(inst:Byte Ptr, previous:Int, name:String Var, percent:Float Var, achieved:Int Var)
@@ -373,7 +407,7 @@ Extern
 	Function bmx_SteamAPI_ISteamUGC_GetItemInstallInfo:Int(inst:Byte Ptr, publishedFileID:ULong, sizeOnDisk:ULong Var, folder:String Var, timestamp:UInt Var)
 	Function bmx_SteamAPI_ISteamUGC_GetItemState:EItemState(inst:Byte Ptr, publishedFileID:ULong)
 	Function bmx_SteamAPI_ISteamUGC_GetItemUpdateProgress:EItemUpdateStatus(inst:Byte Ptr, queryHandle:ULong, bytesProcessed:ULong Var, bytesTotal:ULong Var)
-	Function bmx_SteamAPI_ISteamUGC_GetNumSubscribedItems:UInt(inst:Byte Ptr)
+	Function bmx_SteamAPI_ISteamUGC_GetNumSubscribedItems:UInt(inst:Byte Ptr, includeLocallyDisabled:Int)
 	Function bmx_SteamAPI_ISteamUGC_GetQueryUGCAdditionalPreview:Int(inst:Byte Ptr, queryHandle:ULong, index:UInt, previewIndex:UInt, URLOrVideoID:String Var, originalFileName:String Var, previewType:EItemPreviewType Var)
 	Function bmx_SteamAPI_ISteamUGC_GetQueryUGCChildren:Int(inst:Byte Ptr, queryHandle:ULong, index:UInt, publishedFileIDs:ULong Ptr, maxEntries:UInt)
 	Function bmx_SteamAPI_ISteamUGC_GetQueryUGCKeyValueTag:Int(inst:Byte Ptr, queryHandle:ULong, index:UInt, keyValueTagIndex:UInt, key:String Var, value:String Var)
@@ -382,7 +416,20 @@ Extern
 	Function bmx_SteamAPI_ISteamUGC_GetQueryUGCNumKeyValueTags:UInt(inst:Byte Ptr, queryHandle:ULong, index:UInt)
 	Function bmx_SteamAPI_ISteamUGC_GetQueryUGCPreviewURL:Int(inst:Byte Ptr, queryHandle:ULong, index:UInt, URL:String Var)
 	Function bmx_SteamAPI_ISteamUGC_GetQueryUGCStatistic:Int(inst:Byte Ptr, queryHandle:ULong, index:UInt, statType:EItemStatistic, statValue:ULong Var)
-	Function bmx_SteamAPI_ISteamUGC_GetSubscribedItems:UInt(inst:Byte Ptr, publishedFileIDs:ULong Ptr, maxEntries:UInt)
+	Function bmx_SteamAPI_ISteamUGC_GetSubscribedItems:UInt(inst:Byte Ptr, publishedFileIDs:ULong Ptr, maxEntries:UInt, includeLocallyDisabled:Int)
+	Function bmx_SteamAPI_ISteamUGC_GetNumSupportedGameVersions:UInt(inst:Byte Ptr, queryHandle:ULong, index:UInt)
+	Function bmx_SteamAPI_ISteamUGC_GetSupportedGameVersionData:Int(inst:Byte Ptr, queryHandle:ULong, index:UInt, versionIndex:UInt, minimum:String Var, maximum:String Var)
+	Function bmx_SteamAPI_ISteamUGC_GetQueryUGCContentDescriptors:UInt(inst:Byte Ptr, queryHandle:ULong, index:UInt, descriptors:EUGCContentDescriptorID Ptr, maxEntries:UInt)
+	Function bmx_SteamAPI_ISteamUGC_SetAdminQuery:Int(inst:Byte Ptr, queryHandle:ULong, adminQuery:Int)
+	Function bmx_SteamAPI_ISteamUGC_AddContentDescriptor:Int(inst:Byte Ptr, updateHandle:ULong, descriptor:EUGCContentDescriptorID)
+	Function bmx_SteamAPI_ISteamUGC_RemoveContentDescriptor:Int(inst:Byte Ptr, updateHandle:ULong, descriptor:EUGCContentDescriptorID)
+	Function bmx_SteamAPI_ISteamUGC_SetRequiredGameVersions:Int(inst:Byte Ptr, updateHandle:ULong, minimum:String, maximum:String)
+	Function bmx_SteamAPI_ISteamUGC_GetUserContentDescriptorPreferences:UInt(inst:Byte Ptr, descriptors:EUGCContentDescriptorID Ptr, maxEntries:UInt)
+	Function bmx_SteamAPI_ISteamUGC_SetItemsDisabledLocally:Int(inst:Byte Ptr, publishedFileIDs:ULong Ptr, count:UInt, disabled:Int)
+	Function bmx_SteamAPI_ISteamUGC_SetSubscriptionsLoadOrder:Int(inst:Byte Ptr, publishedFileIDs:ULong Ptr, count:UInt)
+	Function bmx_SteamAPI_ISteamUGC_MarkDownloadedItemAsUnused:Int(inst:Byte Ptr, publishedFileID:ULong)
+	Function bmx_SteamAPI_ISteamUGC_GetNumDownloadedItems:UInt(inst:Byte Ptr)
+	Function bmx_SteamAPI_ISteamUGC_GetDownloadedItems:UInt(inst:Byte Ptr, publishedFileIDs:ULong Ptr, maxEntries:UInt)
 	Function bmx_SteamAPI_ISteamUGC_GetUserItemVote(callback:Byte Ptr, publishedFileID:ULong)
 	Function bmx_SteamAPI_ISteamUGC_ReleaseQueryUGCRequest:Int(inst:Byte Ptr, queryHandle:ULong)
 	Function bmx_SteamAPI_ISteamUGC_RemoveAppDependency(callback:Byte Ptr, publishedFileID:ULong, appID:UInt)
@@ -397,7 +444,7 @@ Extern
 	Function bmx_SteamAPI_ISteamUGC_SetItemDescription:Int(inst:Byte Ptr, updateHandle:ULong, description:String)
 	Function bmx_SteamAPI_ISteamUGC_SetItemMetadata:Int(inst:Byte Ptr, updateHandle:ULong, metaData:String)
 	Function bmx_SteamAPI_ISteamUGC_SetItemPreview:Int(inst:Byte Ptr, updateHandle:ULong, previewFile:String)
-	Function bmx_SteamAPI_ISteamUGC_SetItemTags:Int(inst:Byte Ptr, updateHandle:ULong, tags:String[])
+	Function bmx_SteamAPI_ISteamUGC_SetItemTags:Int(inst:Byte Ptr, updateHandle:ULong, tags:String[], allowAdminTags:Int)
 	Function bmx_SteamAPI_ISteamUGC_SetItemTitle:Int(inst:Byte Ptr, updateHandle:ULong, title:String)
 	Function bmx_SteamAPI_ISteamUGC_SetItemUpdateLanguage:Int(inst:Byte Ptr, updateHandle:ULong, language:String)
 	Function bmx_SteamAPI_ISteamUGC_SetItemVisibility:Int(inst:Byte Ptr, updateHandle:ULong, visibility:ERemoteStoragePublishedFileVisibility)
@@ -482,7 +529,6 @@ Extern
 	Function bmx_SteamAPI_ISteamFriends_GetPersonaState:EPersonaState(inst:Byte Ptr)
 	Function bmx_SteamAPI_ISteamFriends_GetPlayerNickname:String(inst:Byte Ptr, steamIDPlayer:ULong)
 	Function bmx_SteamAPI_ISteamFriends_GetSmallFriendAvatar:Int(inst:Byte Ptr, steamIDFriend:ULong)
-	Function bmx_SteamAPI_ISteamFriends_GetUserRestrictions:UInt(inst:Byte Ptr)
 	Function bmx_SteamAPI_ISteamFriends_HasFriend:Int(inst:Byte Ptr, steamIDFriend:ULong, friendFlags:Int)
 	Function bmx_SteamAPI_ISteamFriends_InviteUserToGame:Int(inst:Byte Ptr, steamIDFriend:ULong, connectString:String)
 	Function bmx_SteamAPI_ISteamFriends_IsClanChatAdmin:Int(inst:Byte Ptr, steamIDClanChat:ULong, steamIDUser:ULong)
@@ -501,9 +547,12 @@ Extern
 	Function bmx_SteamAPI_ISteamFriends_SendClanChatMessage:Int(inst:Byte Ptr, steamIDClanChat:ULong, txt:String)
 	Function bmx_SteamAPI_ISteamFriends_SetInGameVoiceSpeaking(inst:Byte Ptr, steamIDUser:ULong, speaking:Int)
 	Function bmx_SteamAPI_ISteamFriends_SetListenForFriendsMessages:Int(inst:Byte Ptr, interceptEnabled:Int)
-	Function bmx_SteamAPI_ISteamFriends_SetPersonaName(callback:Byte Ptr, personaName:String)
 	Function bmx_SteamAPI_ISteamFriends_SetPlayedWith(inst:Byte Ptr, steamIDUserPlayedWith:ULong)
 	Function bmx_SteamAPI_ISteamFriends_SetRichPresence:Int(inst:Byte Ptr, key:String, value:String)
+	Function bmx_SteamAPI_ISteamFriends_RequestEquippedProfileItems(callback:Byte Ptr, steamID:ULong)
+	Function bmx_SteamAPI_ISteamFriends_BHasEquippedProfileItem:Int(inst:Byte Ptr, steamID:ULong, itemType:ECommunityProfileItemType)
+	Function bmx_SteamAPI_ISteamFriends_GetProfileItemPropertyString:String(inst:Byte Ptr, steamID:ULong, itemType:ECommunityProfileItemType, property:ECommunityProfileItemProperty)
+	Function bmx_SteamAPI_ISteamFriends_GetProfileItemPropertyUint:UInt(inst:Byte Ptr, steamID:ULong, itemType:ECommunityProfileItemType, property:ECommunityProfileItemProperty)
 	
 End Extern
 
@@ -902,6 +951,64 @@ Enum ESteamIPv6ConnectivityState
 	k_ESteamIPv6ConnectivityState_Unknown = 0
 	k_ESteamIPv6ConnectivityState_Good = 1
 	k_ESteamIPv6ConnectivityState_Bad = 2
+End Enum
+
+Enum ESteamHardwareType
+	k_ESteamHardwareTypeNone = 0
+	k_ESteamHardwareTypeSteamDeck = 1
+	k_ESteamHardwareTypeSteamMachine = 2
+	k_ESteamHardwareTypeSteamFrame = 3
+End Enum
+
+Enum ESteamHardwareDefaultConfig
+	k_ESteamHardwareDefaultConfigNone = 0
+	k_ESteamHardwareDefaultConfigLow = 1
+	k_ESteamHardwareDefaultConfigMedium = 2
+	k_ESteamHardwareDefaultConfigHigh = 3
+	k_ESteamHardwareDefaultConfigMax = 4
+	k_ESteamHardwareDefaultConfigSteamDeck = 5
+	k_ESteamHardwareDefaultConfigSteamMachine = 6
+	k_ESteamHardwareDefaultConfigSteamFrame = 7
+End Enum
+
+Enum EGamePerformanceSetting
+	k_EGamePerformanceSetting_NotSet = 0
+	k_EGamePerformanceSetting_Low = 1
+	k_EGamePerformanceSetting_Medium = 2
+	k_EGamePerformanceSetting_High = 3
+	k_EGamePerformanceSetting_Ultra = 4
+	k_EGamePerformanceSetting_Custom = 5
+End Enum
+
+Enum ECommunityProfileItemType
+	k_ECommunityProfileItemType_AnimatedAvatar = 0
+	k_ECommunityProfileItemType_AvatarFrame = 1
+	k_ECommunityProfileItemType_ProfileModifier = 2
+	k_ECommunityProfileItemType_ProfileBackground = 3
+	k_ECommunityProfileItemType_MiniProfileBackground = 4
+End Enum
+
+Enum ECommunityProfileItemProperty
+	k_ECommunityProfileItemProperty_ImageSmall = 0
+	k_ECommunityProfileItemProperty_ImageLarge = 1
+	k_ECommunityProfileItemProperty_InternalName = 2
+	k_ECommunityProfileItemProperty_Title = 3
+	k_ECommunityProfileItemProperty_Description = 4
+	k_ECommunityProfileItemProperty_AppID = 5
+	k_ECommunityProfileItemProperty_TypeID = 6
+	k_ECommunityProfileItemProperty_Class = 7
+	k_ECommunityProfileItemProperty_MovieWebM = 8
+	k_ECommunityProfileItemProperty_MovieMP4 = 9
+	k_ECommunityProfileItemProperty_MovieWebMSmall = 10
+	k_ECommunityProfileItemProperty_MovieMP4Small = 11
+End Enum
+
+Enum EUGCContentDescriptorID
+	k_EUGCContentDescriptor_NudityOrSexualContent = 1
+	k_EUGCContentDescriptor_FrequentViolenceOrGore = 2
+	k_EUGCContentDescriptor_AdultOnlySexualContent = 3
+	k_EUGCContentDescriptor_GratuitousSexualContent = 4
+	k_EUGCContentDescriptor_AnyMatureContent = 5
 End Enum
 
 Enum EFriendRelationship
@@ -1853,6 +1960,37 @@ End Enum
 Enum ESteamInputActionEventType
 	ESteamInputActionEventType_DigitalAction = 0
 	ESteamInputActionEventType_AnalogAction = 1
+End Enum
+
+Enum EDualSenseTrigger Flags
+	k_EDualSenseTrigger_L2 = 1
+	k_EDualSenseTrigger_R2 = 2
+	k_EDualSenseTrigger_Both = 3
+End Enum
+
+Enum EDualSenseTriggerEffectMode
+	k_EDualSenseTriggerEffectMode_Off = 0
+	k_EDualSenseTriggerEffectMode_Feedback = 1
+	k_EDualSenseTriggerEffectMode_Weapon = 2
+	k_EDualSenseTriggerEffectMode_Vibration = 3
+	k_EDualSenseTriggerEffectMode_MultiplePositionFeedback = 4
+	k_EDualSenseTriggerEffectMode_SlopeFeedback = 5
+	k_EDualSenseTriggerEffectMode_MultiplePositionVibration = 6
+End Enum
+
+Enum ETimelineGameMode
+	k_ETimelineGameMode_Invalid = 0
+	k_ETimelineGameMode_Playing = 1
+	k_ETimelineGameMode_Staging = 2
+	k_ETimelineGameMode_Menus = 3
+	k_ETimelineGameMode_LoadingScreen = 4
+End Enum
+
+Enum ETimelineEventClipPriority
+	k_ETimelineEventClipPriority_Invalid = 0
+	k_ETimelineEventClipPriority_None = 1
+	k_ETimelineEventClipPriority_Standard = 2
+	k_ETimelineEventClipPriority_Featured = 3
 End Enum
 
 Enum EControllerActionOrigin

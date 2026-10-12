@@ -2,7 +2,7 @@
 
 This module wraps selected Steamworks interface families rather than presenting
 the entire SDK as one undifferentiated API. The list below describes the bundled
-Steamworks SDK (1.53a); a future SDK update may add more methods or interfaces.
+Steamworks SDK (1.65); a future SDK update may add more methods or interfaces.
 The native bridge obtains interfaces using the version macros from the bundled
 SDK headers, rather than duplicating those strings in bridge calls. The public
 constants mirror those header versions for reference. When the SDK is updated,
@@ -19,7 +19,8 @@ versioned ABI contracts.
   account security state, store authentication, and duration controls. The two
   obsolete game-connection methods are intentionally omitted.
 - `ISteamFriends`: friends, clans, chat, personas, avatars, rich presence, and
-  overlay/invitation operations.
+  overlay/invitation operations, including equipped profile-item queries and
+  change notifications.
 - `ISteamMatchmaking`: favourites, lobby filters, creation and joining,
   membership, metadata, chat, game-server association, ownership, linked
   lobbies, and callbacks.
@@ -36,9 +37,12 @@ versioned ABI contracts.
 - `ISteamInput`: controller discovery and classification, action sets and
   layers, allocation-free digital, analog, and motion state reads, action
   origins and localized glyphs, vibration, haptics, LEDs, binding UI, device
-  notifications, and optional low-latency action events. The deprecated Steam
-  Controller API and its legacy-only glyph and haptic methods are intentionally
-  omitted.
+  notifications, optional low-latency action events, and typed DualSense
+  adaptive-trigger effects. The deprecated Steam Controller API and its
+  legacy-only glyph and haptic methods are intentionally omitted.
+- `ISteamTimeline`: tooltips and game modes, instantaneous and range events,
+  game phases, tags and attributes, overlay navigation, and asynchronous
+  recording-availability queries.
 - `ISteamUserStats`: achievements, local and remote stats, global stats,
   leaderboards, downloaded entries, progress limits, attached UGC, and callbacks.
 - `ISteamUtils`: application/platform information, images, overlay and text
@@ -48,7 +52,9 @@ versioned ABI contracts.
   handlers are safer in BlitzMax.
 - `ISteamUGC`: Workshop queries and result details, tags and metadata, item
   creation/update/subscription, dependencies, playtime, EULA state, and
-  callbacks. The deprecated `RequestUGCDetails` call is omitted in favour of
+  callbacks, including game-version constraints, content descriptors, local
+  item disabling, subscription ordering, and downloaded-item tracking. The
+  deprecated `RequestUGCDetails` call is omitted in favour of
   `CreateQueryUGCDetailsRequest`.
 
 ## Steamworks subsystems not yet wrapped
@@ -63,8 +69,7 @@ These are complete service areas, not accidental holes in the interfaces above:
 - Screenshots
 - Remote Play and Parties
 - Parental Settings
-- App List
-- Video and Music/Music Remote
+- Video
 - HTML Surface
 - Game Search
 
@@ -72,3 +77,7 @@ They should be added as focused types with appropriate BlitzMax value objects
 and callback listeners. In particular, exposing native structures or callback
 pointers directly would make the wrapper fragile and is not considered useful
 coverage.
+
+`ISteamAppList` and `ISteamMusicRemote` appeared in the previously bundled SDK,
+but were removed from Steamworks SDK 1.65 rather than left as unwrapped current
+interfaces.

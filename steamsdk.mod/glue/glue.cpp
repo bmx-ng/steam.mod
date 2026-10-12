@@ -22,6 +22,7 @@
 #include "brl.mod/blitz.mod/blitz.h"
 
 #include "steam/steam_api_flat.h"
+#include "steam/isteamdualsense.h"
 
 #include <chrono>
 #include <atomic>
@@ -43,6 +44,7 @@ class MaxRemoteStorage;
 class MaxRemoteStorageWriteRequest;
 class MaxRemoteStorageReadRequest;
 class MaxInput;
+class MaxTimeline;
 
 static std::vector<MaxRemoteStorageWriteRequest *> g_remoteStorageWriteRequests;
 static std::vector<MaxRemoteStorageReadRequest *> g_remoteStorageReadRequests;
@@ -110,7 +112,8 @@ extern "C" {
 	void steam_steamsdk_TSteamFriends__OnGameConnectedChatJoined( BBObject * maxHandle, uint64 steamIDUser, uint64 steamIDClanChat);
 	void steam_steamsdk_TSteamFriends__OnGameConnectedClanChatMsg( BBObject * maxHandle, uint64 steamIDUser, uint64 steamIDClanChat, int messageID);
 	void steam_steamsdk_TSteamFriends__OnJoinClanChatRoomCompletion( BBObject * maxHandle, uint64 steamIDClanChat, EChatRoomEnterResponse chatRoomEnterResponse);
-	void steam_steamsdk_TSteamFriends__OnSetPersonaName( BBObject * maxHandle, EResult result, int success, int localSuccess);
+	void steam_steamsdk_TSteamFriends__OnEquippedProfileItemsChanged(BBObject * maxHandle, uint64 steamID);
+	void steam_steamsdk_TSteamFriends__OnEquippedProfileItems(BBObject * maxHandle, EResult result, uint64 steamID, int animatedAvatar, int avatarFrame, int profileModifier, int profileBackground, int miniProfileBackground, int fromCache);
 
 	void steam_steamsdk_TSteamMatchmaking__OnLobbyCreated( BBObject * maxHandle, EResult result, uint64 steamIDLobby, int failure);
 	void steam_steamsdk_TSteamMatchmaking__OnLobbyMatchList(BBObject * maxHandle, uint32 lobbyCount, int failure);
@@ -131,6 +134,7 @@ extern "C" {
 	void steam_steamsdk_TSteamApps__OnFileDetails( BBObject * maxHandle, EResult result, uint64 fileSize, BBString * sha1, uint32 flags, int failure);
 	void steam_steamsdk_TSteamUser__OnValidateAuthTicket( BBObject * maxHandle, uint64 steamID, EAuthSessionResponse response, uint64 ownerSteamID);
 	void steam_steamsdk_TSteamUser__OnGetAuthSessionTicket(BBObject * maxHandle, uint32 authTicket, EResult result);
+	void steam_steamsdk_TSteamUser__OnGetTicketForWebApi(BBObject * maxHandle, uint32 authTicket, EResult result, void * ticket, int ticketSize);
 	void steam_steamsdk_TSteamUser__OnEncryptedAppTicket(BBObject * maxHandle, EResult result, int failure);
 	void steam_steamsdk_TSteamUser__OnStoreAuthURL(BBObject * maxHandle, BBString * url, int failure);
 	void steam_steamsdk_TSteamUser__OnMarketEligibility(BBObject * maxHandle, int allowed, EMarketNotAllowedReasonFlags reason, uint32 allowedAtTime, int steamGuardRequiredDays, int newDeviceCooldown, int failure);
@@ -143,6 +147,8 @@ extern "C" {
 	void steam_steamsdk_TSteamInput__OnConfigurationLoaded(BBObject * maxHandle, uint32 appID, uint64 inputHandle, uint64 mappingCreator, uint32 majorRevision, uint32 minorRevision, int usesSteamInputAPI, int usesGamepadAPI);
 	void steam_steamsdk_TSteamInput__OnDigitalAction( BBObject * maxHandle, uint64 inputHandle, uint64 actionHandle, int state, int active);
 	void steam_steamsdk_TSteamInput__OnAnalogAction( BBObject * maxHandle, uint64 inputHandle, uint64 actionHandle, EInputSourceMode mode, float x, float y, int active);
+	void steam_steamsdk_TSteamTimeline__OnEventRecordingExists(BBObject * maxHandle, uint64 eventHandle, int recordingExists, int failure);
+	void steam_steamsdk_TSteamTimeline__OnGamePhaseRecordingExists(BBObject * maxHandle, BBString * phaseID, uint64 recordingMS, uint64 longestClipMS, uint32 clipCount, uint32 screenshotCount, int failure);
 
 	int bmx_SteamAPI_Init();
 	void bmx_SteamAPI_Shutdown();
@@ -168,6 +174,7 @@ extern "C" {
 	void * bmx_SteamAPI_ISteamClient_GetISteamApps(ISteamClient * instancePtr, HSteamUser user, HSteamPipe pipe);
 	void * bmx_SteamAPI_ISteamClient_GetISteamRemoteStorage(ISteamClient * instancePtr, HSteamUser user, HSteamPipe pipe);
 	void * bmx_SteamAPI_ISteamClient_GetISteamInput(ISteamClient * instancePtr, HSteamUser user, HSteamPipe pipe);
+	void * bmx_SteamAPI_SteamTimeline();
 	void * bmx_steamsdk_register_steaminput(ISteamInput * instancePtr, BBObject * obj);
 	void bmx_steamsdk_unregister_steaminput(void * callbackPtr);
 	int bmx_SteamAPI_ISteamInput_Init(ISteamInput * instancePtr, int explicitlyCallRunFrame);
@@ -214,6 +221,27 @@ extern "C" {
 	int bmx_SteamAPI_ISteamInput_GetDeviceBindingRevision( ISteamInput * instancePtr, uint64 inputHandle, int * major, int * minor);
 	uint32 bmx_SteamAPI_ISteamInput_GetRemotePlaySessionID(ISteamInput * instancePtr, uint64 inputHandle);
 	int bmx_SteamAPI_ISteamInput_GetSessionInputConfigurationSettings(ISteamInput * instancePtr);
+	int bmx_SteamAPI_ISteamInput_SetDualSenseTriggerEffect(ISteamInput * instancePtr, uint64 inputHandle, int trigger, int mode, int first, int second, int third, int fourth, const uint8 * values, int count);
+	void * bmx_steamsdk_register_steamtimeline(ISteamTimeline * instancePtr, BBObject * obj);
+	void bmx_steamsdk_unregister_steamtimeline(void * callbackPtr);
+	void bmx_SteamAPI_ISteamTimeline_SetTimelineTooltip(ISteamTimeline * instancePtr, BBString * description, float timeDelta);
+	void bmx_SteamAPI_ISteamTimeline_ClearTimelineTooltip(ISteamTimeline * instancePtr, float timeDelta);
+	void bmx_SteamAPI_ISteamTimeline_SetTimelineGameMode(ISteamTimeline * instancePtr, ETimelineGameMode mode);
+	uint64 bmx_SteamAPI_ISteamTimeline_AddInstantaneousTimelineEvent(ISteamTimeline * instancePtr, BBString * title, BBString * description, BBString * icon, uint32 iconPriority, float startOffsetSeconds, ETimelineEventClipPriority clipPriority);
+	uint64 bmx_SteamAPI_ISteamTimeline_AddRangeTimelineEvent(ISteamTimeline * instancePtr, BBString * title, BBString * description, BBString * icon, uint32 iconPriority, float startOffsetSeconds, float duration, ETimelineEventClipPriority clipPriority);
+	uint64 bmx_SteamAPI_ISteamTimeline_StartRangeTimelineEvent(ISteamTimeline * instancePtr, BBString * title, BBString * description, BBString * icon, uint32 priority, float startOffsetSeconds, ETimelineEventClipPriority clipPriority);
+	void bmx_SteamAPI_ISteamTimeline_UpdateRangeTimelineEvent(ISteamTimeline * instancePtr, uint64 eventHandle, BBString * title, BBString * description, BBString * icon, uint32 priority, ETimelineEventClipPriority clipPriority);
+	void bmx_SteamAPI_ISteamTimeline_EndRangeTimelineEvent(ISteamTimeline * instancePtr, uint64 eventHandle, float endOffsetSeconds);
+	void bmx_SteamAPI_ISteamTimeline_RemoveTimelineEvent(ISteamTimeline * instancePtr, uint64 eventHandle);
+	uint64 bmx_SteamAPI_ISteamTimeline_DoesEventRecordingExist(MaxTimeline * timeline, uint64 eventHandle);
+	void bmx_SteamAPI_ISteamTimeline_StartGamePhase(ISteamTimeline * instancePtr);
+	void bmx_SteamAPI_ISteamTimeline_EndGamePhase(ISteamTimeline * instancePtr);
+	void bmx_SteamAPI_ISteamTimeline_SetGamePhaseID(ISteamTimeline * instancePtr, BBString * phaseID);
+	uint64 bmx_SteamAPI_ISteamTimeline_DoesGamePhaseRecordingExist(MaxTimeline * timeline, BBString * phaseID);
+	void bmx_SteamAPI_ISteamTimeline_AddGamePhaseTag(ISteamTimeline * instancePtr, BBString * tagName, BBString * tagIcon, BBString * tagGroup, uint32 priority);
+	void bmx_SteamAPI_ISteamTimeline_SetGamePhaseAttribute(ISteamTimeline * instancePtr, BBString * attributeGroup, BBString * attributeValue, uint32 priority);
+	void bmx_SteamAPI_ISteamTimeline_OpenOverlayToGamePhase(ISteamTimeline * instancePtr, BBString * phaseID);
+	void bmx_SteamAPI_ISteamTimeline_OpenOverlayToTimelineEvent(ISteamTimeline * instancePtr, uint64 eventHandle);
 	void * bmx_steamsdk_register_steamremotestorage(ISteamRemoteStorage * instancePtr, BBObject * obj);
 	void bmx_steamsdk_unregister_steamremotestorage(void * callbackPtr);
 	int bmx_SteamAPI_ISteamRemoteStorage_FileWrite( ISteamRemoteStorage * instancePtr, BBString * file, const void * data, int size);
@@ -256,6 +284,7 @@ extern "C" {
 	EVoiceResult bmx_SteamAPI_ISteamUser_DecompressVoice(ISteamUser * instancePtr, const void * compressed, uint32 compressedSize, void * destination, uint32 capacity, uint32 * bytesWritten, uint32 sampleRate);
 	uint32 bmx_SteamAPI_ISteamUser_GetVoiceOptimalSampleRate(ISteamUser * instancePtr);
 	uint32 bmx_SteamAPI_ISteamUser_GetAuthSessionTicket( ISteamUser * instancePtr, void * ticket, int capacity, uint32 * ticketSize);
+	uint32 bmx_SteamAPI_ISteamUser_GetAuthTicketForWebApi(ISteamUser * instancePtr, BBString * identity);
 	EBeginAuthSessionResult bmx_SteamAPI_ISteamUser_BeginAuthSession( ISteamUser * instancePtr, const void * ticket, int ticketSize, uint64 steamID);
 	void bmx_SteamAPI_ISteamUser_EndAuthSession(ISteamUser * instancePtr, uint64 steamID);
 	void bmx_SteamAPI_ISteamUser_CancelAuthTicket(ISteamUser * instancePtr, uint32 authTicket);
@@ -306,6 +335,12 @@ extern "C" {
 	void bmx_SteamAPI_ISteamApps_GetFileDetails(MaxApps * apps, BBString * fileName);
 	int bmx_SteamAPI_ISteamApps_BIsSubscribedFromFamilySharing(ISteamApps * instancePtr);
 	int bmx_SteamAPI_ISteamApps_BIsTimedTrial(ISteamApps * instancePtr, uint32 * secondsAllowed, uint32 * secondsPlayed);
+	int bmx_SteamAPI_ISteamApps_SetDlcContext(ISteamApps * instancePtr, uint32 appID);
+	int bmx_SteamAPI_ISteamApps_GetNumBetas(ISteamApps * instancePtr, int * available, int * privateBetas);
+	int bmx_SteamAPI_ISteamApps_GetBetaInfo(ISteamApps * instancePtr, int index, uint32 * flags, uint32 * buildID, BBString ** name, BBString ** description, uint32 * lastUpdated);
+	int bmx_SteamAPI_ISteamApps_SetActiveBeta(ISteamApps * instancePtr, BBString * name);
+	void bmx_SteamAPI_ISteamApps_SetGamePerformanceSetting(ISteamApps * instancePtr, EGamePerformanceSetting setting);
+	void bmx_SteamAPI_ISteamApps_SetGameRenderResolution(ISteamApps * instancePtr, uint32 width, uint32 height);
 
 	void * bmx_steamsdk_register_steammatchmaking(ISteamMatchmaking * instancePtr, BBObject * obj);
 	void bmx_steamsdk_unregister_steammatchmaking(void * callbackPtr);
@@ -384,9 +419,12 @@ extern "C" {
 	int bmx_SteamAPI_ISteamUtils_InitFilterText(ISteamUtils * instancePtr, uint32 filterOptions);
 	int bmx_SteamAPI_ISteamUtils_FilterText(ISteamUtils * instancePtr, ETextFilteringContext context, uint64 sourceSteamID, BBString * input, BBString ** output);
 	ESteamIPv6ConnectivityState bmx_SteamAPI_ISteamUtils_GetIPv6ConnectivityState( ISteamUtils * instancePtr, ESteamIPv6ConnectivityProtocol protocol);
-	int bmx_SteamAPI_ISteamUtils_IsSteamRunningOnSteamDeck(ISteamUtils * instancePtr);
+	ESteamHardwareType bmx_SteamAPI_ISteamUtils_IsRunningOnSteamHardware(ISteamUtils * instancePtr);
+	ESteamHardwareDefaultConfig bmx_SteamAPI_ISteamUtils_GetSteamHardwareDefaultConfig(ISteamUtils * instancePtr);
+	int bmx_SteamAPI_ISteamUtils_IsRunningUnderProton(ISteamUtils * instancePtr);
 	int bmx_SteamAPI_ISteamUtils_ShowFloatingGamepadTextInput( ISteamUtils * instancePtr, EFloatingGamepadTextInputMode keyboardMode, int x, int y, int width, int height);
 	int bmx_SteamAPI_ISteamUtils_DismissFloatingGamepadTextInput(ISteamUtils * instancePtr);
+	int bmx_SteamAPI_ISteamUtils_DismissGamepadTextInput(ISteamUtils * instancePtr);
 	void bmx_SteamAPI_ISteamUtils_SetGameLauncherMode(ISteamUtils * instancePtr, int launcherMode);
 	EUniverse bmx_SteamAPI_ISteamUtils_GetConnectedUniverse(ISteamUtils * instancePtr);
 	uint32 bmx_SteamAPI_ISteamUtils_GetIPCCallCount(ISteamUtils * instancePtr);
@@ -394,7 +432,6 @@ extern "C" {
 	void * bmx_steamsdk_register_steamuserstats(ISteamUserStats * instancePtr, BBObject * obj);
 	void bmx_steamsdk_unregister_steamuserstats(void * callbackPtr);
 
-	int bmx_SteamAPI_ISteamUserStats_RequestCurrentStats(ISteamUserStats * instancePtr);
 	void bmx_SteamAPI_ISteamUserStats_GetNumberOfCurrentPlayers(MaxUserStats * userStats);
 	int bmx_SteamAPI_ISteamUserStats_GetMostAchievedAchievementInfo( ISteamUserStats * instancePtr, BBString ** name, float * percent, int * achieved);
 	int bmx_SteamAPI_ISteamUserStats_GetNextMostAchievedAchievementInfo( ISteamUserStats * instancePtr, int previous, BBString ** name, float * percent, int * achieved);
@@ -477,7 +514,7 @@ extern "C" {
 	int bmx_SteamAPI_ISteamUGC_GetItemInstallInfo( ISteamUGC * instancePtr, uint64 publishedFileID, uint64 * sizeOnDisk, BBString ** folder, uint32 * timestamp);
 	uint32 bmx_SteamAPI_ISteamUGC_GetItemState(ISteamUGC * instancePtr, uint64 publishedFileID);
 	EItemUpdateStatus bmx_SteamAPI_ISteamUGC_GetItemUpdateProgress( ISteamUGC * instancePtr, uint64 queryHandle, uint64 * bytesProcessed, uint64 * bytesTotal);
-	uint32 bmx_SteamAPI_ISteamUGC_GetNumSubscribedItems(ISteamUGC * instancePtr);
+	uint32 bmx_SteamAPI_ISteamUGC_GetNumSubscribedItems(ISteamUGC * instancePtr, int includeLocallyDisabled);
 	int bmx_SteamAPI_ISteamUGC_GetQueryUGCAdditionalPreview(ISteamUGC * instancePtr, uint64 queryHandle, uint32 index, uint32 previewIndex, BBString ** URLOrVideoID, BBString ** originalFileName, EItemPreviewType * previewType);
 	int bmx_SteamAPI_ISteamUGC_GetQueryUGCChildren( ISteamUGC * instancePtr, uint64 queryHandle, uint32 index, uint64 * publishedFileIDs, uint32 maxEntries);
 	int bmx_SteamAPI_ISteamUGC_GetQueryUGCKeyValueTag(ISteamUGC * instancePtr, uint64 queryHandle, uint32 index, uint32 keyValueTagIndex, BBString ** key, BBString ** value);
@@ -486,7 +523,20 @@ extern "C" {
 	uint32 bmx_SteamAPI_ISteamUGC_GetQueryUGCNumKeyValueTags(ISteamUGC * instancePtr, uint64 queryHandle, uint32 index);
 	int bmx_SteamAPI_ISteamUGC_GetQueryUGCPreviewURL( ISteamUGC * instancePtr, uint64 queryHandle, uint32 index, BBString ** URL);
 	int bmx_SteamAPI_ISteamUGC_GetQueryUGCStatistic( ISteamUGC * instancePtr, uint64 queryHandle, uint32 index, EItemStatistic statType, uint64 * statValue);
-	uint32 bmx_SteamAPI_ISteamUGC_GetSubscribedItems(ISteamUGC * instancePtr, uint64 * publishedFileIDs, uint32 maxEntries);
+	uint32 bmx_SteamAPI_ISteamUGC_GetSubscribedItems(ISteamUGC * instancePtr, uint64 * publishedFileIDs, uint32 maxEntries, int includeLocallyDisabled);
+	uint32 bmx_SteamAPI_ISteamUGC_GetNumSupportedGameVersions(ISteamUGC * instancePtr, uint64 queryHandle, uint32 index);
+	int bmx_SteamAPI_ISteamUGC_GetSupportedGameVersionData(ISteamUGC * instancePtr, uint64 queryHandle, uint32 index, uint32 versionIndex, BBString ** minimum, BBString ** maximum);
+	uint32 bmx_SteamAPI_ISteamUGC_GetQueryUGCContentDescriptors(ISteamUGC * instancePtr, uint64 queryHandle, uint32 index, EUGCContentDescriptorID * descriptors, uint32 maxEntries);
+	int bmx_SteamAPI_ISteamUGC_SetAdminQuery(ISteamUGC * instancePtr, uint64 queryHandle, int adminQuery);
+	int bmx_SteamAPI_ISteamUGC_AddContentDescriptor(ISteamUGC * instancePtr, uint64 updateHandle, EUGCContentDescriptorID descriptor);
+	int bmx_SteamAPI_ISteamUGC_RemoveContentDescriptor(ISteamUGC * instancePtr, uint64 updateHandle, EUGCContentDescriptorID descriptor);
+	int bmx_SteamAPI_ISteamUGC_SetRequiredGameVersions(ISteamUGC * instancePtr, uint64 updateHandle, BBString * minimum, BBString * maximum);
+	uint32 bmx_SteamAPI_ISteamUGC_GetUserContentDescriptorPreferences(ISteamUGC * instancePtr, EUGCContentDescriptorID * descriptors, uint32 maxEntries);
+	int bmx_SteamAPI_ISteamUGC_SetItemsDisabledLocally(ISteamUGC * instancePtr, uint64 * publishedFileIDs, uint32 count, int disabled);
+	int bmx_SteamAPI_ISteamUGC_SetSubscriptionsLoadOrder(ISteamUGC * instancePtr, uint64 * publishedFileIDs, uint32 count);
+	int bmx_SteamAPI_ISteamUGC_MarkDownloadedItemAsUnused(ISteamUGC * instancePtr, uint64 publishedFileID);
+	uint32 bmx_SteamAPI_ISteamUGC_GetNumDownloadedItems(ISteamUGC * instancePtr);
+	uint32 bmx_SteamAPI_ISteamUGC_GetDownloadedItems(ISteamUGC * instancePtr, uint64 * publishedFileIDs, uint32 maxEntries);
 	void bmx_SteamAPI_ISteamUGC_GetUserItemVote(MaxUGC * ugc, uint64 publishedFileID);
 	int bmx_SteamAPI_ISteamUGC_ReleaseQueryUGCRequest(ISteamUGC * instancePtr, uint64 queryHandle);
 	void bmx_SteamAPI_ISteamUGC_RemoveAppDependency(MaxUGC * ugc, uint64 publishedFileID, uint32 appID);
@@ -501,7 +551,7 @@ extern "C" {
 	int bmx_SteamAPI_ISteamUGC_SetItemDescription(ISteamUGC * instancePtr, uint64 updateHandle, BBString * description);
 	int bmx_SteamAPI_ISteamUGC_SetItemMetadata(ISteamUGC * instancePtr, uint64 updateHandle, BBString * metaData);
 	int bmx_SteamAPI_ISteamUGC_SetItemPreview(ISteamUGC * instancePtr, uint64 updateHandle, BBString * previewFile);
-	int bmx_SteamAPI_ISteamUGC_SetItemTags(ISteamUGC * instancePtr, uint64 updateHandle, BBArray * tags);
+	int bmx_SteamAPI_ISteamUGC_SetItemTags(ISteamUGC * instancePtr, uint64 updateHandle, BBArray * tags, int allowAdminTags);
 	int bmx_SteamAPI_ISteamUGC_SetItemTitle(ISteamUGC * instancePtr, uint64 updateHandle, BBString * title);
 	int bmx_SteamAPI_ISteamUGC_SetItemUpdateLanguage(ISteamUGC * instancePtr, uint64 updateHandle, BBString * language);
 	int bmx_SteamAPI_ISteamUGC_SetItemVisibility( ISteamUGC * instancePtr, uint64 updateHandle, ERemoteStoragePublishedFileVisibility visibility);
@@ -586,7 +636,6 @@ extern "C" {
 	EPersonaState bmx_SteamAPI_ISteamFriends_GetPersonaState(ISteamFriends * instancePtr);
 	BBString * bmx_SteamAPI_ISteamFriends_GetPlayerNickname(ISteamFriends * instancePtr, uint64 steamIDPlayer);
 	int bmx_SteamAPI_ISteamFriends_GetSmallFriendAvatar(ISteamFriends * instancePtr, uint64 steamIDFriend);
-	uint32 bmx_SteamAPI_ISteamFriends_GetUserRestrictions(ISteamFriends * instancePtr);
 	int bmx_SteamAPI_ISteamFriends_HasFriend(ISteamFriends * instancePtr, uint64 steamIDFriend, int friendFlags);
 	int bmx_SteamAPI_ISteamFriends_InviteUserToGame( ISteamFriends * instancePtr, uint64 steamIDFriend, BBString * connectString);
 	int bmx_SteamAPI_ISteamFriends_IsClanChatAdmin(ISteamFriends * instancePtr, uint64 steamIDClanChat, uint64 steamIDUser);
@@ -605,9 +654,12 @@ extern "C" {
 	int bmx_SteamAPI_ISteamFriends_SendClanChatMessage(ISteamFriends * instancePtr, uint64 steamIDClanChat, BBString * txt);
 	void bmx_SteamAPI_ISteamFriends_SetInGameVoiceSpeaking(ISteamFriends * instancePtr, uint64 steamIDUser, int speaking);
 	int bmx_SteamAPI_ISteamFriends_SetListenForFriendsMessages(ISteamFriends * instancePtr, int interceptEnabled);
-	void bmx_SteamAPI_ISteamFriends_SetPersonaName(MaxFriends * friends, BBString * personaName);
 	void bmx_SteamAPI_ISteamFriends_SetPlayedWith(ISteamFriends * instancePtr, uint64 steamIDUserPlayedWith);
 	int bmx_SteamAPI_ISteamFriends_SetRichPresence(ISteamFriends * instancePtr, BBString * key, BBString * value);
+	void bmx_SteamAPI_ISteamFriends_RequestEquippedProfileItems(MaxFriends * friends, uint64 steamID);
+	int bmx_SteamAPI_ISteamFriends_BHasEquippedProfileItem(ISteamFriends * instancePtr, uint64 steamID, ECommunityProfileItemType itemType);
+	BBString * bmx_SteamAPI_ISteamFriends_GetProfileItemPropertyString(ISteamFriends * instancePtr, uint64 steamID, ECommunityProfileItemType itemType, ECommunityProfileItemProperty property);
+	uint32 bmx_SteamAPI_ISteamFriends_GetProfileItemPropertyUint(ISteamFriends * instancePtr, uint64 steamID, ECommunityProfileItemType itemType, ECommunityProfileItemProperty property);
 }
 
 int bmx_SteamAPI_Init() {
@@ -731,6 +783,10 @@ void * bmx_SteamAPI_ISteamClient_GetISteamRemoteStorage(ISteamClient * instanceP
 
 void * bmx_SteamAPI_ISteamClient_GetISteamInput(ISteamClient * instancePtr, HSteamUser user, HSteamPipe pipe) {
 	return SteamAPI_ISteamClient_GetISteamInput(instancePtr, user, pipe, STEAMINPUT_INTERFACE_VERSION);
+}
+
+void * bmx_SteamAPI_SteamTimeline() {
+	return SteamAPI_SteamTimeline();
 }
 
 // ISteamInput --------------------------------------------
@@ -1079,6 +1135,272 @@ uint32 bmx_SteamAPI_ISteamInput_GetRemotePlaySessionID(ISteamInput * instancePtr
 
 int bmx_SteamAPI_ISteamInput_GetSessionInputConfigurationSettings(ISteamInput * instancePtr) {
 	return SteamAPI_ISteamInput_GetSessionInputConfigurationSettings(instancePtr);
+}
+
+int bmx_SteamAPI_ISteamInput_SetDualSenseTriggerEffect(ISteamInput * instancePtr, uint64 inputHandle, int trigger,
+	int mode, int first, int second, int third, int fourth, const uint8 * values, int count) {
+	if (trigger < SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_L2 ||
+		trigger > (SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_L2 | SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_R2) ||
+		mode < SCE_PAD_TRIGGER_EFFECT_MODE_OFF || mode > SCE_PAD_TRIGGER_EFFECT_MODE_MULTIPLE_POSITION_VIBRATION) {
+		return false;
+	}
+
+	if ((mode == SCE_PAD_TRIGGER_EFFECT_MODE_MULTIPLE_POSITION_FEEDBACK ||
+		mode == SCE_PAD_TRIGGER_EFFECT_MODE_MULTIPLE_POSITION_VIBRATION) && (!values || count < 10)) {
+		return false;
+	}
+
+	auto inRange = [](int value, int minimum, int maximum) {
+		return value >= minimum && value <= maximum;
+	};
+	if ((mode == SCE_PAD_TRIGGER_EFFECT_MODE_FEEDBACK &&
+		(!inRange(first, 0, 9) || !inRange(second, 0, 8))) ||
+		(mode == SCE_PAD_TRIGGER_EFFECT_MODE_WEAPON &&
+		(!inRange(first, 2, 7) || !inRange(second, first + 1, 8) || !inRange(third, 0, 8))) ||
+		(mode == SCE_PAD_TRIGGER_EFFECT_MODE_VIBRATION &&
+		(!inRange(first, 0, 9) || !inRange(second, 0, 8) || !inRange(third, 0, 255))) ||
+		(mode == SCE_PAD_TRIGGER_EFFECT_MODE_SLOPE_FEEDBACK &&
+		(!inRange(first, 0, 8) || !inRange(second, first + 1, 9) ||
+		 !inRange(third, 1, 8) || !inRange(fourth, 1, 8))) ||
+		(mode == SCE_PAD_TRIGGER_EFFECT_MODE_MULTIPLE_POSITION_VIBRATION && !inRange(first, 0, 255))) {
+		return false;
+	}
+
+	if (mode == SCE_PAD_TRIGGER_EFFECT_MODE_MULTIPLE_POSITION_FEEDBACK ||
+		mode == SCE_PAD_TRIGGER_EFFECT_MODE_MULTIPLE_POSITION_VIBRATION) {
+		for (int i = 0; i < 10; ++i) {
+			if (values[i] > 8) {
+				return false;
+			}
+		}
+	}
+
+	ScePadTriggerEffectParam effect = {};
+	effect.triggerMask = (uint8)trigger;
+
+	for (int index = 0; index < SCE_PAD_TRIGGER_EFFECT_TRIGGER_NUM; ++index) {
+		int mask = index == SCE_PAD_TRIGGER_EFFECT_PARAM_INDEX_FOR_L2
+			? SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_L2 : SCE_PAD_TRIGGER_EFFECT_TRIGGER_MASK_R2;
+		if (!(trigger & mask)) {
+			continue;
+		}
+
+		ScePadTriggerEffectCommand & command = effect.command[index];
+		command.mode = (ScePadTriggerEffectMode)mode;
+		switch (mode) {
+			case SCE_PAD_TRIGGER_EFFECT_MODE_FEEDBACK:
+				command.commandData.feedbackParam.position = (uint8)first;
+				command.commandData.feedbackParam.strength = (uint8)second;
+				break;
+			case SCE_PAD_TRIGGER_EFFECT_MODE_WEAPON:
+				command.commandData.weaponParam.startPosition = (uint8)first;
+				command.commandData.weaponParam.endPosition = (uint8)second;
+				command.commandData.weaponParam.strength = (uint8)third;
+				break;
+			case SCE_PAD_TRIGGER_EFFECT_MODE_VIBRATION:
+				command.commandData.vibrationParam.position = (uint8)first;
+				command.commandData.vibrationParam.amplitude = (uint8)second;
+				command.commandData.vibrationParam.frequency = (uint8)third;
+				break;
+			case SCE_PAD_TRIGGER_EFFECT_MODE_MULTIPLE_POSITION_FEEDBACK:
+				std::copy(values, values + 10, command.commandData.multiplePositionFeedbackParam.strength);
+				break;
+			case SCE_PAD_TRIGGER_EFFECT_MODE_SLOPE_FEEDBACK:
+				command.commandData.slopeFeedbackParam.startPosition = (uint8)first;
+				command.commandData.slopeFeedbackParam.endPosition = (uint8)second;
+				command.commandData.slopeFeedbackParam.startStrength = (uint8)third;
+				command.commandData.slopeFeedbackParam.endStrength = (uint8)fourth;
+				break;
+			case SCE_PAD_TRIGGER_EFFECT_MODE_MULTIPLE_POSITION_VIBRATION:
+				command.commandData.multiplePositionVibrationParam.frequency = (uint8)first;
+				std::copy(values, values + 10, command.commandData.multiplePositionVibrationParam.amplitude);
+				break;
+		}
+	}
+
+	SteamAPI_ISteamInput_SetDualSenseTriggerEffect(instancePtr, inputHandle, &effect);
+	return true;
+}
+
+// ISteamTimeline -----------------------------------------
+
+class MaxTimeline
+{
+private:
+	ISteamTimeline * instancePtr;
+	BBObject * maxHandle;
+	CCallResult<MaxTimeline, SteamTimelineEventRecordingExists_t> m_EventRecordingExistsCallResult;
+	CCallResult<MaxTimeline, SteamTimelineGamePhaseRecordingExists_t> m_GamePhaseRecordingExistsCallResult;
+
+public:
+	MaxTimeline(ISteamTimeline * instancePtr, BBObject * handle)
+		: instancePtr(instancePtr), maxHandle(handle) {
+	}
+
+	SteamAPICall_t DoesEventRecordingExist(uint64 eventHandle) {
+		SteamAPICall_t call = SteamAPI_ISteamTimeline_DoesEventRecordingExist(instancePtr, eventHandle);
+		m_EventRecordingExistsCallResult.Set(call, this, &MaxTimeline::OnEventRecordingExists);
+		return call;
+	}
+
+	SteamAPICall_t DoesGamePhaseRecordingExist(const char * phaseID) {
+		SteamAPICall_t call = SteamAPI_ISteamTimeline_DoesGamePhaseRecordingExist(instancePtr, phaseID);
+		m_GamePhaseRecordingExistsCallResult.Set(call, this, &MaxTimeline::OnGamePhaseRecordingExists);
+		return call;
+	}
+
+	void OnEventRecordingExists(SteamTimelineEventRecordingExists_t * result, bool failure) {
+		steam_steamsdk_TSteamTimeline__OnEventRecordingExists(
+			maxHandle, result->m_ulEventID, result->m_bRecordingExists, failure);
+	}
+
+	void OnGamePhaseRecordingExists(SteamTimelineGamePhaseRecordingExists_t * result, bool failure) {
+		steam_steamsdk_TSteamTimeline__OnGamePhaseRecordingExists(maxHandle,
+			bbStringFromUTF8String((unsigned char *)result->m_rgchPhaseID), result->m_ulRecordingMS,
+			result->m_ulLongestClipMS, result->m_unClipCount, result->m_unScreenshotCount, failure);
+	}
+};
+
+void * bmx_steamsdk_register_steamtimeline(ISteamTimeline * instancePtr, BBObject * obj) {
+	return new MaxTimeline(instancePtr, obj);
+}
+
+void bmx_steamsdk_unregister_steamtimeline(void * callbackPtr) {
+	delete static_cast<MaxTimeline *>(callbackPtr);
+}
+
+void bmx_SteamAPI_ISteamTimeline_SetTimelineTooltip(
+	ISteamTimeline * instancePtr, BBString * description, float timeDelta) {
+	char * value = (char *)bbStringToUTF8String(description);
+	SteamAPI_ISteamTimeline_SetTimelineTooltip(instancePtr, value, timeDelta);
+	bbMemFree(value);
+}
+
+void bmx_SteamAPI_ISteamTimeline_ClearTimelineTooltip(ISteamTimeline * instancePtr, float timeDelta) {
+	SteamAPI_ISteamTimeline_ClearTimelineTooltip(instancePtr, timeDelta);
+}
+
+void bmx_SteamAPI_ISteamTimeline_SetTimelineGameMode(ISteamTimeline * instancePtr, ETimelineGameMode mode) {
+	SteamAPI_ISteamTimeline_SetTimelineGameMode(instancePtr, mode);
+}
+
+uint64 bmx_SteamAPI_ISteamTimeline_AddInstantaneousTimelineEvent(ISteamTimeline * instancePtr, BBString * title,
+	BBString * description, BBString * icon, uint32 iconPriority, float startOffsetSeconds,
+	ETimelineEventClipPriority clipPriority) {
+	char * nativeTitle = (char *)bbStringToUTF8String(title);
+	char * nativeDescription = (char *)bbStringToUTF8String(description);
+	char * nativeIcon = (char *)bbStringToUTF8String(icon);
+	uint64 result = SteamAPI_ISteamTimeline_AddInstantaneousTimelineEvent(instancePtr, nativeTitle,
+		nativeDescription, nativeIcon, iconPriority, startOffsetSeconds, clipPriority);
+	bbMemFree(nativeTitle);
+	bbMemFree(nativeDescription);
+	bbMemFree(nativeIcon);
+	return result;
+}
+
+uint64 bmx_SteamAPI_ISteamTimeline_AddRangeTimelineEvent(ISteamTimeline * instancePtr, BBString * title,
+	BBString * description, BBString * icon, uint32 iconPriority, float startOffsetSeconds, float duration,
+	ETimelineEventClipPriority clipPriority) {
+	char * nativeTitle = (char *)bbStringToUTF8String(title);
+	char * nativeDescription = (char *)bbStringToUTF8String(description);
+	char * nativeIcon = (char *)bbStringToUTF8String(icon);
+	uint64 result = SteamAPI_ISteamTimeline_AddRangeTimelineEvent(instancePtr, nativeTitle, nativeDescription,
+		nativeIcon, iconPriority, startOffsetSeconds, duration, clipPriority);
+	bbMemFree(nativeTitle);
+	bbMemFree(nativeDescription);
+	bbMemFree(nativeIcon);
+	return result;
+}
+
+uint64 bmx_SteamAPI_ISteamTimeline_StartRangeTimelineEvent(ISteamTimeline * instancePtr, BBString * title,
+	BBString * description, BBString * icon, uint32 priority, float startOffsetSeconds,
+	ETimelineEventClipPriority clipPriority) {
+	char * nativeTitle = (char *)bbStringToUTF8String(title);
+	char * nativeDescription = (char *)bbStringToUTF8String(description);
+	char * nativeIcon = (char *)bbStringToUTF8String(icon);
+	uint64 result = SteamAPI_ISteamTimeline_StartRangeTimelineEvent(instancePtr, nativeTitle, nativeDescription,
+		nativeIcon, priority, startOffsetSeconds, clipPriority);
+	bbMemFree(nativeTitle);
+	bbMemFree(nativeDescription);
+	bbMemFree(nativeIcon);
+	return result;
+}
+
+void bmx_SteamAPI_ISteamTimeline_UpdateRangeTimelineEvent(ISteamTimeline * instancePtr, uint64 eventHandle,
+	BBString * title, BBString * description, BBString * icon, uint32 priority,
+	ETimelineEventClipPriority clipPriority) {
+	char * nativeTitle = (char *)bbStringToUTF8String(title);
+	char * nativeDescription = (char *)bbStringToUTF8String(description);
+	char * nativeIcon = (char *)bbStringToUTF8String(icon);
+	SteamAPI_ISteamTimeline_UpdateRangeTimelineEvent(
+		instancePtr, eventHandle, nativeTitle, nativeDescription, nativeIcon, priority, clipPriority);
+	bbMemFree(nativeTitle);
+	bbMemFree(nativeDescription);
+	bbMemFree(nativeIcon);
+}
+
+void bmx_SteamAPI_ISteamTimeline_EndRangeTimelineEvent(
+	ISteamTimeline * instancePtr, uint64 eventHandle, float endOffsetSeconds) {
+	SteamAPI_ISteamTimeline_EndRangeTimelineEvent(instancePtr, eventHandle, endOffsetSeconds);
+}
+
+void bmx_SteamAPI_ISteamTimeline_RemoveTimelineEvent(ISteamTimeline * instancePtr, uint64 eventHandle) {
+	SteamAPI_ISteamTimeline_RemoveTimelineEvent(instancePtr, eventHandle);
+}
+
+uint64 bmx_SteamAPI_ISteamTimeline_DoesEventRecordingExist(MaxTimeline * timeline, uint64 eventHandle) {
+	return timeline->DoesEventRecordingExist(eventHandle);
+}
+
+void bmx_SteamAPI_ISteamTimeline_StartGamePhase(ISteamTimeline * instancePtr) {
+	SteamAPI_ISteamTimeline_StartGamePhase(instancePtr);
+}
+
+void bmx_SteamAPI_ISteamTimeline_EndGamePhase(ISteamTimeline * instancePtr) {
+	SteamAPI_ISteamTimeline_EndGamePhase(instancePtr);
+}
+
+void bmx_SteamAPI_ISteamTimeline_SetGamePhaseID(ISteamTimeline * instancePtr, BBString * phaseID) {
+	char * value = (char *)bbStringToUTF8String(phaseID);
+	SteamAPI_ISteamTimeline_SetGamePhaseID(instancePtr, value);
+	bbMemFree(value);
+}
+
+uint64 bmx_SteamAPI_ISteamTimeline_DoesGamePhaseRecordingExist(MaxTimeline * timeline, BBString * phaseID) {
+	char * value = (char *)bbStringToUTF8String(phaseID);
+	uint64 result = timeline->DoesGamePhaseRecordingExist(value);
+	bbMemFree(value);
+	return result;
+}
+
+void bmx_SteamAPI_ISteamTimeline_AddGamePhaseTag(ISteamTimeline * instancePtr, BBString * tagName,
+	BBString * tagIcon, BBString * tagGroup, uint32 priority) {
+	char * nativeName = (char *)bbStringToUTF8String(tagName);
+	char * nativeIcon = (char *)bbStringToUTF8String(tagIcon);
+	char * nativeGroup = (char *)bbStringToUTF8String(tagGroup);
+	SteamAPI_ISteamTimeline_AddGamePhaseTag(instancePtr, nativeName, nativeIcon, nativeGroup, priority);
+	bbMemFree(nativeName);
+	bbMemFree(nativeIcon);
+	bbMemFree(nativeGroup);
+}
+
+void bmx_SteamAPI_ISteamTimeline_SetGamePhaseAttribute(ISteamTimeline * instancePtr, BBString * attributeGroup,
+	BBString * attributeValue, uint32 priority) {
+	char * nativeGroup = (char *)bbStringToUTF8String(attributeGroup);
+	char * nativeValue = (char *)bbStringToUTF8String(attributeValue);
+	SteamAPI_ISteamTimeline_SetGamePhaseAttribute(instancePtr, nativeGroup, nativeValue, priority);
+	bbMemFree(nativeGroup);
+	bbMemFree(nativeValue);
+}
+
+void bmx_SteamAPI_ISteamTimeline_OpenOverlayToGamePhase(ISteamTimeline * instancePtr, BBString * phaseID) {
+	char * value = (char *)bbStringToUTF8String(phaseID);
+	SteamAPI_ISteamTimeline_OpenOverlayToGamePhase(instancePtr, value);
+	bbMemFree(value);
+}
+
+void bmx_SteamAPI_ISteamTimeline_OpenOverlayToTimelineEvent(ISteamTimeline * instancePtr, uint64 eventHandle) {
+	SteamAPI_ISteamTimeline_OpenOverlayToTimelineEvent(instancePtr, eventHandle);
 }
 
 // ISteamRemoteStorage ------------------------------------
@@ -1543,6 +1865,41 @@ int bmx_SteamAPI_ISteamApps_BIsTimedTrial(ISteamApps * instancePtr, uint32 * sec
 	return SteamAPI_ISteamApps_BIsTimedTrial(instancePtr, secondsAllowed, secondsPlayed);
 }
 
+int bmx_SteamAPI_ISteamApps_SetDlcContext(ISteamApps * instancePtr, uint32 appID) {
+	return SteamAPI_ISteamApps_SetDlcContext(instancePtr, appID);
+}
+
+int bmx_SteamAPI_ISteamApps_GetNumBetas(ISteamApps * instancePtr, int * available, int * privateBetas) {
+	return SteamAPI_ISteamApps_GetNumBetas(instancePtr, available, privateBetas);
+}
+
+int bmx_SteamAPI_ISteamApps_GetBetaInfo(ISteamApps * instancePtr, int index, uint32 * flags, uint32 * buildID,
+	BBString ** name, BBString ** description, uint32 * lastUpdated) {
+	char nameBuffer[BUFFER_SIZE] = {0};
+	char descriptionBuffer[BUFFER_SIZE] = {0};
+	bool result = SteamAPI_ISteamApps_GetBetaInfo(instancePtr, index, flags, buildID, nameBuffer, BUFFER_SIZE,
+		descriptionBuffer, BUFFER_SIZE, lastUpdated);
+	*name = bbStringFromUTF8String((unsigned char *)nameBuffer);
+	*description = bbStringFromUTF8String((unsigned char *)descriptionBuffer);
+	return result;
+}
+
+int bmx_SteamAPI_ISteamApps_SetActiveBeta(ISteamApps * instancePtr, BBString * name) {
+	char * value = (char *)bbStringToUTF8String(name);
+	bool result = SteamAPI_ISteamApps_SetActiveBeta(instancePtr, value);
+	bbMemFree(value);
+	return result;
+}
+
+void bmx_SteamAPI_ISteamApps_SetGamePerformanceSetting(
+	ISteamApps * instancePtr, EGamePerformanceSetting setting) {
+	SteamAPI_ISteamApps_SetGamePerformanceSetting(instancePtr, setting);
+}
+
+void bmx_SteamAPI_ISteamApps_SetGameRenderResolution(ISteamApps * instancePtr, uint32 width, uint32 height) {
+	SteamAPI_ISteamApps_SetGameRenderResolution(instancePtr, width, height);
+}
+
 class MaxUser
 {
 private:
@@ -1556,11 +1913,13 @@ private:
 public:
 	STEAM_CALLBACK(MaxUser, OnValidateAuthTicket, ValidateAuthTicketResponse_t, m_CallbackValidateAuthTicket);
 	STEAM_CALLBACK(MaxUser, OnGetAuthSessionTicket, GetAuthSessionTicketResponse_t, m_CallbackGetAuthSessionTicket);
+	STEAM_CALLBACK(MaxUser, OnGetTicketForWebApi, GetTicketForWebApiResponse_t, m_CallbackGetTicketForWebApi);
 
 	MaxUser(ISteamUser * instancePtr, BBObject * handle)
 		: instancePtr(instancePtr), maxHandle(handle),
 		  m_CallbackValidateAuthTicket(this, &MaxUser::OnValidateAuthTicket),
-		  m_CallbackGetAuthSessionTicket(this, &MaxUser::OnGetAuthSessionTicket) {
+		  m_CallbackGetAuthSessionTicket(this, &MaxUser::OnGetAuthSessionTicket),
+		  m_CallbackGetTicketForWebApi(this, &MaxUser::OnGetTicketForWebApi) {
 	}
 
 	void RequestEncryptedAppTicket(void * data, int size) {
@@ -1605,6 +1964,11 @@ void MaxUser::OnGetAuthSessionTicket(GetAuthSessionTicketResponse_t * result) {
 	steam_steamsdk_TSteamUser__OnGetAuthSessionTicket(maxHandle, result->m_hAuthTicket, result->m_eResult);
 }
 
+void MaxUser::OnGetTicketForWebApi(GetTicketForWebApiResponse_t * result) {
+	steam_steamsdk_TSteamUser__OnGetTicketForWebApi(
+		maxHandle, result->m_hAuthTicket, result->m_eResult, result->m_rgubTicket, result->m_cubTicket);
+}
+
 void * bmx_steamsdk_register_steamuser(ISteamUser * instancePtr, BBObject * obj) {
 	return new MaxUser(instancePtr, obj);
 }
@@ -1644,7 +2008,14 @@ uint32 bmx_SteamAPI_ISteamUser_GetVoiceOptimalSampleRate(ISteamUser * instancePt
 }
 uint32 bmx_SteamAPI_ISteamUser_GetAuthSessionTicket(
 	ISteamUser * instancePtr, void * ticket, int capacity, uint32 * ticketSize) {
-	return SteamAPI_ISteamUser_GetAuthSessionTicket(instancePtr, ticket, capacity, ticketSize);
+	return SteamAPI_ISteamUser_GetAuthSessionTicket(instancePtr, ticket, capacity, ticketSize, nullptr);
+}
+
+uint32 bmx_SteamAPI_ISteamUser_GetAuthTicketForWebApi(ISteamUser * instancePtr, BBString * identity) {
+	char * value = (char *)bbStringToUTF8String(identity);
+	uint32 result = SteamAPI_ISteamUser_GetAuthTicketForWebApi(instancePtr, value);
+	bbMemFree(value);
+	return result;
 }
 EBeginAuthSessionResult bmx_SteamAPI_ISteamUser_BeginAuthSession(
 	ISteamUser * instancePtr, const void * ticket, int ticketSize, uint64 steamID) {
@@ -2072,10 +2443,6 @@ void * bmx_steamsdk_register_steamuserstats(ISteamUserStats * instancePtr, BBObj
 
 void bmx_steamsdk_unregister_steamuserstats(void * callbackPtr) {
 	delete static_cast<MaxUserStats *>(callbackPtr);
-}
-
-int bmx_SteamAPI_ISteamUserStats_RequestCurrentStats(ISteamUserStats * instancePtr) {
-	return SteamAPI_ISteamUserStats_RequestCurrentStats(instancePtr);
 }
 
 void bmx_SteamAPI_ISteamUserStats_GetNumberOfCurrentPlayers(MaxUserStats * userStats) {
@@ -2883,8 +3250,8 @@ EItemUpdateStatus bmx_SteamAPI_ISteamUGC_GetItemUpdateProgress(
 	return SteamAPI_ISteamUGC_GetItemUpdateProgress(instancePtr, queryHandle, bytesProcessed, bytesTotal);
 }
 
-uint32 bmx_SteamAPI_ISteamUGC_GetNumSubscribedItems(ISteamUGC * instancePtr) {
-	return SteamAPI_ISteamUGC_GetNumSubscribedItems(instancePtr);
+uint32 bmx_SteamAPI_ISteamUGC_GetNumSubscribedItems(ISteamUGC * instancePtr, int includeLocallyDisabled) {
+	return SteamAPI_ISteamUGC_GetNumSubscribedItems(instancePtr, includeLocallyDisabled);
 }
 
 int bmx_SteamAPI_ISteamUGC_GetQueryUGCAdditionalPreview(ISteamUGC * instancePtr, uint64 queryHandle, uint32 index,
@@ -2945,8 +3312,83 @@ int bmx_SteamAPI_ISteamUGC_GetQueryUGCStatistic(
 }
 
 uint32 bmx_SteamAPI_ISteamUGC_GetSubscribedItems(
+	ISteamUGC * instancePtr, uint64 * publishedFileIDs, uint32 maxEntries, int includeLocallyDisabled) {
+	return SteamAPI_ISteamUGC_GetSubscribedItems(
+		instancePtr, publishedFileIDs, maxEntries, includeLocallyDisabled);
+}
+
+uint32 bmx_SteamAPI_ISteamUGC_GetNumSupportedGameVersions(
+	ISteamUGC * instancePtr, uint64 queryHandle, uint32 index) {
+	return SteamAPI_ISteamUGC_GetNumSupportedGameVersions(instancePtr, queryHandle, index);
+}
+
+int bmx_SteamAPI_ISteamUGC_GetSupportedGameVersionData(ISteamUGC * instancePtr, uint64 queryHandle,
+	uint32 index, uint32 versionIndex, BBString ** minimum, BBString ** maximum) {
+	char minimumBuffer[BUFFER_SIZE] = {0};
+	char maximumBuffer[BUFFER_SIZE] = {0};
+	bool result = SteamAPI_ISteamUGC_GetSupportedGameVersionData(instancePtr, queryHandle, index, versionIndex,
+		minimumBuffer, maximumBuffer, BUFFER_SIZE);
+	*minimum = bbStringFromUTF8String((unsigned char *)minimumBuffer);
+	*maximum = bbStringFromUTF8String((unsigned char *)maximumBuffer);
+	return result;
+}
+
+uint32 bmx_SteamAPI_ISteamUGC_GetQueryUGCContentDescriptors(ISteamUGC * instancePtr, uint64 queryHandle,
+	uint32 index, EUGCContentDescriptorID * descriptors, uint32 maxEntries) {
+	return SteamAPI_ISteamUGC_GetQueryUGCContentDescriptors(
+		instancePtr, queryHandle, index, descriptors, maxEntries);
+}
+
+int bmx_SteamAPI_ISteamUGC_SetAdminQuery(ISteamUGC * instancePtr, uint64 queryHandle, int adminQuery) {
+	return SteamAPI_ISteamUGC_SetAdminQuery(instancePtr, queryHandle, adminQuery);
+}
+
+int bmx_SteamAPI_ISteamUGC_AddContentDescriptor(
+	ISteamUGC * instancePtr, uint64 updateHandle, EUGCContentDescriptorID descriptor) {
+	return SteamAPI_ISteamUGC_AddContentDescriptor(instancePtr, updateHandle, descriptor);
+}
+
+int bmx_SteamAPI_ISteamUGC_RemoveContentDescriptor(
+	ISteamUGC * instancePtr, uint64 updateHandle, EUGCContentDescriptorID descriptor) {
+	return SteamAPI_ISteamUGC_RemoveContentDescriptor(instancePtr, updateHandle, descriptor);
+}
+
+int bmx_SteamAPI_ISteamUGC_SetRequiredGameVersions(
+	ISteamUGC * instancePtr, uint64 updateHandle, BBString * minimum, BBString * maximum) {
+	char * minValue = (char *)bbStringToUTF8String(minimum);
+	char * maxValue = (char *)bbStringToUTF8String(maximum);
+	bool result = SteamAPI_ISteamUGC_SetRequiredGameVersions(instancePtr, updateHandle, minValue, maxValue);
+	bbMemFree(maxValue);
+	bbMemFree(minValue);
+	return result;
+}
+
+uint32 bmx_SteamAPI_ISteamUGC_GetUserContentDescriptorPreferences(
+	ISteamUGC * instancePtr, EUGCContentDescriptorID * descriptors, uint32 maxEntries) {
+	return SteamAPI_ISteamUGC_GetUserContentDescriptorPreferences(instancePtr, descriptors, maxEntries);
+}
+
+int bmx_SteamAPI_ISteamUGC_SetItemsDisabledLocally(
+	ISteamUGC * instancePtr, uint64 * publishedFileIDs, uint32 count, int disabled) {
+	return SteamAPI_ISteamUGC_SetItemsDisabledLocally(instancePtr, publishedFileIDs, count, disabled);
+}
+
+int bmx_SteamAPI_ISteamUGC_SetSubscriptionsLoadOrder(
+	ISteamUGC * instancePtr, uint64 * publishedFileIDs, uint32 count) {
+	return SteamAPI_ISteamUGC_SetSubscriptionsLoadOrder(instancePtr, publishedFileIDs, count);
+}
+
+int bmx_SteamAPI_ISteamUGC_MarkDownloadedItemAsUnused(ISteamUGC * instancePtr, uint64 publishedFileID) {
+	return SteamAPI_ISteamUGC_MarkDownloadedItemAsUnused(instancePtr, publishedFileID);
+}
+
+uint32 bmx_SteamAPI_ISteamUGC_GetNumDownloadedItems(ISteamUGC * instancePtr) {
+	return SteamAPI_ISteamUGC_GetNumDownloadedItems(instancePtr);
+}
+
+uint32 bmx_SteamAPI_ISteamUGC_GetDownloadedItems(
 	ISteamUGC * instancePtr, uint64 * publishedFileIDs, uint32 maxEntries) {
-	return SteamAPI_ISteamUGC_GetSubscribedItems(instancePtr, publishedFileIDs, maxEntries);
+	return SteamAPI_ISteamUGC_GetDownloadedItems(instancePtr, publishedFileIDs, maxEntries);
 }
 
 void bmx_SteamAPI_ISteamUGC_GetUserItemVote(MaxUGC * ugc, uint64 publishedFileID) {
@@ -3024,7 +3466,8 @@ int bmx_SteamAPI_ISteamUGC_SetItemPreview(ISteamUGC * instancePtr, uint64 update
 	return res;
 }
 
-int bmx_SteamAPI_ISteamUGC_SetItemTags(ISteamUGC * instancePtr, uint64 updateHandle, BBArray * tags) {
+int bmx_SteamAPI_ISteamUGC_SetItemTags(
+	ISteamUGC * instancePtr, uint64 updateHandle, BBArray * tags, int allowAdminTags) {
 	int n = tags->scales[0];
 	BBString ** s = (BBString **)BBARRAYDATA(tags, tags->dims);
 
@@ -3036,7 +3479,7 @@ int bmx_SteamAPI_ISteamUGC_SetItemTags(ISteamUGC * instancePtr, uint64 updateHan
 		array.m_ppStrings[i] = (char *)bbStringToUTF8String(s[i]);
 	}
 
-	bool res = SteamAPI_ISteamUGC_SetItemTags(instancePtr, updateHandle, &array);
+	bool res = SteamAPI_ISteamUGC_SetItemTags(instancePtr, updateHandle, &array, allowAdminTags);
 
 	for (int i = 0; i < n; i++) {
 		bbMemFree((char *)array.m_ppStrings[i]);
@@ -3196,7 +3639,7 @@ private:
 	CCallResult<MaxFriends, GameConnectedChatJoin_t> m_GameConnectedChatJoinCallResult;
 	CCallResult<MaxFriends, GameConnectedClanChatMsg_t> m_GameConnectedClanChatMsgCallResult;
 	CCallResult<MaxFriends, JoinClanChatRoomCompletionResult_t> m_JoinClanChatRoomCompletionCallResult;
-	CCallResult<MaxFriends, SetPersonaNameResponse_t> m_SetPersonaNameResponseCallResult;
+	CCallResult<MaxFriends, EquippedProfileItems_t> m_EquippedProfileItemsCallResult;
 
 public:
 	STEAM_CALLBACK(MaxFriends, OnAvatarImageLoaded, AvatarImageLoaded_t, m_CallbackAvatarImageLoaded);
@@ -3212,6 +3655,7 @@ public:
 	STEAM_CALLBACK(
 		MaxFriends, OnGameServerChangeRequested, GameServerChangeRequested_t, m_CallbackGameServerChangeRequested);
 	STEAM_CALLBACK(MaxFriends, OnPersonaStateChanged, PersonaStateChange_t, m_CallbackPersonaStateChanged);
+	STEAM_CALLBACK(MaxFriends, OnEquippedProfileItemsChanged, EquippedProfileItemsChanged_t, m_CallbackEquippedProfileItemsChanged);
 
 	MaxFriends(ISteamFriends * instancePtr, BBObject * handle);
 	~MaxFriends() = default;
@@ -3223,7 +3667,7 @@ public:
 	void GetFollowerCount(uint64 steamID);
 	void IsFollowing(uint64 steamID);
 	void JoinClanChatRoom(uint64 steamIDClan);
-	void SetPersonaName(char * personaName);
+	void RequestEquippedProfileItems(uint64 steamID);
 
 	// Callbacks
 	void OnClanOfficerList(ClanOfficerListResponse_t * result, bool failure);
@@ -3234,7 +3678,7 @@ public:
 	void OnGameConnectedChatJoined(GameConnectedChatJoin_t * result, bool failure);
 	void OnGameConnectedClanChatMsg(GameConnectedClanChatMsg_t * result, bool failure);
 	void OnJoinClanChatRoomCompletion(JoinClanChatRoomCompletionResult_t * result, bool failure);
-	void OnSetPersonaName(SetPersonaNameResponse_t * result, bool failure);
+	void OnEquippedProfileItems(EquippedProfileItems_t * result, bool failure);
 };
 
 MaxFriends::MaxFriends(ISteamFriends * instancePtr, BBObject * handle)
@@ -3246,7 +3690,8 @@ MaxFriends::MaxFriends(ISteamFriends * instancePtr, BBObject * handle)
 	  m_CallbackGameOverlayActivated(this, &MaxFriends::OnGameOverlayActivated),
 	  m_CallbackGameRichPresenceJoinRequested(this, &MaxFriends::OnGameRichPresenceJoinRequested),
 	  m_CallbackGameServerChangeRequested(this, &MaxFriends::OnGameServerChangeRequested),
-	  m_CallbackPersonaStateChanged(this, &MaxFriends::OnPersonaStateChanged) {
+	  m_CallbackPersonaStateChanged(this, &MaxFriends::OnPersonaStateChanged),
+	  m_CallbackEquippedProfileItemsChanged(this, &MaxFriends::OnEquippedProfileItemsChanged) {
 }
 
 void MaxFriends::OnAvatarImageLoaded(AvatarImageLoaded_t * result) {
@@ -3328,9 +3773,20 @@ void MaxFriends::JoinClanChatRoom(uint64 steamIDClan) {
 	m_GameConnectedClanChatMsgCallResult.Set(apiCall, this, &MaxFriends::OnGameConnectedClanChatMsg);
 }
 
-void MaxFriends::SetPersonaName(char * personaName) {
-	SteamAPICall_t apiCall = SteamFriends()->SetPersonaName(personaName);
-	m_SetPersonaNameResponseCallResult.Set(apiCall, this, &MaxFriends::OnSetPersonaName);
+void MaxFriends::RequestEquippedProfileItems(uint64 steamID) {
+	SteamAPICall_t apiCall = SteamFriends()->RequestEquippedProfileItems(steamID);
+	m_EquippedProfileItemsCallResult.Set(apiCall, this, &MaxFriends::OnEquippedProfileItems);
+}
+
+void MaxFriends::OnEquippedProfileItemsChanged(EquippedProfileItemsChanged_t * result) {
+	steam_steamsdk_TSteamFriends__OnEquippedProfileItemsChanged(maxHandle, result->m_steamID.ConvertToUint64());
+}
+
+void MaxFriends::OnEquippedProfileItems(EquippedProfileItems_t * result, bool failure) {
+	steam_steamsdk_TSteamFriends__OnEquippedProfileItems(maxHandle, result->m_eResult,
+		result->m_steamID.ConvertToUint64(), result->m_bHasAnimatedAvatar, result->m_bHasAvatarFrame,
+		result->m_bHasProfileModifier, result->m_bHasProfileBackground, result->m_bHasMiniProfileBackground,
+		result->m_bFromCache);
 }
 
 void MaxFriends::OnClanOfficerList(ClanOfficerListResponse_t * result, bool failure) {
@@ -3370,11 +3826,6 @@ void MaxFriends::OnGameConnectedClanChatMsg(GameConnectedClanChatMsg_t * result,
 void MaxFriends::OnJoinClanChatRoomCompletion(JoinClanChatRoomCompletionResult_t * result, bool failure) {
 	steam_steamsdk_TSteamFriends__OnJoinClanChatRoomCompletion(
 		maxHandle, result->m_steamIDClanChat.ConvertToUint64(), result->m_eChatRoomEnterResponse);
-}
-
-void MaxFriends::OnSetPersonaName(SetPersonaNameResponse_t * result, bool failure) {
-	steam_steamsdk_TSteamFriends__OnSetPersonaName(
-		maxHandle, result->m_result, result->m_bSuccess, result->m_bLocalSuccess);
 }
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -3703,10 +4154,6 @@ int bmx_SteamAPI_ISteamFriends_GetSmallFriendAvatar(ISteamFriends * instancePtr,
 	return SteamAPI_ISteamFriends_GetSmallFriendAvatar(instancePtr, steamIDFriend);
 }
 
-uint32 bmx_SteamAPI_ISteamFriends_GetUserRestrictions(ISteamFriends * instancePtr) {
-	return SteamAPI_ISteamFriends_GetUserRestrictions(instancePtr);
-}
-
 int bmx_SteamAPI_ISteamFriends_HasFriend(ISteamFriends * instancePtr, uint64 steamIDFriend, int friendFlags) {
 	return SteamAPI_ISteamFriends_HasFriend(instancePtr, steamIDFriend, friendFlags);
 }
@@ -3793,12 +4240,6 @@ int bmx_SteamAPI_ISteamFriends_SetListenForFriendsMessages(ISteamFriends * insta
 	return SteamAPI_ISteamFriends_SetListenForFriendsMessages(instancePtr, interceptEnabled);
 }
 
-void bmx_SteamAPI_ISteamFriends_SetPersonaName(MaxFriends * friends, BBString * personaName) {
-	char * n = (char *)bbStringToUTF8String(personaName);
-	friends->SetPersonaName(n);
-	bbMemFree(n);
-}
-
 void bmx_SteamAPI_ISteamFriends_SetPlayedWith(ISteamFriends * instancePtr, uint64 steamIDUserPlayedWith) {
 	SteamAPI_ISteamFriends_SetPlayedWith(instancePtr, steamIDUserPlayedWith);
 }
@@ -3810,6 +4251,26 @@ int bmx_SteamAPI_ISteamFriends_SetRichPresence(ISteamFriends * instancePtr, BBSt
 	bbMemFree(v);
 	bbMemFree(k);
 	return res;
+}
+
+void bmx_SteamAPI_ISteamFriends_RequestEquippedProfileItems(MaxFriends * friends, uint64 steamID) {
+	friends->RequestEquippedProfileItems(steamID);
+}
+
+int bmx_SteamAPI_ISteamFriends_BHasEquippedProfileItem(
+	ISteamFriends * instancePtr, uint64 steamID, ECommunityProfileItemType itemType) {
+	return SteamAPI_ISteamFriends_BHasEquippedProfileItem(instancePtr, steamID, itemType);
+}
+
+BBString * bmx_SteamAPI_ISteamFriends_GetProfileItemPropertyString(ISteamFriends * instancePtr, uint64 steamID,
+	ECommunityProfileItemType itemType, ECommunityProfileItemProperty property) {
+	const char * value = SteamAPI_ISteamFriends_GetProfileItemPropertyString(instancePtr, steamID, itemType, property);
+	return bbStringFromUTF8String((const unsigned char *)value);
+}
+
+uint32 bmx_SteamAPI_ISteamFriends_GetProfileItemPropertyUint(ISteamFriends * instancePtr, uint64 steamID,
+	ECommunityProfileItemType itemType, ECommunityProfileItemProperty property) {
+	return SteamAPI_ISteamFriends_GetProfileItemPropertyUint(instancePtr, steamID, itemType, property);
 }
 
 // ISteamMatchmaking ---------------------------------------
@@ -4022,8 +4483,16 @@ ESteamIPv6ConnectivityState bmx_SteamAPI_ISteamUtils_GetIPv6ConnectivityState(
 	ISteamUtils * instancePtr, ESteamIPv6ConnectivityProtocol protocol) {
 	return SteamAPI_ISteamUtils_GetIPv6ConnectivityState(instancePtr, protocol);
 }
-int bmx_SteamAPI_ISteamUtils_IsSteamRunningOnSteamDeck(ISteamUtils * instancePtr) {
-	return SteamAPI_ISteamUtils_IsSteamRunningOnSteamDeck(instancePtr);
+ESteamHardwareType bmx_SteamAPI_ISteamUtils_IsRunningOnSteamHardware(ISteamUtils * instancePtr) {
+	return SteamAPI_ISteamUtils_IsRunningOnSteamHardware(instancePtr);
+}
+
+ESteamHardwareDefaultConfig bmx_SteamAPI_ISteamUtils_GetSteamHardwareDefaultConfig(ISteamUtils * instancePtr) {
+	return SteamAPI_ISteamUtils_GetSteamHardwareDefaultConfig(instancePtr);
+}
+
+int bmx_SteamAPI_ISteamUtils_IsRunningUnderProton(ISteamUtils * instancePtr) {
+	return SteamAPI_ISteamUtils_IsRunningUnderProton(instancePtr);
 }
 int bmx_SteamAPI_ISteamUtils_ShowFloatingGamepadTextInput(
 	ISteamUtils * instancePtr, EFloatingGamepadTextInputMode keyboardMode, int x, int y, int width, int height) {
@@ -4031,6 +4500,10 @@ int bmx_SteamAPI_ISteamUtils_ShowFloatingGamepadTextInput(
 }
 int bmx_SteamAPI_ISteamUtils_DismissFloatingGamepadTextInput(ISteamUtils * instancePtr) {
 	return SteamAPI_ISteamUtils_DismissFloatingGamepadTextInput(instancePtr);
+}
+
+int bmx_SteamAPI_ISteamUtils_DismissGamepadTextInput(ISteamUtils * instancePtr) {
+	return SteamAPI_ISteamUtils_DismissGamepadTextInput(instancePtr);
 }
 void bmx_SteamAPI_ISteamUtils_SetGameLauncherMode(ISteamUtils * instancePtr, int launcherMode) {
 	SteamAPI_ISteamUtils_SetGameLauncherMode(instancePtr, launcherMode);
