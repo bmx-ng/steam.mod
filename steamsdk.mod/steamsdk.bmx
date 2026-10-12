@@ -1112,10 +1112,10 @@ bbdoc: Provides an interface to a steam instance.
 End Rem
 Type TSteamClient Extends TSteamAPI
 
-	Const STEAMCLIENT_INTERFACE_VERSION:String = "SteamClient018"
+	Const STEAMCLIENT_INTERFACE_VERSION:String = "SteamClient020"
 
 	Method New()
-		instancePtr = bmx_SteamInternal_CreateInterface(STEAMCLIENT_INTERFACE_VERSION)
+		instancePtr = bmx_SteamAPI_SteamClient()
 
 		If Not _user Then
 			_user = bmx_SteamAPI_ISteamClient_ConnectToGlobalUser(instancePtr, _steamPipe)
@@ -1126,49 +1126,49 @@ Type TSteamClient Extends TSteamAPI
 	bbdoc: Returns a new instance of #TSteamUtils.
 	End Rem
 	Method GetISteamUtils:TSteamUtils()
-		Return TSteamUtils._create(bmx_SteamAPI_ISteamClient_GetISteamUtils(instancePtr, _steamPipe, TSteamUtils.STEAMUTILS_INTERFACE_VERSION))
+		Return TSteamUtils._create(bmx_SteamAPI_ISteamClient_GetISteamUtils(instancePtr, _steamPipe))
 	End Method
 	
 	Rem
 	bbdoc: Returns a new instance of #TSteamUserStats.
 	End Rem
 	Method GetISteamUserStats:TSteamUserStats()
-		Return TSteamUserStats._create(bmx_SteamAPI_ISteamClient_GetISteamUserStats(instancePtr, _user, _steamPipe, TSteamUserStats.STEAMUSERSTATS_INTERFACE_VERSION))
+		Return TSteamUserStats._create(bmx_SteamAPI_ISteamClient_GetISteamUserStats(instancePtr, _user, _steamPipe))
 	End Method
 
 	Rem
 	bbdoc: Returns a new instance of #TSteamUGC.
 	End Rem
 	Method GetISteamUGC:TSteamUGC()
-		Return TSteamUGC._create(bmx_SteamAPI_ISteamClient_GetISteamUGC(instancePtr, _user, _steamPipe, TSteamUGC.STEAMUGC_INTERFACE_VERSION))
+		Return TSteamUGC._create(bmx_SteamAPI_ISteamClient_GetISteamUGC(instancePtr, _user, _steamPipe))
 	End Method
 
 	Rem
 	bbdoc: Returns a new instance of #TSteamFriends.
 	End Rem
 	Method GetISteamFriends:TSteamFriends()
-		Return TSteamFriends._create(bmx_SteamAPI_ISteamClient_GetISteamFriends(instancePtr, _user, _steamPipe, TSteamFriends.STEAMFRIENDS_INTERFACE_VERSION))
+		Return TSteamFriends._create(bmx_SteamAPI_ISteamClient_GetISteamFriends(instancePtr, _user, _steamPipe))
 	End Method
 
 	Rem
 	bbdoc: Returns the local Steam user interface.
 	End Rem
 	Method GetISteamUser:TSteamUser()
-		Return TSteamUser._create(bmx_SteamAPI_ISteamClient_GetISteamUser(instancePtr, _user, _steamPipe, TSteamUser.STEAMUSER_INTERFACE_VERSION))
+		Return TSteamUser._create(bmx_SteamAPI_ISteamClient_GetISteamUser(instancePtr, _user, _steamPipe))
 	End Method
 
 	Rem
 	bbdoc: Returns the Steam lobby matchmaking interface.
 	End Rem
 	Method GetISteamMatchmaking:TSteamMatchmaking()
-		Return TSteamMatchmaking._create(bmx_SteamAPI_ISteamClient_GetISteamMatchmaking(instancePtr, _user, _steamPipe, TSteamMatchmaking.STEAMMATCHMAKING_INTERFACE_VERSION))
+		Return TSteamMatchmaking._create(bmx_SteamAPI_ISteamClient_GetISteamMatchmaking(instancePtr, _user, _steamPipe))
 	End Method
 
 	Rem
 	bbdoc: Returns the Steam application information interface.
 	End Rem
 	Method GetISteamApps:TSteamApps()
-		Return TSteamApps._create(bmx_SteamAPI_ISteamClient_GetISteamApps(instancePtr, _user, _steamPipe, TSteamApps.STEAMAPPS_INTERFACE_VERSION))
+		Return TSteamApps._create(bmx_SteamAPI_ISteamClient_GetISteamApps(instancePtr, _user, _steamPipe))
 	End Method
 	
 End Type
@@ -1203,7 +1203,7 @@ bbdoc: Provides access to a range of miscellaneous utility functions.
 End Rem
 Type TSteamUtils Extends TSteamAPI
 
-	Const STEAMUTILS_INTERFACE_VERSION:String = "SteamUtils009"
+	Const STEAMUTILS_INTERFACE_VERSION:String = "SteamUtils010"
 
 	Field listener:ISteamUtilsListener
 
@@ -1606,7 +1606,7 @@ bbdoc: Provides methods for accessing and submitting stats, achievements, and le
 End Rem
 Type TSteamUserStats Extends TSteamAPI
 
-	Const STEAMUSERSTATS_INTERFACE_VERSION:String = "STEAMUSERSTATS_INTERFACE_VERSION011"
+	Const STEAMUSERSTATS_INTERFACE_VERSION:String = "STEAMUSERSTATS_INTERFACE_VERSION012"
 	
 	Field listener:ISteamUserStatsListener
 	
@@ -2743,7 +2743,7 @@ The majority of #TSteamUGC methods return boolean values. For additional informa
 End Rem
 Type TSteamUGC Extends TSteamAPI
 
-	Const STEAMUGC_INTERFACE_VERSION:String = "STEAMUGC_INTERFACE_VERSION012"
+	Const STEAMUGC_INTERFACE_VERSION:String = "STEAMUGC_INTERFACE_VERSION016"
 
 	Field listener:ISteamUGCListener
 

@@ -136,19 +136,19 @@ extern "C" {
 		
 	HSteamPipe bmx_SteamAPI_GetHSteamPipe();
 
-	void * bmx_SteamInternal_CreateInterface(BBString * version);
+	void * bmx_SteamAPI_SteamClient();
 
 	void *  bmx_steamsdk_register_steamutils(ISteamUtils* instancePtr, BBObject * obj);
 	void bmx_steamsdk_unregister_steamutils(void * callbackPtr);
 
-	void * bmx_SteamAPI_ISteamClient_GetISteamUtils(ISteamClient* instancePtr, HSteamPipe pipe, BBString * version);
+	void * bmx_SteamAPI_ISteamClient_GetISteamUtils(ISteamClient* instancePtr, HSteamPipe pipe);
 	HSteamUser bmx_SteamAPI_ISteamClient_ConnectToGlobalUser(ISteamClient* instancePtr, HSteamPipe pipe);
-	void * bmx_SteamAPI_ISteamClient_GetISteamUserStats(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe, BBString * version);
-	void * bmx_SteamAPI_ISteamClient_GetISteamUGC(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe, BBString * version);
-	void * bmx_SteamAPI_ISteamClient_GetISteamFriends(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe, BBString * version);
-	void * bmx_SteamAPI_ISteamClient_GetISteamUser(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe, BBString * version);
-	void * bmx_SteamAPI_ISteamClient_GetISteamMatchmaking(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe, BBString * version);
-	void * bmx_SteamAPI_ISteamClient_GetISteamApps(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe, BBString * version);
+	void * bmx_SteamAPI_ISteamClient_GetISteamUserStats(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe);
+	void * bmx_SteamAPI_ISteamClient_GetISteamUGC(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe);
+	void * bmx_SteamAPI_ISteamClient_GetISteamFriends(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe);
+	void * bmx_SteamAPI_ISteamClient_GetISteamUser(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe);
+	void * bmx_SteamAPI_ISteamClient_GetISteamMatchmaking(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe);
+	void * bmx_SteamAPI_ISteamClient_GetISteamApps(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe);
 	int bmx_SteamAPI_ISteamUser_BLoggedOn(ISteamUser* instancePtr);
 	uint64 bmx_SteamAPI_ISteamUser_GetSteamID(ISteamUser* instancePtr);
 	void * bmx_steamsdk_register_steamuser(ISteamUser* instancePtr, BBObject * obj);
@@ -531,11 +531,8 @@ HSteamPipe bmx_SteamAPI_GetHSteamPipe() {
 	return SteamAPI_GetHSteamPipe();
 }
 
-void * bmx_SteamInternal_CreateInterface(BBString * version) {
-	char * v = (char*)bbStringToUTF8String(version);
-	void * inst = SteamInternal_CreateInterface(v);
-	bbMemFree(v);
-	return inst;
+void * bmx_SteamAPI_SteamClient() {
+	return SteamInternal_CreateInterface(STEAMCLIENT_INTERFACE_VERSION);
 }
 
 void bmx_SteamAPI_RunCallbacks() {
@@ -606,57 +603,36 @@ void bmx_SteamAPI_stopBackgroundTimer() {
 
 // ISteamClient -------------------------------------------
 
-void * bmx_SteamAPI_ISteamClient_GetISteamUtils(ISteamClient* instancePtr, HSteamPipe pipe, BBString * version) {
-	char * v = (char*)bbStringToUTF8String(version);
-	void * inst = SteamAPI_ISteamClient_GetISteamUtils(instancePtr, pipe, v);
-	bbMemFree(v);
-	return inst;
+void * bmx_SteamAPI_ISteamClient_GetISteamUtils(ISteamClient* instancePtr, HSteamPipe pipe) {
+	return SteamAPI_ISteamClient_GetISteamUtils(instancePtr, pipe, STEAMUTILS_INTERFACE_VERSION);
 }
 
 HSteamUser bmx_SteamAPI_ISteamClient_ConnectToGlobalUser(ISteamClient* instancePtr, HSteamPipe pipe) {
 	return SteamAPI_ISteamClient_ConnectToGlobalUser(instancePtr, pipe);
 }
 
-void * bmx_SteamAPI_ISteamClient_GetISteamUserStats(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe, BBString * version) {
-	char * v = (char*)bbStringToUTF8String(version);
-	void * inst = SteamAPI_ISteamClient_GetISteamUserStats(instancePtr, user, pipe, v);
-	bbMemFree(v);
-	return inst;
+void * bmx_SteamAPI_ISteamClient_GetISteamUserStats(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe) {
+	return SteamAPI_ISteamClient_GetISteamUserStats(instancePtr, user, pipe, STEAMUSERSTATS_INTERFACE_VERSION);
 }
 
-void * bmx_SteamAPI_ISteamClient_GetISteamUGC(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe, BBString * version) {
-	char * v = (char*)bbStringToUTF8String(version);
-	void * inst = SteamAPI_ISteamClient_GetISteamUGC(instancePtr, user, pipe, v);
-	bbMemFree(v);
-	return inst;
+void * bmx_SteamAPI_ISteamClient_GetISteamUGC(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe) {
+	return SteamAPI_ISteamClient_GetISteamUGC(instancePtr, user, pipe, STEAMUGC_INTERFACE_VERSION);
 }
 
-void * bmx_SteamAPI_ISteamClient_GetISteamFriends(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe, BBString * version) {
-	char * v = (char*)bbStringToUTF8String(version);
-	void * inst = SteamAPI_ISteamClient_GetISteamFriends(instancePtr, user, pipe, v);
-	bbMemFree(v);
-	return inst;
+void * bmx_SteamAPI_ISteamClient_GetISteamFriends(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe) {
+	return SteamAPI_ISteamClient_GetISteamFriends(instancePtr, user, pipe, STEAMFRIENDS_INTERFACE_VERSION);
 }
 
-void * bmx_SteamAPI_ISteamClient_GetISteamUser(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe, BBString * version) {
-	char * v = (char*)bbStringToUTF8String(version);
-	void * inst = SteamAPI_ISteamClient_GetISteamUser(instancePtr, user, pipe, v);
-	bbMemFree(v);
-	return inst;
+void * bmx_SteamAPI_ISteamClient_GetISteamUser(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe) {
+	return SteamAPI_ISteamClient_GetISteamUser(instancePtr, user, pipe, STEAMUSER_INTERFACE_VERSION);
 }
 
-void * bmx_SteamAPI_ISteamClient_GetISteamMatchmaking(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe, BBString * version) {
-	char * v = (char*)bbStringToUTF8String(version);
-	void * inst = SteamAPI_ISteamClient_GetISteamMatchmaking(instancePtr, user, pipe, v);
-	bbMemFree(v);
-	return inst;
+void * bmx_SteamAPI_ISteamClient_GetISteamMatchmaking(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe) {
+	return SteamAPI_ISteamClient_GetISteamMatchmaking(instancePtr, user, pipe, STEAMMATCHMAKING_INTERFACE_VERSION);
 }
 
-void * bmx_SteamAPI_ISteamClient_GetISteamApps(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe, BBString * version) {
-	char * v = (char*)bbStringToUTF8String(version);
-	void * inst = SteamAPI_ISteamClient_GetISteamApps(instancePtr, user, pipe, v);
-	bbMemFree(v);
-	return inst;
+void * bmx_SteamAPI_ISteamClient_GetISteamApps(ISteamClient* instancePtr, HSteamUser user, HSteamPipe pipe) {
+	return SteamAPI_ISteamClient_GetISteamApps(instancePtr, user, pipe, STEAMAPPS_INTERFACE_VERSION);
 }
 
 BBString * bmx_SteamAPI_ISteamApps_GetLaunchCommandLine(ISteamApps* instancePtr) {

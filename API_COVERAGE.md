@@ -3,6 +3,11 @@
 This module wraps selected Steamworks interface families rather than presenting
 the entire SDK as one undifferentiated API. The list below describes the bundled
 Steamworks SDK (1.53a); a future SDK update may add more methods or interfaces.
+The native bridge obtains interfaces using the version macros from the bundled
+SDK headers, rather than duplicating those strings in bridge calls. The public
+constants mirror those header versions for reference. When the SDK is updated,
+the affected interfaces still need review because Steam interfaces are
+versioned ABI contracts.
 
 ## Covered interface families
 
