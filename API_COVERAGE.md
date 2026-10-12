@@ -27,6 +27,12 @@ versioned ABI contracts.
   acceptance and closure, failure callbacks, and connection diagnostics. The
   wrapper's `ReceiveMessage` consumes one native message safely rather than
   exposing Steam-owned message pointers.
+- `ISteamRemoteStorage`: synchronous and asynchronous Steam Cloud reads and
+  writes, streamed writes, file enumeration and metadata, quota and enablement
+  state, platform sync selection, synchronized-change inspection, and related
+  write batching. Asynchronous writes retain their own data and concurrent
+  operations have independent call-result ownership. Legacy Workshop calls are
+  omitted in favour of `ISteamUGC`.
 - `ISteamUserStats`: achievements, local and remote stats, global stats,
   leaderboards, downloaded entries, progress limits, attached UGC, and callbacks.
 - `ISteamUtils`: application/platform information, images, overlay and text
@@ -44,7 +50,6 @@ versioned ABI contracts.
 These are complete service areas, not accidental holes in the interfaces above:
 
 - Steam Input and the deprecated Steam Controller interface
-- Remote Storage / Steam Cloud
 - Inventory
 - HTTP
 - Networking Sockets and Networking Utils
