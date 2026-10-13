@@ -31,6 +31,10 @@ versioned ABI contracts.
 - `ISteamNetworkingSockets`: IP and Steam-identity listen/connect, explicit
   connection acceptance and closure, reliable/unreliable messages, poll
   groups, lifecycle callbacks, and real-time connection diagnostics.
+- `ISteamNetworkingUtils`: relay-network initialization and status callbacks,
+  portable ping-location strings and estimates, relay POP enumeration and
+  latency, monotonic networking timestamps, and typed configuration values at
+  global, interface, listener, and connection scopes.
 - `ISteamGameServer`: process initialization and shutdown, anonymous or
   token-based login, server metadata and advertisement, player ticket
   validation, licence checks, and service callbacks. It can supply the
@@ -70,9 +74,8 @@ These are complete service areas, not accidental holes in the interfaces above:
 
 - Inventory
 - HTTP
-- Networking Utils configuration and advanced Networking Sockets facilities
-  such as custom signalling, FakeIP compatibility, connection lanes, and
-  hosted-dedicated-server ticket exchange
+- Advanced Networking Sockets facilities such as custom signalling, FakeIP
+  compatibility, connection lanes, and hosted-dedicated-server ticket exchange
 - Game-server stats and legacy packet-sharing APIs
 - Matchmaking server browser, ping, player, and rules queries
 - Screenshots
