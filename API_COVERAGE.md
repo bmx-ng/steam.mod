@@ -28,6 +28,13 @@ versioned ABI contracts.
   acceptance and closure, failure callbacks, and connection diagnostics. The
   wrapper's `ReceiveMessage` consumes one native message safely rather than
   exposing Steam-owned message pointers.
+- `ISteamNetworkingSockets`: IP and Steam-identity listen/connect, explicit
+  connection acceptance and closure, reliable/unreliable messages, poll
+  groups, lifecycle callbacks, and real-time connection diagnostics.
+- `ISteamGameServer`: process initialization and shutdown, anonymous or
+  token-based login, server metadata and advertisement, player ticket
+  validation, licence checks, and service callbacks. It can supply the
+  game-server Networking Sockets interface for dedicated processes.
 - `ISteamRemoteStorage`: synchronous and asynchronous Steam Cloud reads and
   writes, streamed writes, file enumeration and metadata, quota and enablement
   state, platform sync selection, synchronized-change inspection, and related
@@ -63,8 +70,10 @@ These are complete service areas, not accidental holes in the interfaces above:
 
 - Inventory
 - HTTP
-- Networking Sockets and Networking Utils
-- Dedicated game-server APIs and game-server stats
+- Networking Utils configuration and advanced Networking Sockets facilities
+  such as custom signalling, FakeIP compatibility, connection lanes, and
+  hosted-dedicated-server ticket exchange
+- Game-server stats and legacy packet-sharing APIs
 - Matchmaking server browser, ping, player, and rules queries
 - Screenshots
 - Remote Play and Parties
