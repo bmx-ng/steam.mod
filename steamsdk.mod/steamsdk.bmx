@@ -23,11 +23,13 @@ bbdoc: Steam SDK
 End Rem
 Module Steam.SteamSDK
 
-ModuleInfo "Version: 1.10"
+ModuleInfo "Version: 1.11"
 ModuleInfo "License: zlib/libpng"
 ModuleInfo "Copyright: Steam SDK - Valve Corporation"
 ModuleInfo "Copyright: Wrapper - 2019-2026 Bruce A Henderson"
 
+ModuleInfo "History: 1.11"
+ModuleInfo "History: Added Steam Networking Sockets and dedicated game-server support."
 ModuleInfo "History: 1.10"
 ModuleInfo "History: Updated to Steamworks SDK 1.65."
 ModuleInfo "History: Added Timeline, DualSense trigger effects, web API tickets, profile items, and new Apps, Utils, and UGC APIs."
@@ -1171,6 +1173,342 @@ Type TSteamNetworkingMessages Extends TSteamAPI
 	End Method
 	Function _OnSessionFailed(inst:TSteamNetworkingMessages, steamIDRemote:ULong, state:ESteamNetworkingConnectionState, endReason:Int, debugMessage:String) { nomangle }
 		inst.OnSessionFailed(steamIDRemote, state, endReason, debugMessage)
+	End Function
+End Type
+
+Rem
+bbdoc: Receives connection lifecycle changes from Steam Networking Sockets.
+End Rem
+Interface ISteamNetworkingSocketsListener
+	Method OnSteamNetworkingSocketsConnectionStatusChanged(connection:UInt, listenSocket:UInt, remoteSteamID:ULong, oldState:ESteamNetworkingConnectionState, state:ESteamNetworkingConnectionState, endReason:Int, debugMessage:String)
+End Interface
+
+Rem
+bbdoc: Connection-oriented reliable and unreliable networking over Steam identities or IP addresses.
+about: Create the client interface for a normal game process, or the game-server interface after Steam game-server initialization. Incoming connections must be explicitly accepted from the listener callback.
+End Rem
+Type TSteamNetworkingSockets Extends TSteamAPI
+	Const STEAMNETWORKINGSOCKETS_INTERFACE_VERSION:String = "SteamNetworkingSockets013"
+
+	Field listener:ISteamNetworkingSocketsListener
+	Field gameServer:Int
+
+	Function Create:TSteamNetworkingSockets(gameServer:Int = False)
+		Local native:Byte Ptr = bmx_SteamAPI_SteamNetworkingSockets(gameServer)
+		If Not native Then Return Null
+		Local sockets:TSteamNetworkingSockets = New TSteamNetworkingSockets
+		sockets.instancePtr = native
+		sockets.gameServer = gameServer
+		sockets.callbackPtr = bmx_steamsdk_register_networkingsockets(native, sockets, gameServer)
+		Return sockets
+	End Function
+
+	Method Delete()
+		If callbackPtr Then bmx_steamsdk_unregister_networkingsockets(callbackPtr)
+		callbackPtr = Null
+	End Method
+
+	Method SetListener(listener:ISteamNetworkingSocketsListener)
+		Self.listener = listener
+	End Method
+
+	Rem
+	bbdoc: Dispatches the callback queue appropriate to this client or game-server interface.
+	End Rem
+	Method RunCallbacks()
+		If gameServer Then
+			SteamGameServerRunCallbacks()
+		Else
+			SteamRunCallbacks()
+		End If
+	End Method
+
+	Rem
+	bbdoc: Creates a direct IP listen socket. An empty address binds all local interfaces.
+	End Rem
+	Method CreateListenSocketIP:UInt(address:String, port:Int)
+		Return bmx_SteamAPI_ISteamNetworkingSockets_CreateListenSocketIP(instancePtr, address, port)
+	End Method
+
+	Rem
+	bbdoc: Begins connecting to a numeric IPv4 or IPv6 address.
+	End Rem
+	Method ConnectByIPAddress:UInt(address:String, port:Int)
+		Return bmx_SteamAPI_ISteamNetworkingSockets_ConnectByIPAddress(instancePtr, address, port)
+	End Method
+
+	Rem
+	bbdoc: Creates a P2P listen socket on a virtual port.
+	End Rem
+	Method CreateListenSocketP2P:UInt(virtualPort:Int = 0)
+		Return bmx_SteamAPI_ISteamNetworkingSockets_CreateListenSocketP2P(instancePtr, virtualPort)
+	End Method
+
+	Rem
+	bbdoc: Begins a P2P connection to a Steam identity and virtual port.
+	End Rem
+	Method ConnectP2P:UInt(steamID:ULong, virtualPort:Int = 0)
+		Return bmx_SteamAPI_ISteamNetworkingSockets_ConnectP2P(instancePtr, steamID, virtualPort)
+	End Method
+
+	Method AcceptConnection:EResult(connection:UInt)
+		Return bmx_SteamAPI_ISteamNetworkingSockets_AcceptConnection(instancePtr, connection)
+	End Method
+
+	Method CloseConnection:Int(connection:UInt, reason:Int = 0, debugMessage:String = "", linger:Int = False)
+		Return bmx_SteamAPI_ISteamNetworkingSockets_CloseConnection(instancePtr, connection, reason, debugMessage, linger)
+	End Method
+
+	Method CloseListenSocket:Int(socket:UInt)
+		Return bmx_SteamAPI_ISteamNetworkingSockets_CloseListenSocket(instancePtr, socket)
+	End Method
+
+	Method SendMessageToConnection:EResult(connection:UInt, data:Byte Ptr, size:UInt, sendFlags:Int, messageNumber:Long Var)
+		Return bmx_SteamAPI_ISteamNetworkingSockets_SendMessageToConnection(instancePtr, connection, data, size, sendFlags, messageNumber)
+	End Method
+
+	Rem
+	bbdoc: Receives and consumes one message. Returns 1, 0 when empty, or -1 when capacity was too small.
+	End Rem
+	Method ReceiveMessageOnConnection:Int(connection:UInt, data:Byte Ptr, capacity:UInt, size:UInt Var, flags:Int Var)
+		Return bmx_SteamAPI_ISteamNetworkingSockets_ReceiveMessageOnConnection(instancePtr, connection, data, capacity, size, flags)
+	End Method
+
+	Method CreatePollGroup:UInt()
+		Return bmx_SteamAPI_ISteamNetworkingSockets_CreatePollGroup(instancePtr)
+	End Method
+
+	Method DestroyPollGroup:Int(pollGroup:UInt)
+		Return bmx_SteamAPI_ISteamNetworkingSockets_DestroyPollGroup(instancePtr, pollGroup)
+	End Method
+
+	Method SetConnectionPollGroup:Int(connection:UInt, pollGroup:UInt)
+		Return bmx_SteamAPI_ISteamNetworkingSockets_SetConnectionPollGroup(instancePtr, connection, pollGroup)
+	End Method
+
+	Rem
+	bbdoc: Receives and consumes one message from any connection in a poll group.
+	End Rem
+	Method ReceiveMessageOnPollGroup:Int(pollGroup:UInt, data:Byte Ptr, capacity:UInt, connection:UInt Var, size:UInt Var, flags:Int Var)
+		Return bmx_SteamAPI_ISteamNetworkingSockets_ReceiveMessageOnPollGroup(instancePtr, pollGroup, data, capacity, connection, size, flags)
+	End Method
+
+	Rem
+	bbdoc: Returns state and commonly useful real-time diagnostics for a connection.
+	End Rem
+	Method GetConnectionStatus:EResult(connection:UInt, state:ESteamNetworkingConnectionState Var, endReason:Int Var, endDebug:String Var, ping:Int Var, qualityLocal:Float Var, qualityRemote:Float Var, pendingUnreliable:Int Var, pendingReliable:Int Var, sentUnackedReliable:Int Var, queueTimeMicroseconds:Long Var)
+		Return bmx_SteamAPI_ISteamNetworkingSockets_GetConnectionStatus(instancePtr, connection, state, endReason, endDebug, ping, qualityLocal, qualityRemote, pendingUnreliable, pendingReliable, sentUnackedReliable, queueTimeMicroseconds)
+	End Method
+
+	Private
+	Method OnConnectionStatusChanged(connection:UInt, listenSocket:UInt, remoteSteamID:ULong, oldState:ESteamNetworkingConnectionState, state:ESteamNetworkingConnectionState, endReason:Int, debugMessage:String)
+		If listener Then listener.OnSteamNetworkingSocketsConnectionStatusChanged(connection, listenSocket, remoteSteamID, oldState, state, endReason, debugMessage)
+	End Method
+
+	Function _OnConnectionStatusChanged(inst:TSteamNetworkingSockets, connection:UInt, listenSocket:UInt, remoteSteamID:ULong, oldState:ESteamNetworkingConnectionState, state:ESteamNetworkingConnectionState, endReason:Int, debugMessage:String) { nomangle }
+		inst.OnConnectionStatusChanged(connection, listenSocket, remoteSteamID, oldState, state, endReason, debugMessage)
+	End Function
+End Type
+
+Rem
+bbdoc: Initializes the Steam game-server interfaces.
+about: After success create #TSteamGameServer, set its advertised properties, and call #TSteamGameServer.LogOnAnonymous or #TSteamGameServer.LogOn. @ip is normally zero and the ports are host-order UDP ports.
+End Rem
+Function SteamGameServerInit:ESteamAPIInitResult(ip:UInt, gamePort:Int, queryPort:Int, serverMode:EServerMode, version:String, errorMessage:String Var)
+	Return bmx_SteamGameServer_Init(ip, gamePort, queryPort, serverMode, version, errorMessage)
+End Function
+
+Rem
+bbdoc: Dispatches pending Steam game-server callbacks.
+End Rem
+Function SteamGameServerRunCallbacks()
+	bmx_SteamGameServer_RunCallbacks()
+End Function
+
+Rem
+bbdoc: Shuts down the process-wide Steam game-server interfaces.
+End Rem
+Function SteamGameServerShutdown()
+	bmx_SteamGameServer_Shutdown()
+End Function
+
+Rem
+bbdoc: Receives Steam game-server service and player-authentication events.
+End Rem
+Interface ISteamGameServerListener
+	Method OnSteamGameServerConnected()
+	Method OnSteamGameServerConnectFailure(result:EResult, retrying:Int)
+	Method OnSteamGameServerDisconnected(result:EResult)
+	Method OnSteamGameServerValidateAuthTicket(steamID:ULong, response:EAuthSessionResponse, ownerSteamID:ULong)
+End Interface
+
+Rem
+bbdoc: Advertises and authenticates a dedicated or listen server through Steam.
+about: This interface does not run or allocate a machine. The application owns the server process and normally combines this type with a game-server #TSteamNetworkingSockets interface and a GameNet listening transport.
+End Rem
+Type TSteamGameServer Extends TSteamAPI
+	Const STEAMGAMESERVER_INTERFACE_VERSION:String = "SteamGameServer015"
+
+	Field listener:ISteamGameServerListener
+
+	Function Create:TSteamGameServer()
+		Local native:Byte Ptr = bmx_SteamAPI_SteamGameServer()
+		If Not native Then Return Null
+		Local server:TSteamGameServer = New TSteamGameServer
+		server.instancePtr = native
+		server.callbackPtr = bmx_steamsdk_register_gameserver(native, server)
+		Return server
+	End Function
+
+	Method Delete()
+		If callbackPtr Then bmx_steamsdk_unregister_gameserver(callbackPtr)
+		callbackPtr = Null
+	End Method
+
+	Method SetListener(listener:ISteamGameServerListener)
+		Self.listener = listener
+	End Method
+
+	Method SetProduct(product:String)
+		bmx_SteamAPI_ISteamGameServer_SetProduct(instancePtr, product)
+	End Method
+
+	Method SetGameDescription(description:String)
+		bmx_SteamAPI_ISteamGameServer_SetGameDescription(instancePtr, description)
+	End Method
+
+	Method SetModDir(modDir:String)
+		bmx_SteamAPI_ISteamGameServer_SetModDir(instancePtr, modDir)
+	End Method
+
+	Method SetDedicatedServer(dedicated:Int = True)
+		bmx_SteamAPI_ISteamGameServer_SetDedicatedServer(instancePtr, dedicated)
+	End Method
+
+	Rem
+	bbdoc: Logs on using a game-server account token.
+	End Rem
+	Method LogOn(token:String)
+		bmx_SteamAPI_ISteamGameServer_LogOn(instancePtr, token)
+	End Method
+
+	Rem
+	bbdoc: Logs on anonymously when the application's Steam configuration permits it.
+	End Rem
+	Method LogOnAnonymous()
+		bmx_SteamAPI_ISteamGameServer_LogOnAnonymous(instancePtr)
+	End Method
+
+	Method LogOff()
+		bmx_SteamAPI_ISteamGameServer_LogOff(instancePtr)
+	End Method
+
+	Method IsLoggedOn:Int()
+		Return bmx_SteamAPI_ISteamGameServer_BLoggedOn(instancePtr)
+	End Method
+
+	Method IsSecure:Int()
+		Return bmx_SteamAPI_ISteamGameServer_BSecure(instancePtr)
+	End Method
+
+	Method SteamID:ULong()
+		Return bmx_SteamAPI_ISteamGameServer_GetSteamID(instancePtr)
+	End Method
+
+	Method WasRestartRequested:Int()
+		Return bmx_SteamAPI_ISteamGameServer_WasRestartRequested(instancePtr)
+	End Method
+
+	Method SetMaxPlayerCount(count:Int)
+		bmx_SteamAPI_ISteamGameServer_SetMaxPlayerCount(instancePtr, count)
+	End Method
+
+	Method SetBotPlayerCount(count:Int)
+		bmx_SteamAPI_ISteamGameServer_SetBotPlayerCount(instancePtr, count)
+	End Method
+
+	Method SetServerName(name:String)
+		bmx_SteamAPI_ISteamGameServer_SetServerName(instancePtr, name)
+	End Method
+
+	Method SetMapName(name:String)
+		bmx_SteamAPI_ISteamGameServer_SetMapName(instancePtr, name)
+	End Method
+
+	Method SetPasswordProtected(protected:Int)
+		bmx_SteamAPI_ISteamGameServer_SetPasswordProtected(instancePtr, protected)
+	End Method
+
+	Method ClearAllKeyValues()
+		bmx_SteamAPI_ISteamGameServer_ClearAllKeyValues(instancePtr)
+	End Method
+
+	Method SetKeyValue(key:String, value:String)
+		bmx_SteamAPI_ISteamGameServer_SetKeyValue(instancePtr, key, value)
+	End Method
+
+	Method SetGameTags(tags:String)
+		bmx_SteamAPI_ISteamGameServer_SetGameTags(instancePtr, tags)
+	End Method
+
+	Method SetGameData(data:String)
+		bmx_SteamAPI_ISteamGameServer_SetGameData(instancePtr, data)
+	End Method
+
+	Method SetRegion(region:String)
+		bmx_SteamAPI_ISteamGameServer_SetRegion(instancePtr, region)
+	End Method
+
+	Method SetAdvertiseServerActive(active:Int)
+		bmx_SteamAPI_ISteamGameServer_SetAdvertiseServerActive(instancePtr, active)
+	End Method
+
+	Rem
+	bbdoc: Begins validating a player's Steam authentication ticket.
+	End Rem
+	Method BeginAuthSession:EBeginAuthSessionResult(ticket:Byte Ptr, ticketSize:Int, steamID:ULong)
+		Return bmx_SteamAPI_ISteamGameServer_BeginAuthSession(instancePtr, ticket, ticketSize, steamID)
+	End Method
+
+	Method EndAuthSession(steamID:ULong)
+		bmx_SteamAPI_ISteamGameServer_EndAuthSession(instancePtr, steamID)
+	End Method
+
+	Method UserHasLicenseForApp:EUserHasLicenseForAppResult(steamID:ULong, appID:UInt)
+		Return bmx_SteamAPI_ISteamGameServer_UserHasLicenseForApp(instancePtr, steamID, appID)
+	End Method
+
+	Private
+	Method OnSteamServersConnected()
+		If listener Then listener.OnSteamGameServerConnected()
+	End Method
+
+	Method OnSteamServerConnectFailure(result:EResult, retrying:Int)
+		If listener Then listener.OnSteamGameServerConnectFailure(result, retrying)
+	End Method
+
+	Method OnSteamServersDisconnected(result:EResult)
+		If listener Then listener.OnSteamGameServerDisconnected(result)
+	End Method
+
+	Method OnValidateAuthTicket(steamID:ULong, response:EAuthSessionResponse, ownerSteamID:ULong)
+		If listener Then listener.OnSteamGameServerValidateAuthTicket(steamID, response, ownerSteamID)
+	End Method
+
+	Function _OnSteamServersConnected(inst:TSteamGameServer) { nomangle }
+		inst.OnSteamServersConnected()
+	End Function
+
+	Function _OnSteamServerConnectFailure(inst:TSteamGameServer, result:EResult, retrying:Int) { nomangle }
+		inst.OnSteamServerConnectFailure(result, retrying)
+	End Function
+
+	Function _OnSteamServersDisconnected(inst:TSteamGameServer, result:EResult) { nomangle }
+		inst.OnSteamServersDisconnected(result)
+	End Function
+
+	Function _OnValidateAuthTicket(inst:TSteamGameServer, steamID:ULong, response:EAuthSessionResponse, ownerSteamID:ULong) { nomangle }
+		inst.OnValidateAuthTicket(steamID, response, ownerSteamID)
 	End Function
 End Type
 

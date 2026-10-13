@@ -23,6 +23,7 @@
 
 #include "steam/steam_api_flat.h"
 #include "steam/isteamdualsense.h"
+#include "steam/steam_gameserver.h"
 
 #include <chrono>
 #include <atomic>
@@ -45,6 +46,8 @@ class MaxRemoteStorageWriteRequest;
 class MaxRemoteStorageReadRequest;
 class MaxInput;
 class MaxTimeline;
+class MaxNetworkingSockets;
+class MaxGameServer;
 
 static std::vector<MaxRemoteStorageWriteRequest *> g_remoteStorageWriteRequests;
 static std::vector<MaxRemoteStorageReadRequest *> g_remoteStorageReadRequests;
@@ -149,6 +152,11 @@ extern "C" {
 	void steam_steamsdk_TSteamInput__OnAnalogAction( BBObject * maxHandle, uint64 inputHandle, uint64 actionHandle, EInputSourceMode mode, float x, float y, int active);
 	void steam_steamsdk_TSteamTimeline__OnEventRecordingExists(BBObject * maxHandle, uint64 eventHandle, int recordingExists, int failure);
 	void steam_steamsdk_TSteamTimeline__OnGamePhaseRecordingExists(BBObject * maxHandle, BBString * phaseID, uint64 recordingMS, uint64 longestClipMS, uint32 clipCount, uint32 screenshotCount, int failure);
+	void steam_steamsdk_TSteamNetworkingSockets__OnConnectionStatusChanged(BBObject * maxHandle, uint32 connection, uint32 listenSocket, uint64 remoteSteamID, ESteamNetworkingConnectionState oldState, ESteamNetworkingConnectionState state, int endReason, BBString * debugMessage);
+	void steam_steamsdk_TSteamGameServer__OnSteamServersConnected(BBObject * maxHandle);
+	void steam_steamsdk_TSteamGameServer__OnSteamServerConnectFailure(BBObject * maxHandle, EResult result, int retrying);
+	void steam_steamsdk_TSteamGameServer__OnSteamServersDisconnected(BBObject * maxHandle, EResult result);
+	void steam_steamsdk_TSteamGameServer__OnValidateAuthTicket(BBObject * maxHandle, uint64 steamID, EAuthSessionResponse response, uint64 ownerSteamID);
 
 	int bmx_SteamAPI_Init();
 	void bmx_SteamAPI_Shutdown();
@@ -242,6 +250,54 @@ extern "C" {
 	void bmx_SteamAPI_ISteamTimeline_SetGamePhaseAttribute(ISteamTimeline * instancePtr, BBString * attributeGroup, BBString * attributeValue, uint32 priority);
 	void bmx_SteamAPI_ISteamTimeline_OpenOverlayToGamePhase(ISteamTimeline * instancePtr, BBString * phaseID);
 	void bmx_SteamAPI_ISteamTimeline_OpenOverlayToTimelineEvent(ISteamTimeline * instancePtr, uint64 eventHandle);
+	void * bmx_SteamAPI_SteamNetworkingSockets(int gameServer);
+	void * bmx_steamsdk_register_networkingsockets(ISteamNetworkingSockets * instancePtr, BBObject * obj, int gameServer);
+	void bmx_steamsdk_unregister_networkingsockets(void * callbackPtr);
+	uint32 bmx_SteamAPI_ISteamNetworkingSockets_CreateListenSocketIP(ISteamNetworkingSockets * instancePtr, BBString * address, int port);
+	uint32 bmx_SteamAPI_ISteamNetworkingSockets_ConnectByIPAddress(ISteamNetworkingSockets * instancePtr, BBString * address, int port);
+	uint32 bmx_SteamAPI_ISteamNetworkingSockets_CreateListenSocketP2P(ISteamNetworkingSockets * instancePtr, int virtualPort);
+	uint32 bmx_SteamAPI_ISteamNetworkingSockets_ConnectP2P(ISteamNetworkingSockets * instancePtr, uint64 steamID, int virtualPort);
+	EResult bmx_SteamAPI_ISteamNetworkingSockets_AcceptConnection(ISteamNetworkingSockets * instancePtr, uint32 connection);
+	int bmx_SteamAPI_ISteamNetworkingSockets_CloseConnection(ISteamNetworkingSockets * instancePtr, uint32 connection, int reason, BBString * debugMessage, int linger);
+	int bmx_SteamAPI_ISteamNetworkingSockets_CloseListenSocket(ISteamNetworkingSockets * instancePtr, uint32 socket);
+	EResult bmx_SteamAPI_ISteamNetworkingSockets_SendMessageToConnection(ISteamNetworkingSockets * instancePtr, uint32 connection, const void * data, uint32 size, int sendFlags, int64 * messageNumber);
+	int bmx_SteamAPI_ISteamNetworkingSockets_ReceiveMessageOnConnection(ISteamNetworkingSockets * instancePtr, uint32 connection, void * data, uint32 capacity, uint32 * size, int * flags);
+	uint32 bmx_SteamAPI_ISteamNetworkingSockets_CreatePollGroup(ISteamNetworkingSockets * instancePtr);
+	int bmx_SteamAPI_ISteamNetworkingSockets_DestroyPollGroup(ISteamNetworkingSockets * instancePtr, uint32 pollGroup);
+	int bmx_SteamAPI_ISteamNetworkingSockets_SetConnectionPollGroup(ISteamNetworkingSockets * instancePtr, uint32 connection, uint32 pollGroup);
+	int bmx_SteamAPI_ISteamNetworkingSockets_ReceiveMessageOnPollGroup(ISteamNetworkingSockets * instancePtr, uint32 pollGroup, void * data, uint32 capacity, uint32 * connection, uint32 * size, int * flags);
+	EResult bmx_SteamAPI_ISteamNetworkingSockets_GetConnectionStatus(ISteamNetworkingSockets * instancePtr, uint32 connection, ESteamNetworkingConnectionState * state, int * endReason, BBString ** endDebug, int * ping, float * qualityLocal, float * qualityRemote, int * pendingUnreliable, int * pendingReliable, int * sentUnackedReliable, int64 * queueTimeMicroseconds);
+	ESteamAPIInitResult bmx_SteamGameServer_Init(uint32 ip, int gamePort, int queryPort, EServerMode serverMode, BBString * version, BBString ** errorMessage);
+	void bmx_SteamGameServer_Shutdown();
+	void bmx_SteamGameServer_RunCallbacks();
+	void * bmx_SteamAPI_SteamGameServer();
+	void * bmx_steamsdk_register_gameserver(ISteamGameServer * instancePtr, BBObject * obj);
+	void bmx_steamsdk_unregister_gameserver(void * callbackPtr);
+	void bmx_SteamAPI_ISteamGameServer_SetProduct(ISteamGameServer * instancePtr, BBString * product);
+	void bmx_SteamAPI_ISteamGameServer_SetGameDescription(ISteamGameServer * instancePtr, BBString * description);
+	void bmx_SteamAPI_ISteamGameServer_SetModDir(ISteamGameServer * instancePtr, BBString * modDir);
+	void bmx_SteamAPI_ISteamGameServer_SetDedicatedServer(ISteamGameServer * instancePtr, int dedicated);
+	void bmx_SteamAPI_ISteamGameServer_LogOn(ISteamGameServer * instancePtr, BBString * token);
+	void bmx_SteamAPI_ISteamGameServer_LogOnAnonymous(ISteamGameServer * instancePtr);
+	void bmx_SteamAPI_ISteamGameServer_LogOff(ISteamGameServer * instancePtr);
+	int bmx_SteamAPI_ISteamGameServer_BLoggedOn(ISteamGameServer * instancePtr);
+	int bmx_SteamAPI_ISteamGameServer_BSecure(ISteamGameServer * instancePtr);
+	uint64 bmx_SteamAPI_ISteamGameServer_GetSteamID(ISteamGameServer * instancePtr);
+	int bmx_SteamAPI_ISteamGameServer_WasRestartRequested(ISteamGameServer * instancePtr);
+	void bmx_SteamAPI_ISteamGameServer_SetMaxPlayerCount(ISteamGameServer * instancePtr, int count);
+	void bmx_SteamAPI_ISteamGameServer_SetBotPlayerCount(ISteamGameServer * instancePtr, int count);
+	void bmx_SteamAPI_ISteamGameServer_SetServerName(ISteamGameServer * instancePtr, BBString * name);
+	void bmx_SteamAPI_ISteamGameServer_SetMapName(ISteamGameServer * instancePtr, BBString * name);
+	void bmx_SteamAPI_ISteamGameServer_SetPasswordProtected(ISteamGameServer * instancePtr, int protectedValue);
+	void bmx_SteamAPI_ISteamGameServer_ClearAllKeyValues(ISteamGameServer * instancePtr);
+	void bmx_SteamAPI_ISteamGameServer_SetKeyValue(ISteamGameServer * instancePtr, BBString * key, BBString * value);
+	void bmx_SteamAPI_ISteamGameServer_SetGameTags(ISteamGameServer * instancePtr, BBString * tags);
+	void bmx_SteamAPI_ISteamGameServer_SetGameData(ISteamGameServer * instancePtr, BBString * data);
+	void bmx_SteamAPI_ISteamGameServer_SetRegion(ISteamGameServer * instancePtr, BBString * region);
+	void bmx_SteamAPI_ISteamGameServer_SetAdvertiseServerActive(ISteamGameServer * instancePtr, int active);
+	EBeginAuthSessionResult bmx_SteamAPI_ISteamGameServer_BeginAuthSession(ISteamGameServer * instancePtr, const void * ticket, int ticketSize, uint64 steamID);
+	void bmx_SteamAPI_ISteamGameServer_EndAuthSession(ISteamGameServer * instancePtr, uint64 steamID);
+	EUserHasLicenseForAppResult bmx_SteamAPI_ISteamGameServer_UserHasLicenseForApp(ISteamGameServer * instancePtr, uint64 steamID, uint32 appID);
 	void * bmx_steamsdk_register_steamremotestorage(ISteamRemoteStorage * instancePtr, BBObject * obj);
 	void bmx_steamsdk_unregister_steamremotestorage(void * callbackPtr);
 	int bmx_SteamAPI_ISteamRemoteStorage_FileWrite( ISteamRemoteStorage * instancePtr, BBString * file, const void * data, int size);
@@ -4731,4 +4787,412 @@ ESteamNetworkingConnectionState bmx_SteamAPI_ISteamNetworkingMessages_GetSession
 	*sentUnackedReliable = status.m_cbSentUnackedReliable;
 	*queueTimeMicroseconds = status.m_usecQueueTime;
 	return state;
+}
+
+// ISteamNetworkingSockets ---------------------------------
+
+class MaxNetworkingSockets
+{
+protected:
+	BBObject * maxHandle;
+
+public:
+	MaxNetworkingSockets(BBObject * handle)
+		: maxHandle(handle) {
+	}
+	virtual ~MaxNetworkingSockets() {
+	}
+	void Dispatch(SteamNetConnectionStatusChangedCallback_t * result);
+};
+
+class MaxClientNetworkingSockets : public MaxNetworkingSockets
+{
+public:
+	STEAM_CALLBACK(MaxClientNetworkingSockets, OnConnectionStatusChanged,
+		SteamNetConnectionStatusChangedCallback_t, m_CallbackConnectionStatusChanged);
+
+	MaxClientNetworkingSockets(BBObject * handle)
+		: MaxNetworkingSockets(handle),
+		  m_CallbackConnectionStatusChanged(this, &MaxClientNetworkingSockets::OnConnectionStatusChanged) {
+	}
+};
+
+class MaxGameServerNetworkingSockets : public MaxNetworkingSockets
+{
+public:
+	STEAM_GAMESERVER_CALLBACK(MaxGameServerNetworkingSockets, OnConnectionStatusChanged,
+		SteamNetConnectionStatusChangedCallback_t, m_CallbackConnectionStatusChanged);
+
+	MaxGameServerNetworkingSockets(BBObject * handle)
+		: MaxNetworkingSockets(handle),
+		  m_CallbackConnectionStatusChanged(this, &MaxGameServerNetworkingSockets::OnConnectionStatusChanged) {
+	}
+};
+
+void MaxNetworkingSockets::Dispatch(SteamNetConnectionStatusChangedCallback_t * result) {
+	steam_steamsdk_TSteamNetworkingSockets__OnConnectionStatusChanged(maxHandle, result->m_hConn,
+		result->m_info.m_hListenSocket, result->m_info.m_identityRemote.GetSteamID64(), result->m_eOldState,
+		result->m_info.m_eState, result->m_info.m_eEndReason,
+		bbStringFromUTF8String((unsigned char *)result->m_info.m_szEndDebug));
+}
+
+void MaxClientNetworkingSockets::OnConnectionStatusChanged(SteamNetConnectionStatusChangedCallback_t * result) {
+	Dispatch(result);
+}
+
+void MaxGameServerNetworkingSockets::OnConnectionStatusChanged(
+	SteamNetConnectionStatusChangedCallback_t * result) {
+	Dispatch(result);
+}
+
+static bool SteamIPAddress(BBString * address, int port, SteamNetworkingIPAddr & result) {
+	result.Clear();
+	char * value = (char *)bbStringToUTF8String(address);
+	bool parsed = !value[0] || result.ParseString(value);
+	bbMemFree(value);
+	if (!parsed || port < 0 || port > 65535) {
+		return false;
+	}
+	result.m_port = (uint16)port;
+	return true;
+}
+
+static int ReceiveSocketMessage(SteamNetworkingMessage_t * message, void * data, uint32 capacity,
+	uint32 * connection, uint32 * size, int * flags) {
+	if (!message) {
+		return 0;
+	}
+	if (connection) {
+		*connection = message->m_conn;
+	}
+	*size = (uint32)message->m_cbSize;
+	*flags = message->m_nFlags;
+	int result = 1;
+	if ((uint32)message->m_cbSize > capacity) {
+		result = -1;
+	} else if (message->m_cbSize > 0) {
+		memcpy(data, message->m_pData, message->m_cbSize);
+	}
+	message->Release();
+	return result;
+}
+
+void * bmx_SteamAPI_SteamNetworkingSockets(int gameServer) {
+	return gameServer ? SteamAPI_SteamGameServerNetworkingSockets_SteamAPI()
+		: SteamAPI_SteamNetworkingSockets_SteamAPI();
+}
+
+void * bmx_steamsdk_register_networkingsockets(ISteamNetworkingSockets *, BBObject * obj, int gameServer) {
+	if (gameServer) {
+		return new MaxGameServerNetworkingSockets(obj);
+	}
+	return new MaxClientNetworkingSockets(obj);
+}
+
+void bmx_steamsdk_unregister_networkingsockets(void * callbackPtr) {
+	delete static_cast<MaxNetworkingSockets *>(callbackPtr);
+}
+
+uint32 bmx_SteamAPI_ISteamNetworkingSockets_CreateListenSocketIP(
+	ISteamNetworkingSockets * instancePtr, BBString * address, int port) {
+	SteamNetworkingIPAddr nativeAddress;
+	if (!SteamIPAddress(address, port, nativeAddress)) {
+		return k_HSteamListenSocket_Invalid;
+	}
+	return SteamAPI_ISteamNetworkingSockets_CreateListenSocketIP(instancePtr, nativeAddress, 0, nullptr);
+}
+
+uint32 bmx_SteamAPI_ISteamNetworkingSockets_ConnectByIPAddress(
+	ISteamNetworkingSockets * instancePtr, BBString * address, int port) {
+	SteamNetworkingIPAddr nativeAddress;
+	if (!SteamIPAddress(address, port, nativeAddress)) {
+		return k_HSteamNetConnection_Invalid;
+	}
+	return SteamAPI_ISteamNetworkingSockets_ConnectByIPAddress(instancePtr, nativeAddress, 0, nullptr);
+}
+
+uint32 bmx_SteamAPI_ISteamNetworkingSockets_CreateListenSocketP2P(
+	ISteamNetworkingSockets * instancePtr, int virtualPort) {
+	return SteamAPI_ISteamNetworkingSockets_CreateListenSocketP2P(instancePtr, virtualPort, 0, nullptr);
+}
+
+uint32 bmx_SteamAPI_ISteamNetworkingSockets_ConnectP2P(
+	ISteamNetworkingSockets * instancePtr, uint64 steamID, int virtualPort) {
+	SteamNetworkingIdentity identity = SteamIdentity(steamID);
+	return SteamAPI_ISteamNetworkingSockets_ConnectP2P(instancePtr, identity, virtualPort, 0, nullptr);
+}
+
+EResult bmx_SteamAPI_ISteamNetworkingSockets_AcceptConnection(
+	ISteamNetworkingSockets * instancePtr, uint32 connection) {
+	return SteamAPI_ISteamNetworkingSockets_AcceptConnection(instancePtr, connection);
+}
+
+int bmx_SteamAPI_ISteamNetworkingSockets_CloseConnection(ISteamNetworkingSockets * instancePtr,
+	uint32 connection, int reason, BBString * debugMessage, int linger) {
+	char * value = (char *)bbStringToUTF8String(debugMessage);
+	bool result = SteamAPI_ISteamNetworkingSockets_CloseConnection(instancePtr, connection, reason, value, linger);
+	bbMemFree(value);
+	return result;
+}
+
+int bmx_SteamAPI_ISteamNetworkingSockets_CloseListenSocket(
+	ISteamNetworkingSockets * instancePtr, uint32 socket) {
+	return SteamAPI_ISteamNetworkingSockets_CloseListenSocket(instancePtr, socket);
+}
+
+EResult bmx_SteamAPI_ISteamNetworkingSockets_SendMessageToConnection(ISteamNetworkingSockets * instancePtr,
+	uint32 connection, const void * data, uint32 size, int sendFlags, int64 * messageNumber) {
+	return SteamAPI_ISteamNetworkingSockets_SendMessageToConnection(
+		instancePtr, connection, data, size, sendFlags, messageNumber);
+}
+
+int bmx_SteamAPI_ISteamNetworkingSockets_ReceiveMessageOnConnection(ISteamNetworkingSockets * instancePtr,
+	uint32 connection, void * data, uint32 capacity, uint32 * size, int * flags) {
+	SteamNetworkingMessage_t * message = nullptr;
+	int count = SteamAPI_ISteamNetworkingSockets_ReceiveMessagesOnConnection(instancePtr, connection, &message, 1);
+	if (count <= 0) {
+		return count;
+	}
+	return ReceiveSocketMessage(message, data, capacity, nullptr, size, flags);
+}
+
+uint32 bmx_SteamAPI_ISteamNetworkingSockets_CreatePollGroup(ISteamNetworkingSockets * instancePtr) {
+	return SteamAPI_ISteamNetworkingSockets_CreatePollGroup(instancePtr);
+}
+
+int bmx_SteamAPI_ISteamNetworkingSockets_DestroyPollGroup(
+	ISteamNetworkingSockets * instancePtr, uint32 pollGroup) {
+	return SteamAPI_ISteamNetworkingSockets_DestroyPollGroup(instancePtr, pollGroup);
+}
+
+int bmx_SteamAPI_ISteamNetworkingSockets_SetConnectionPollGroup(
+	ISteamNetworkingSockets * instancePtr, uint32 connection, uint32 pollGroup) {
+	return SteamAPI_ISteamNetworkingSockets_SetConnectionPollGroup(instancePtr, connection, pollGroup);
+}
+
+int bmx_SteamAPI_ISteamNetworkingSockets_ReceiveMessageOnPollGroup(ISteamNetworkingSockets * instancePtr,
+	uint32 pollGroup, void * data, uint32 capacity, uint32 * connection, uint32 * size, int * flags) {
+	SteamNetworkingMessage_t * message = nullptr;
+	int count = SteamAPI_ISteamNetworkingSockets_ReceiveMessagesOnPollGroup(instancePtr, pollGroup, &message, 1);
+	if (count <= 0) {
+		return count;
+	}
+	return ReceiveSocketMessage(message, data, capacity, connection, size, flags);
+}
+
+EResult bmx_SteamAPI_ISteamNetworkingSockets_GetConnectionStatus(ISteamNetworkingSockets * instancePtr,
+	uint32 connection, ESteamNetworkingConnectionState * state, int * endReason, BBString ** endDebug, int * ping,
+	float * qualityLocal, float * qualityRemote, int * pendingUnreliable, int * pendingReliable,
+	int * sentUnackedReliable, int64 * queueTimeMicroseconds) {
+	SteamNetConnectionInfo_t info = {};
+	SteamNetConnectionRealTimeStatus_t status = {};
+	if (!SteamAPI_ISteamNetworkingSockets_GetConnectionInfo(instancePtr, connection, &info)) {
+		return k_EResultInvalidParam;
+	}
+	EResult result = SteamAPI_ISteamNetworkingSockets_GetConnectionRealTimeStatus(
+		instancePtr, connection, &status, 0, nullptr);
+	*state = info.m_eState;
+	*endReason = info.m_eEndReason;
+	*endDebug = bbStringFromUTF8String((unsigned char *)info.m_szEndDebug);
+	*ping = status.m_nPing;
+	*qualityLocal = status.m_flConnectionQualityLocal;
+	*qualityRemote = status.m_flConnectionQualityRemote;
+	*pendingUnreliable = status.m_cbPendingUnreliable;
+	*pendingReliable = status.m_cbPendingReliable;
+	*sentUnackedReliable = status.m_cbSentUnackedReliable;
+	*queueTimeMicroseconds = status.m_usecQueueTime;
+	return result;
+}
+
+// ISteamGameServer ----------------------------------------
+
+class MaxGameServer
+{
+private:
+	BBObject * maxHandle;
+
+public:
+	STEAM_GAMESERVER_CALLBACK(MaxGameServer, OnSteamServersConnected,
+		SteamServersConnected_t, m_CallbackSteamServersConnected);
+	STEAM_GAMESERVER_CALLBACK(MaxGameServer, OnSteamServerConnectFailure,
+		SteamServerConnectFailure_t, m_CallbackSteamServerConnectFailure);
+	STEAM_GAMESERVER_CALLBACK(MaxGameServer, OnSteamServersDisconnected,
+		SteamServersDisconnected_t, m_CallbackSteamServersDisconnected);
+	STEAM_GAMESERVER_CALLBACK(MaxGameServer, OnValidateAuthTicket,
+		ValidateAuthTicketResponse_t, m_CallbackValidateAuthTicket);
+
+	MaxGameServer(BBObject * handle)
+		: maxHandle(handle),
+		  m_CallbackSteamServersConnected(this, &MaxGameServer::OnSteamServersConnected),
+		  m_CallbackSteamServerConnectFailure(this, &MaxGameServer::OnSteamServerConnectFailure),
+		  m_CallbackSteamServersDisconnected(this, &MaxGameServer::OnSteamServersDisconnected),
+		  m_CallbackValidateAuthTicket(this, &MaxGameServer::OnValidateAuthTicket) {
+	}
+};
+
+void MaxGameServer::OnSteamServersConnected(SteamServersConnected_t *) {
+	steam_steamsdk_TSteamGameServer__OnSteamServersConnected(maxHandle);
+}
+
+void MaxGameServer::OnSteamServerConnectFailure(SteamServerConnectFailure_t * result) {
+	steam_steamsdk_TSteamGameServer__OnSteamServerConnectFailure(
+		maxHandle, result->m_eResult, result->m_bStillRetrying);
+}
+
+void MaxGameServer::OnSteamServersDisconnected(SteamServersDisconnected_t * result) {
+	steam_steamsdk_TSteamGameServer__OnSteamServersDisconnected(maxHandle, result->m_eResult);
+}
+
+void MaxGameServer::OnValidateAuthTicket(ValidateAuthTicketResponse_t * result) {
+	steam_steamsdk_TSteamGameServer__OnValidateAuthTicket(maxHandle, result->m_SteamID.ConvertToUint64(),
+		result->m_eAuthSessionResponse, result->m_OwnerSteamID.ConvertToUint64());
+}
+
+static void SteamGameServerStringCall(
+	ISteamGameServer * instancePtr, BBString * value, void (*function)(ISteamGameServer *, const char *)) {
+	char * nativeValue = (char *)bbStringToUTF8String(value);
+	function(instancePtr, nativeValue);
+	bbMemFree(nativeValue);
+}
+
+ESteamAPIInitResult bmx_SteamGameServer_Init(uint32 ip, int gamePort, int queryPort, EServerMode serverMode,
+	BBString * version, BBString ** errorMessage) {
+	if (gamePort < 0 || gamePort > 65535 || queryPort < 0 || queryPort > 65535) {
+		*errorMessage = bbStringFromUTF8String((unsigned char *)"Invalid game or query port");
+		return k_ESteamAPIInitResult_FailedGeneric;
+	}
+	char * nativeVersion = (char *)bbStringToUTF8String(version);
+	SteamErrMsg error = {};
+	ESteamAPIInitResult result = SteamGameServer_InitEx(
+		ip, (uint16)gamePort, (uint16)queryPort, serverMode, nativeVersion, &error);
+	bbMemFree(nativeVersion);
+	*errorMessage = bbStringFromUTF8String((unsigned char *)error);
+	return result;
+}
+
+void bmx_SteamGameServer_Shutdown() {
+	SteamGameServer_Shutdown();
+}
+
+void bmx_SteamGameServer_RunCallbacks() {
+	SteamGameServer_RunCallbacks();
+}
+
+void * bmx_SteamAPI_SteamGameServer() {
+	return SteamAPI_SteamGameServer();
+}
+
+void * bmx_steamsdk_register_gameserver(ISteamGameServer *, BBObject * obj) {
+	return new MaxGameServer(obj);
+}
+
+void bmx_steamsdk_unregister_gameserver(void * callbackPtr) {
+	delete static_cast<MaxGameServer *>(callbackPtr);
+}
+
+void bmx_SteamAPI_ISteamGameServer_SetProduct(ISteamGameServer * instancePtr, BBString * product) {
+	SteamGameServerStringCall(instancePtr, product, SteamAPI_ISteamGameServer_SetProduct);
+}
+
+void bmx_SteamAPI_ISteamGameServer_SetGameDescription(ISteamGameServer * instancePtr, BBString * description) {
+	SteamGameServerStringCall(instancePtr, description, SteamAPI_ISteamGameServer_SetGameDescription);
+}
+
+void bmx_SteamAPI_ISteamGameServer_SetModDir(ISteamGameServer * instancePtr, BBString * modDir) {
+	SteamGameServerStringCall(instancePtr, modDir, SteamAPI_ISteamGameServer_SetModDir);
+}
+
+void bmx_SteamAPI_ISteamGameServer_SetDedicatedServer(ISteamGameServer * instancePtr, int dedicated) {
+	SteamAPI_ISteamGameServer_SetDedicatedServer(instancePtr, dedicated);
+}
+
+void bmx_SteamAPI_ISteamGameServer_LogOn(ISteamGameServer * instancePtr, BBString * token) {
+	SteamGameServerStringCall(instancePtr, token, SteamAPI_ISteamGameServer_LogOn);
+}
+
+void bmx_SteamAPI_ISteamGameServer_LogOnAnonymous(ISteamGameServer * instancePtr) {
+	SteamAPI_ISteamGameServer_LogOnAnonymous(instancePtr);
+}
+
+void bmx_SteamAPI_ISteamGameServer_LogOff(ISteamGameServer * instancePtr) {
+	SteamAPI_ISteamGameServer_LogOff(instancePtr);
+}
+
+int bmx_SteamAPI_ISteamGameServer_BLoggedOn(ISteamGameServer * instancePtr) {
+	return SteamAPI_ISteamGameServer_BLoggedOn(instancePtr);
+}
+
+int bmx_SteamAPI_ISteamGameServer_BSecure(ISteamGameServer * instancePtr) {
+	return SteamAPI_ISteamGameServer_BSecure(instancePtr);
+}
+
+uint64 bmx_SteamAPI_ISteamGameServer_GetSteamID(ISteamGameServer * instancePtr) {
+	return SteamAPI_ISteamGameServer_GetSteamID(instancePtr);
+}
+
+int bmx_SteamAPI_ISteamGameServer_WasRestartRequested(ISteamGameServer * instancePtr) {
+	return SteamAPI_ISteamGameServer_WasRestartRequested(instancePtr);
+}
+
+void bmx_SteamAPI_ISteamGameServer_SetMaxPlayerCount(ISteamGameServer * instancePtr, int count) {
+	SteamAPI_ISteamGameServer_SetMaxPlayerCount(instancePtr, count);
+}
+
+void bmx_SteamAPI_ISteamGameServer_SetBotPlayerCount(ISteamGameServer * instancePtr, int count) {
+	SteamAPI_ISteamGameServer_SetBotPlayerCount(instancePtr, count);
+}
+
+void bmx_SteamAPI_ISteamGameServer_SetServerName(ISteamGameServer * instancePtr, BBString * name) {
+	SteamGameServerStringCall(instancePtr, name, SteamAPI_ISteamGameServer_SetServerName);
+}
+
+void bmx_SteamAPI_ISteamGameServer_SetMapName(ISteamGameServer * instancePtr, BBString * name) {
+	SteamGameServerStringCall(instancePtr, name, SteamAPI_ISteamGameServer_SetMapName);
+}
+
+void bmx_SteamAPI_ISteamGameServer_SetPasswordProtected(ISteamGameServer * instancePtr, int protectedValue) {
+	SteamAPI_ISteamGameServer_SetPasswordProtected(instancePtr, protectedValue);
+}
+
+void bmx_SteamAPI_ISteamGameServer_ClearAllKeyValues(ISteamGameServer * instancePtr) {
+	SteamAPI_ISteamGameServer_ClearAllKeyValues(instancePtr);
+}
+
+void bmx_SteamAPI_ISteamGameServer_SetKeyValue(
+	ISteamGameServer * instancePtr, BBString * key, BBString * value) {
+	char * nativeKey = (char *)bbStringToUTF8String(key);
+	char * nativeValue = (char *)bbStringToUTF8String(value);
+	SteamAPI_ISteamGameServer_SetKeyValue(instancePtr, nativeKey, nativeValue);
+	bbMemFree(nativeKey);
+	bbMemFree(nativeValue);
+}
+
+void bmx_SteamAPI_ISteamGameServer_SetGameTags(ISteamGameServer * instancePtr, BBString * tags) {
+	SteamGameServerStringCall(instancePtr, tags, SteamAPI_ISteamGameServer_SetGameTags);
+}
+
+void bmx_SteamAPI_ISteamGameServer_SetGameData(ISteamGameServer * instancePtr, BBString * data) {
+	SteamGameServerStringCall(instancePtr, data, SteamAPI_ISteamGameServer_SetGameData);
+}
+
+void bmx_SteamAPI_ISteamGameServer_SetRegion(ISteamGameServer * instancePtr, BBString * region) {
+	SteamGameServerStringCall(instancePtr, region, SteamAPI_ISteamGameServer_SetRegion);
+}
+
+void bmx_SteamAPI_ISteamGameServer_SetAdvertiseServerActive(ISteamGameServer * instancePtr, int active) {
+	SteamAPI_ISteamGameServer_SetAdvertiseServerActive(instancePtr, active);
+}
+
+EBeginAuthSessionResult bmx_SteamAPI_ISteamGameServer_BeginAuthSession(
+	ISteamGameServer * instancePtr, const void * ticket, int ticketSize, uint64 steamID) {
+	return SteamAPI_ISteamGameServer_BeginAuthSession(instancePtr, ticket, ticketSize, steamID);
+}
+
+void bmx_SteamAPI_ISteamGameServer_EndAuthSession(ISteamGameServer * instancePtr, uint64 steamID) {
+	SteamAPI_ISteamGameServer_EndAuthSession(instancePtr, steamID);
+}
+
+EUserHasLicenseForAppResult bmx_SteamAPI_ISteamGameServer_UserHasLicenseForApp(
+	ISteamGameServer * instancePtr, uint64 steamID, uint32 appID) {
+	return SteamAPI_ISteamGameServer_UserHasLicenseForApp(instancePtr, steamID, appID);
 }

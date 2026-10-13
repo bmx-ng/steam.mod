@@ -285,6 +285,56 @@ Extern
 	Function bmx_SteamAPI_ISteamNetworkingMessages_CloseChannelWithUser:Int(inst:Byte Ptr, steamIDRemote:ULong, localChannel:Int)
 	Function bmx_SteamAPI_ISteamNetworkingMessages_GetSessionConnectionInfo:ESteamNetworkingConnectionState(inst:Byte Ptr, steamIDRemote:ULong, endReason:Int Var, endDebug:String Var, ping:Int Var, qualityLocal:Float Var, qualityRemote:Float Var, pendingUnreliable:Int Var, pendingReliable:Int Var, sentUnackedReliable:Int Var, queueTimeMicroseconds:Long Var)
 
+	Function bmx_SteamAPI_SteamNetworkingSockets:Byte Ptr(gameServer:Int)
+	Function bmx_steamsdk_register_networkingsockets:Byte Ptr(inst:Byte Ptr, obj:Object, gameServer:Int)
+	Function bmx_steamsdk_unregister_networkingsockets(callbackPtr:Byte Ptr)
+	Function bmx_SteamAPI_ISteamNetworkingSockets_CreateListenSocketIP:UInt(inst:Byte Ptr, address:String, port:Int)
+	Function bmx_SteamAPI_ISteamNetworkingSockets_ConnectByIPAddress:UInt(inst:Byte Ptr, address:String, port:Int)
+	Function bmx_SteamAPI_ISteamNetworkingSockets_CreateListenSocketP2P:UInt(inst:Byte Ptr, virtualPort:Int)
+	Function bmx_SteamAPI_ISteamNetworkingSockets_ConnectP2P:UInt(inst:Byte Ptr, steamID:ULong, virtualPort:Int)
+	Function bmx_SteamAPI_ISteamNetworkingSockets_AcceptConnection:EResult(inst:Byte Ptr, connection:UInt)
+	Function bmx_SteamAPI_ISteamNetworkingSockets_CloseConnection:Int(inst:Byte Ptr, connection:UInt, reason:Int, debugMessage:String, linger:Int)
+	Function bmx_SteamAPI_ISteamNetworkingSockets_CloseListenSocket:Int(inst:Byte Ptr, socket:UInt)
+	Function bmx_SteamAPI_ISteamNetworkingSockets_SendMessageToConnection:EResult(inst:Byte Ptr, connection:UInt, data:Byte Ptr, size:UInt, sendFlags:Int, messageNumber:Long Var)
+	Function bmx_SteamAPI_ISteamNetworkingSockets_ReceiveMessageOnConnection:Int(inst:Byte Ptr, connection:UInt, data:Byte Ptr, capacity:UInt, size:UInt Var, flags:Int Var)
+	Function bmx_SteamAPI_ISteamNetworkingSockets_CreatePollGroup:UInt(inst:Byte Ptr)
+	Function bmx_SteamAPI_ISteamNetworkingSockets_DestroyPollGroup:Int(inst:Byte Ptr, pollGroup:UInt)
+	Function bmx_SteamAPI_ISteamNetworkingSockets_SetConnectionPollGroup:Int(inst:Byte Ptr, connection:UInt, pollGroup:UInt)
+	Function bmx_SteamAPI_ISteamNetworkingSockets_ReceiveMessageOnPollGroup:Int(inst:Byte Ptr, pollGroup:UInt, data:Byte Ptr, capacity:UInt, connection:UInt Var, size:UInt Var, flags:Int Var)
+	Function bmx_SteamAPI_ISteamNetworkingSockets_GetConnectionStatus:EResult(inst:Byte Ptr, connection:UInt, state:ESteamNetworkingConnectionState Var, endReason:Int Var, endDebug:String Var, ping:Int Var, qualityLocal:Float Var, qualityRemote:Float Var, pendingUnreliable:Int Var, pendingReliable:Int Var, sentUnackedReliable:Int Var, queueTimeMicroseconds:Long Var)
+
+	Function bmx_SteamGameServer_Init:ESteamAPIInitResult(ip:UInt, gamePort:Int, queryPort:Int, serverMode:EServerMode, version:String, errorMessage:String Var)
+	Function bmx_SteamGameServer_Shutdown()
+	Function bmx_SteamGameServer_RunCallbacks()
+	Function bmx_SteamAPI_SteamGameServer:Byte Ptr()
+	Function bmx_steamsdk_register_gameserver:Byte Ptr(inst:Byte Ptr, obj:Object)
+	Function bmx_steamsdk_unregister_gameserver(callbackPtr:Byte Ptr)
+	Function bmx_SteamAPI_ISteamGameServer_SetProduct(inst:Byte Ptr, product:String)
+	Function bmx_SteamAPI_ISteamGameServer_SetGameDescription(inst:Byte Ptr, description:String)
+	Function bmx_SteamAPI_ISteamGameServer_SetModDir(inst:Byte Ptr, modDir:String)
+	Function bmx_SteamAPI_ISteamGameServer_SetDedicatedServer(inst:Byte Ptr, dedicated:Int)
+	Function bmx_SteamAPI_ISteamGameServer_LogOn(inst:Byte Ptr, token:String)
+	Function bmx_SteamAPI_ISteamGameServer_LogOnAnonymous(inst:Byte Ptr)
+	Function bmx_SteamAPI_ISteamGameServer_LogOff(inst:Byte Ptr)
+	Function bmx_SteamAPI_ISteamGameServer_BLoggedOn:Int(inst:Byte Ptr)
+	Function bmx_SteamAPI_ISteamGameServer_BSecure:Int(inst:Byte Ptr)
+	Function bmx_SteamAPI_ISteamGameServer_GetSteamID:ULong(inst:Byte Ptr)
+	Function bmx_SteamAPI_ISteamGameServer_WasRestartRequested:Int(inst:Byte Ptr)
+	Function bmx_SteamAPI_ISteamGameServer_SetMaxPlayerCount(inst:Byte Ptr, count:Int)
+	Function bmx_SteamAPI_ISteamGameServer_SetBotPlayerCount(inst:Byte Ptr, count:Int)
+	Function bmx_SteamAPI_ISteamGameServer_SetServerName(inst:Byte Ptr, name:String)
+	Function bmx_SteamAPI_ISteamGameServer_SetMapName(inst:Byte Ptr, name:String)
+	Function bmx_SteamAPI_ISteamGameServer_SetPasswordProtected(inst:Byte Ptr, protected:Int)
+	Function bmx_SteamAPI_ISteamGameServer_ClearAllKeyValues(inst:Byte Ptr)
+	Function bmx_SteamAPI_ISteamGameServer_SetKeyValue(inst:Byte Ptr, key:String, value:String)
+	Function bmx_SteamAPI_ISteamGameServer_SetGameTags(inst:Byte Ptr, tags:String)
+	Function bmx_SteamAPI_ISteamGameServer_SetGameData(inst:Byte Ptr, data:String)
+	Function bmx_SteamAPI_ISteamGameServer_SetRegion(inst:Byte Ptr, region:String)
+	Function bmx_SteamAPI_ISteamGameServer_SetAdvertiseServerActive(inst:Byte Ptr, active:Int)
+	Function bmx_SteamAPI_ISteamGameServer_BeginAuthSession:EBeginAuthSessionResult(inst:Byte Ptr, ticket:Byte Ptr, ticketSize:Int, steamID:ULong)
+	Function bmx_SteamAPI_ISteamGameServer_EndAuthSession(inst:Byte Ptr, steamID:ULong)
+	Function bmx_SteamAPI_ISteamGameServer_UserHasLicenseForApp:EUserHasLicenseForAppResult(inst:Byte Ptr, steamID:ULong, appID:UInt)
+
 	Function bmx_steamsdk_register_steamutils:Byte Ptr(inst:Byte Ptr, obj:Object)
 	Function bmx_steamsdk_unregister_steamutils(callbackPtr:Byte Ptr)
 
@@ -2720,4 +2770,11 @@ Enum EServerMode
 	eServerModeNoAuthentication = 1
 	eServerModeAuthentication = 2
 	eServerModeAuthenticationAndSecure = 3
+End Enum
+
+Enum ESteamAPIInitResult
+	k_ESteamAPIInitResult_OK = 0
+	k_ESteamAPIInitResult_FailedGeneric = 1
+	k_ESteamAPIInitResult_NoSteamClient = 2
+	k_ESteamAPIInitResult_VersionMismatch = 3
 End Enum
