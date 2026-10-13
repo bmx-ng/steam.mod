@@ -47,6 +47,7 @@ class MaxRemoteStorageReadRequest;
 class MaxInput;
 class MaxTimeline;
 class MaxNetworkingSockets;
+class MaxNetworkingUtils;
 class MaxGameServer;
 
 static std::vector<MaxRemoteStorageWriteRequest *> g_remoteStorageWriteRequests;
@@ -153,6 +154,7 @@ extern "C" {
 	void steam_steamsdk_TSteamTimeline__OnEventRecordingExists(BBObject * maxHandle, uint64 eventHandle, int recordingExists, int failure);
 	void steam_steamsdk_TSteamTimeline__OnGamePhaseRecordingExists(BBObject * maxHandle, BBString * phaseID, uint64 recordingMS, uint64 longestClipMS, uint32 clipCount, uint32 screenshotCount, int failure);
 	void steam_steamsdk_TSteamNetworkingSockets__OnConnectionStatusChanged(BBObject * maxHandle, uint32 connection, uint32 listenSocket, uint64 remoteSteamID, ESteamNetworkingConnectionState oldState, ESteamNetworkingConnectionState state, int endReason, BBString * debugMessage);
+	void steam_steamsdk_TSteamNetworkingUtils__OnRelayNetworkStatusChanged(BBObject * maxHandle, ESteamNetworkingAvailability availability, int pingMeasurementInProgress, ESteamNetworkingAvailability networkConfig, ESteamNetworkingAvailability anyRelay, BBString * debugMessage);
 	void steam_steamsdk_TSteamGameServer__OnSteamServersConnected(BBObject * maxHandle);
 	void steam_steamsdk_TSteamGameServer__OnSteamServerConnectFailure(BBObject * maxHandle, EResult result, int retrying);
 	void steam_steamsdk_TSteamGameServer__OnSteamServersDisconnected(BBObject * maxHandle, EResult result);
@@ -267,6 +269,31 @@ extern "C" {
 	int bmx_SteamAPI_ISteamNetworkingSockets_SetConnectionPollGroup(ISteamNetworkingSockets * instancePtr, uint32 connection, uint32 pollGroup);
 	int bmx_SteamAPI_ISteamNetworkingSockets_ReceiveMessageOnPollGroup(ISteamNetworkingSockets * instancePtr, uint32 pollGroup, void * data, uint32 capacity, uint32 * connection, uint32 * size, int * flags);
 	EResult bmx_SteamAPI_ISteamNetworkingSockets_GetConnectionStatus(ISteamNetworkingSockets * instancePtr, uint32 connection, ESteamNetworkingConnectionState * state, int * endReason, BBString ** endDebug, int * ping, float * qualityLocal, float * qualityRemote, int * pendingUnreliable, int * pendingReliable, int * sentUnackedReliable, int64 * queueTimeMicroseconds);
+	void * bmx_SteamAPI_SteamNetworkingUtils();
+	void * bmx_steamsdk_register_networkingutils(ISteamNetworkingUtils * instancePtr, BBObject * obj, int gameServer);
+	void bmx_steamsdk_unregister_networkingutils(void * callbackPtr);
+	void bmx_SteamAPI_ISteamNetworkingUtils_InitRelayNetworkAccess(ISteamNetworkingUtils * instancePtr);
+	ESteamNetworkingAvailability bmx_SteamAPI_ISteamNetworkingUtils_GetRelayNetworkStatus(ISteamNetworkingUtils * instancePtr, int * pingMeasurementInProgress, ESteamNetworkingAvailability * networkConfig, ESteamNetworkingAvailability * anyRelay, BBString ** debugMessage);
+	float bmx_SteamAPI_ISteamNetworkingUtils_GetLocalPingLocation(ISteamNetworkingUtils * instancePtr, BBString ** location);
+	int bmx_SteamAPI_ISteamNetworkingUtils_EstimatePingTimeBetweenLocations(ISteamNetworkingUtils * instancePtr, BBString * first, BBString * second);
+	int bmx_SteamAPI_ISteamNetworkingUtils_EstimatePingTimeFromLocalHost(ISteamNetworkingUtils * instancePtr, BBString * remote);
+	int bmx_SteamAPI_ISteamNetworkingUtils_CheckPingDataUpToDate(ISteamNetworkingUtils * instancePtr, float maxAgeSeconds);
+	int bmx_SteamAPI_ISteamNetworkingUtils_GetPingToDataCenter(ISteamNetworkingUtils * instancePtr, uint32 popID, uint32 * viaRelayPOP);
+	int bmx_SteamAPI_ISteamNetworkingUtils_GetDirectPingToPOP(ISteamNetworkingUtils * instancePtr, uint32 popID);
+	int bmx_SteamAPI_ISteamNetworkingUtils_GetPOPCount(ISteamNetworkingUtils * instancePtr);
+	int bmx_SteamAPI_ISteamNetworkingUtils_GetPOPList(ISteamNetworkingUtils * instancePtr, uint32 * popIDs, int capacity);
+	int64 bmx_SteamAPI_ISteamNetworkingUtils_GetLocalTimestamp(ISteamNetworkingUtils * instancePtr);
+	int bmx_SteamAPI_ISteamNetworkingUtils_SetConfigInt32(ISteamNetworkingUtils * instancePtr, ESteamNetworkingConfigValue value, ESteamNetworkingConfigScope scope, int64 scopeObject, int data);
+	int bmx_SteamAPI_ISteamNetworkingUtils_SetConfigInt64(ISteamNetworkingUtils * instancePtr, ESteamNetworkingConfigValue value, ESteamNetworkingConfigScope scope, int64 scopeObject, int64 data);
+	int bmx_SteamAPI_ISteamNetworkingUtils_SetConfigFloat(ISteamNetworkingUtils * instancePtr, ESteamNetworkingConfigValue value, ESteamNetworkingConfigScope scope, int64 scopeObject, float data);
+	int bmx_SteamAPI_ISteamNetworkingUtils_SetConfigString(ISteamNetworkingUtils * instancePtr, ESteamNetworkingConfigValue value, ESteamNetworkingConfigScope scope, int64 scopeObject, BBString * data);
+	int bmx_SteamAPI_ISteamNetworkingUtils_ResetConfig(ISteamNetworkingUtils * instancePtr, ESteamNetworkingConfigValue value, ESteamNetworkingConfigScope scope, int64 scopeObject);
+	ESteamNetworkingGetConfigValueResult bmx_SteamAPI_ISteamNetworkingUtils_GetConfigInt32(ISteamNetworkingUtils * instancePtr, ESteamNetworkingConfigValue value, ESteamNetworkingConfigScope scope, int64 scopeObject, int * data);
+	ESteamNetworkingGetConfigValueResult bmx_SteamAPI_ISteamNetworkingUtils_GetConfigInt64(ISteamNetworkingUtils * instancePtr, ESteamNetworkingConfigValue value, ESteamNetworkingConfigScope scope, int64 scopeObject, int64 * data);
+	ESteamNetworkingGetConfigValueResult bmx_SteamAPI_ISteamNetworkingUtils_GetConfigFloat(ISteamNetworkingUtils * instancePtr, ESteamNetworkingConfigValue value, ESteamNetworkingConfigScope scope, int64 scopeObject, float * data);
+	ESteamNetworkingGetConfigValueResult bmx_SteamAPI_ISteamNetworkingUtils_GetConfigString(ISteamNetworkingUtils * instancePtr, ESteamNetworkingConfigValue value, ESteamNetworkingConfigScope scope, int64 scopeObject, BBString ** data);
+	int bmx_SteamAPI_ISteamNetworkingUtils_GetConfigValueInfo(ISteamNetworkingUtils * instancePtr, ESteamNetworkingConfigValue value, BBString ** name, ESteamNetworkingConfigDataType * dataType, ESteamNetworkingConfigScope * scope);
+	ESteamNetworkingConfigValue bmx_SteamAPI_ISteamNetworkingUtils_IterateGenericEditableConfigValues(ISteamNetworkingUtils * instancePtr, ESteamNetworkingConfigValue current, int enumerateDevVars);
 	ESteamAPIInitResult bmx_SteamGameServer_Init(uint32 ip, int gamePort, int queryPort, EServerMode serverMode, BBString * version, BBString ** errorMessage);
 	void bmx_SteamGameServer_Shutdown();
 	void bmx_SteamGameServer_RunCallbacks();
@@ -5002,6 +5029,277 @@ EResult bmx_SteamAPI_ISteamNetworkingSockets_GetConnectionStatus(ISteamNetworkin
 	*sentUnackedReliable = status.m_cbSentUnackedReliable;
 	*queueTimeMicroseconds = status.m_usecQueueTime;
 	return result;
+}
+
+// ISteamNetworkingUtils -----------------------------------
+
+class MaxNetworkingUtils
+{
+protected:
+	BBObject * maxHandle;
+
+public:
+	MaxNetworkingUtils(BBObject * handle)
+		: maxHandle(handle) {
+	}
+	virtual ~MaxNetworkingUtils() {
+	}
+	void Dispatch(SteamRelayNetworkStatus_t * result);
+};
+
+class MaxClientNetworkingUtils : public MaxNetworkingUtils
+{
+public:
+	STEAM_CALLBACK(MaxClientNetworkingUtils, OnRelayNetworkStatusChanged,
+		SteamRelayNetworkStatus_t, m_CallbackRelayNetworkStatusChanged);
+
+	MaxClientNetworkingUtils(BBObject * handle)
+		: MaxNetworkingUtils(handle),
+		  m_CallbackRelayNetworkStatusChanged(this, &MaxClientNetworkingUtils::OnRelayNetworkStatusChanged) {
+	}
+};
+
+class MaxGameServerNetworkingUtils : public MaxNetworkingUtils
+{
+public:
+	STEAM_GAMESERVER_CALLBACK(MaxGameServerNetworkingUtils, OnRelayNetworkStatusChanged,
+		SteamRelayNetworkStatus_t, m_CallbackRelayNetworkStatusChanged);
+
+	MaxGameServerNetworkingUtils(BBObject * handle)
+		: MaxNetworkingUtils(handle),
+		  m_CallbackRelayNetworkStatusChanged(this, &MaxGameServerNetworkingUtils::OnRelayNetworkStatusChanged) {
+	}
+};
+
+void MaxNetworkingUtils::Dispatch(SteamRelayNetworkStatus_t * result) {
+	steam_steamsdk_TSteamNetworkingUtils__OnRelayNetworkStatusChanged(maxHandle, result->m_eAvail,
+		result->m_bPingMeasurementInProgress, result->m_eAvailNetworkConfig, result->m_eAvailAnyRelay,
+		bbStringFromUTF8String((unsigned char *)result->m_debugMsg));
+}
+
+void MaxClientNetworkingUtils::OnRelayNetworkStatusChanged(SteamRelayNetworkStatus_t * result) {
+	Dispatch(result);
+}
+
+void MaxGameServerNetworkingUtils::OnRelayNetworkStatusChanged(SteamRelayNetworkStatus_t * result) {
+	Dispatch(result);
+}
+
+static bool ParsePingLocation(ISteamNetworkingUtils * instancePtr, BBString * value,
+	SteamNetworkPingLocation_t & location) {
+	char * text = (char *)bbStringToUTF8String(value);
+	bool result = SteamAPI_ISteamNetworkingUtils_ParsePingLocationString(instancePtr, text, location);
+	bbMemFree(text);
+	return result;
+}
+
+static ESteamNetworkingGetConfigValueResult GetNetworkingConfigValue(ISteamNetworkingUtils * instancePtr,
+	ESteamNetworkingConfigValue value, ESteamNetworkingConfigScope scope, int64 scopeObject,
+	ESteamNetworkingConfigDataType expectedType, void * data, size_t size) {
+	ESteamNetworkingConfigDataType dataType;
+	ESteamNetworkingGetConfigValueResult result = SteamAPI_ISteamNetworkingUtils_GetConfigValue(
+		instancePtr, value, scope, (intptr_t)scopeObject, &dataType, data, &size);
+	if (result > 0 && dataType != expectedType) {
+		return k_ESteamNetworkingGetConfigValue_BadValue;
+	}
+	return result;
+}
+
+void * bmx_SteamAPI_SteamNetworkingUtils() {
+	return SteamAPI_SteamNetworkingUtils_SteamAPI();
+}
+
+void * bmx_steamsdk_register_networkingutils(ISteamNetworkingUtils *, BBObject * obj, int gameServer) {
+	if (gameServer) {
+		return new MaxGameServerNetworkingUtils(obj);
+	}
+	return new MaxClientNetworkingUtils(obj);
+}
+
+void bmx_steamsdk_unregister_networkingutils(void * callbackPtr) {
+	delete static_cast<MaxNetworkingUtils *>(callbackPtr);
+}
+
+void bmx_SteamAPI_ISteamNetworkingUtils_InitRelayNetworkAccess(ISteamNetworkingUtils * instancePtr) {
+	SteamAPI_ISteamNetworkingUtils_InitRelayNetworkAccess(instancePtr);
+}
+
+ESteamNetworkingAvailability bmx_SteamAPI_ISteamNetworkingUtils_GetRelayNetworkStatus(
+	ISteamNetworkingUtils * instancePtr, int * pingMeasurementInProgress,
+	ESteamNetworkingAvailability * networkConfig, ESteamNetworkingAvailability * anyRelay,
+	BBString ** debugMessage) {
+	SteamRelayNetworkStatus_t status = {};
+	ESteamNetworkingAvailability result = SteamAPI_ISteamNetworkingUtils_GetRelayNetworkStatus(
+		instancePtr, &status);
+	*pingMeasurementInProgress = status.m_bPingMeasurementInProgress;
+	*networkConfig = status.m_eAvailNetworkConfig;
+	*anyRelay = status.m_eAvailAnyRelay;
+	*debugMessage = bbStringFromUTF8String((unsigned char *)status.m_debugMsg);
+	return result;
+}
+
+float bmx_SteamAPI_ISteamNetworkingUtils_GetLocalPingLocation(
+	ISteamNetworkingUtils * instancePtr, BBString ** location) {
+	SteamNetworkPingLocation_t nativeLocation = {};
+	float result = SteamAPI_ISteamNetworkingUtils_GetLocalPingLocation(instancePtr, nativeLocation);
+	char text[k_cchMaxSteamNetworkingPingLocationString] = {};
+	SteamAPI_ISteamNetworkingUtils_ConvertPingLocationToString(
+		instancePtr, nativeLocation, text, sizeof(text));
+	*location = bbStringFromUTF8String((unsigned char *)text);
+	return result;
+}
+
+int bmx_SteamAPI_ISteamNetworkingUtils_EstimatePingTimeBetweenLocations(
+	ISteamNetworkingUtils * instancePtr, BBString * first, BBString * second) {
+	SteamNetworkPingLocation_t firstLocation = {};
+	SteamNetworkPingLocation_t secondLocation = {};
+	if (!ParsePingLocation(instancePtr, first, firstLocation) ||
+		!ParsePingLocation(instancePtr, second, secondLocation)) {
+		return k_nSteamNetworkingPing_Unknown;
+	}
+	return SteamAPI_ISteamNetworkingUtils_EstimatePingTimeBetweenTwoLocations(
+		instancePtr, firstLocation, secondLocation);
+}
+
+int bmx_SteamAPI_ISteamNetworkingUtils_EstimatePingTimeFromLocalHost(
+	ISteamNetworkingUtils * instancePtr, BBString * remote) {
+	SteamNetworkPingLocation_t remoteLocation = {};
+	if (!ParsePingLocation(instancePtr, remote, remoteLocation)) {
+		return k_nSteamNetworkingPing_Unknown;
+	}
+	return SteamAPI_ISteamNetworkingUtils_EstimatePingTimeFromLocalHost(instancePtr, remoteLocation);
+}
+
+int bmx_SteamAPI_ISteamNetworkingUtils_CheckPingDataUpToDate(
+	ISteamNetworkingUtils * instancePtr, float maxAgeSeconds) {
+	return SteamAPI_ISteamNetworkingUtils_CheckPingDataUpToDate(instancePtr, maxAgeSeconds);
+}
+
+int bmx_SteamAPI_ISteamNetworkingUtils_GetPingToDataCenter(
+	ISteamNetworkingUtils * instancePtr, uint32 popID, uint32 * viaRelayPOP) {
+	return SteamAPI_ISteamNetworkingUtils_GetPingToDataCenter(instancePtr, popID, viaRelayPOP);
+}
+
+int bmx_SteamAPI_ISteamNetworkingUtils_GetDirectPingToPOP(
+	ISteamNetworkingUtils * instancePtr, uint32 popID) {
+	return SteamAPI_ISteamNetworkingUtils_GetDirectPingToPOP(instancePtr, popID);
+}
+
+int bmx_SteamAPI_ISteamNetworkingUtils_GetPOPCount(ISteamNetworkingUtils * instancePtr) {
+	return SteamAPI_ISteamNetworkingUtils_GetPOPCount(instancePtr);
+}
+
+int bmx_SteamAPI_ISteamNetworkingUtils_GetPOPList(
+	ISteamNetworkingUtils * instancePtr, uint32 * popIDs, int capacity) {
+	if (capacity < 0 || (capacity > 0 && !popIDs)) {
+		return 0;
+	}
+	return SteamAPI_ISteamNetworkingUtils_GetPOPList(instancePtr, popIDs, capacity);
+}
+
+int64 bmx_SteamAPI_ISteamNetworkingUtils_GetLocalTimestamp(ISteamNetworkingUtils * instancePtr) {
+	return SteamAPI_ISteamNetworkingUtils_GetLocalTimestamp(instancePtr);
+}
+
+int bmx_SteamAPI_ISteamNetworkingUtils_SetConfigInt32(ISteamNetworkingUtils * instancePtr,
+	ESteamNetworkingConfigValue value, ESteamNetworkingConfigScope scope, int64 scopeObject, int data) {
+	return SteamAPI_ISteamNetworkingUtils_SetConfigValue(instancePtr, value, scope,
+		(intptr_t)scopeObject, k_ESteamNetworkingConfig_Int32, &data);
+}
+
+int bmx_SteamAPI_ISteamNetworkingUtils_SetConfigInt64(ISteamNetworkingUtils * instancePtr,
+	ESteamNetworkingConfigValue value, ESteamNetworkingConfigScope scope, int64 scopeObject, int64 data) {
+	return SteamAPI_ISteamNetworkingUtils_SetConfigValue(instancePtr, value, scope,
+		(intptr_t)scopeObject, k_ESteamNetworkingConfig_Int64, &data);
+}
+
+int bmx_SteamAPI_ISteamNetworkingUtils_SetConfigFloat(ISteamNetworkingUtils * instancePtr,
+	ESteamNetworkingConfigValue value, ESteamNetworkingConfigScope scope, int64 scopeObject, float data) {
+	return SteamAPI_ISteamNetworkingUtils_SetConfigValue(instancePtr, value, scope,
+		(intptr_t)scopeObject, k_ESteamNetworkingConfig_Float, &data);
+}
+
+int bmx_SteamAPI_ISteamNetworkingUtils_SetConfigString(ISteamNetworkingUtils * instancePtr,
+	ESteamNetworkingConfigValue value, ESteamNetworkingConfigScope scope, int64 scopeObject, BBString * data) {
+	char * nativeData = (char *)bbStringToUTF8String(data);
+	bool result = SteamAPI_ISteamNetworkingUtils_SetConfigValue(instancePtr, value, scope,
+		(intptr_t)scopeObject, k_ESteamNetworkingConfig_String, nativeData);
+	bbMemFree(nativeData);
+	return result;
+}
+
+int bmx_SteamAPI_ISteamNetworkingUtils_ResetConfig(ISteamNetworkingUtils * instancePtr,
+	ESteamNetworkingConfigValue value, ESteamNetworkingConfigScope scope, int64 scopeObject) {
+	ESteamNetworkingConfigDataType dataType;
+	ESteamNetworkingConfigScope validScope;
+	if (!SteamAPI_ISteamNetworkingUtils_GetConfigValueInfo(instancePtr, value, &dataType, &validScope)) {
+		return false;
+	}
+	return SteamAPI_ISteamNetworkingUtils_SetConfigValue(
+		instancePtr, value, scope, (intptr_t)scopeObject, dataType, nullptr);
+}
+
+ESteamNetworkingGetConfigValueResult bmx_SteamAPI_ISteamNetworkingUtils_GetConfigInt32(
+	ISteamNetworkingUtils * instancePtr, ESteamNetworkingConfigValue value,
+	ESteamNetworkingConfigScope scope, int64 scopeObject, int * data) {
+	return GetNetworkingConfigValue(instancePtr, value, scope, scopeObject,
+		k_ESteamNetworkingConfig_Int32, data, sizeof(*data));
+}
+
+ESteamNetworkingGetConfigValueResult bmx_SteamAPI_ISteamNetworkingUtils_GetConfigInt64(
+	ISteamNetworkingUtils * instancePtr, ESteamNetworkingConfigValue value,
+	ESteamNetworkingConfigScope scope, int64 scopeObject, int64 * data) {
+	return GetNetworkingConfigValue(instancePtr, value, scope, scopeObject,
+		k_ESteamNetworkingConfig_Int64, data, sizeof(*data));
+}
+
+ESteamNetworkingGetConfigValueResult bmx_SteamAPI_ISteamNetworkingUtils_GetConfigFloat(
+	ISteamNetworkingUtils * instancePtr, ESteamNetworkingConfigValue value,
+	ESteamNetworkingConfigScope scope, int64 scopeObject, float * data) {
+	return GetNetworkingConfigValue(instancePtr, value, scope, scopeObject,
+		k_ESteamNetworkingConfig_Float, data, sizeof(*data));
+}
+
+ESteamNetworkingGetConfigValueResult bmx_SteamAPI_ISteamNetworkingUtils_GetConfigString(
+	ISteamNetworkingUtils * instancePtr, ESteamNetworkingConfigValue value,
+	ESteamNetworkingConfigScope scope, int64 scopeObject, BBString ** data) {
+	ESteamNetworkingConfigDataType dataType;
+	size_t size = 0;
+	ESteamNetworkingGetConfigValueResult result = SteamAPI_ISteamNetworkingUtils_GetConfigValue(
+		instancePtr, value, scope, (intptr_t)scopeObject, &dataType, nullptr, &size);
+	if (result != k_ESteamNetworkingGetConfigValue_BufferTooSmall ||
+		dataType != k_ESteamNetworkingConfig_String || size == 0) {
+		*data = &bbEmptyString;
+		return result;
+	}
+	std::vector<char> buffer(size);
+	result = SteamAPI_ISteamNetworkingUtils_GetConfigValue(instancePtr, value, scope,
+		(intptr_t)scopeObject, &dataType, buffer.data(), &size);
+	if (result > 0) {
+		*data = bbStringFromUTF8String((unsigned char *)buffer.data());
+	} else {
+		*data = &bbEmptyString;
+	}
+	return result;
+}
+
+int bmx_SteamAPI_ISteamNetworkingUtils_GetConfigValueInfo(ISteamNetworkingUtils * instancePtr,
+	ESteamNetworkingConfigValue value, BBString ** name, ESteamNetworkingConfigDataType * dataType,
+	ESteamNetworkingConfigScope * scope) {
+	const char * nativeName = SteamAPI_ISteamNetworkingUtils_GetConfigValueInfo(
+		instancePtr, value, dataType, scope);
+	if (!nativeName) {
+		*name = &bbEmptyString;
+		return false;
+	}
+	*name = bbStringFromUTF8String((unsigned char *)nativeName);
+	return true;
+}
+
+ESteamNetworkingConfigValue bmx_SteamAPI_ISteamNetworkingUtils_IterateGenericEditableConfigValues(
+	ISteamNetworkingUtils * instancePtr, ESteamNetworkingConfigValue current, int enumerateDevVars) {
+	return SteamAPI_ISteamNetworkingUtils_IterateGenericEditableConfigValues(
+		instancePtr, current, enumerateDevVars);
 }
 
 // ISteamGameServer ----------------------------------------

@@ -23,11 +23,13 @@ bbdoc: Steam SDK
 End Rem
 Module Steam.SteamSDK
 
-ModuleInfo "Version: 1.11"
+ModuleInfo "Version: 1.12"
 ModuleInfo "License: zlib/libpng"
 ModuleInfo "Copyright: Steam SDK - Valve Corporation"
 ModuleInfo "Copyright: Wrapper - 2019-2026 Bruce A Henderson"
 
+ModuleInfo "History: 1.12"
+ModuleInfo "History: Added Steam Networking Utils relay, ping, POP, timestamp, and configuration APIs."
 ModuleInfo "History: 1.11"
 ModuleInfo "History: Added Steam Networking Sockets and dedicated game-server support."
 ModuleInfo "History: 1.10"
@@ -1307,6 +1309,166 @@ Type TSteamNetworkingSockets Extends TSteamAPI
 
 	Function _OnConnectionStatusChanged(inst:TSteamNetworkingSockets, connection:UInt, listenSocket:UInt, remoteSteamID:ULong, oldState:ESteamNetworkingConnectionState, state:ESteamNetworkingConnectionState, endReason:Int, debugMessage:String) { nomangle }
 		inst.OnConnectionStatusChanged(connection, listenSocket, remoteSteamID, oldState, state, endReason, debugMessage)
+	End Function
+End Type
+
+Const STEAM_NETWORKING_PING_FAILED:Int = -1
+Const STEAM_NETWORKING_PING_UNKNOWN:Int = -2
+
+Rem
+bbdoc: Receives changes in Steam Datagram Relay availability and ping measurement.
+End Rem
+Interface ISteamNetworkingUtilsListener
+	Method OnSteamRelayNetworkStatusChanged(availability:ESteamNetworkingAvailability, pingMeasurementInProgress:Int, networkConfig:ESteamNetworkingAvailability, anyRelay:ESteamNetworkingAvailability, debugMessage:String)
+End Interface
+
+Rem
+bbdoc: Relay readiness, network-location estimates, data-center pings, and Networking Sockets configuration.
+about: Ping locations are represented as opaque strings because Steam's native
+location structure is process-local and must not be persisted or sent over the
+wire directly. Configuration scope objects are native connection, listen
+socket, or interface handles as required by the selected configuration value.
+End Rem
+Type TSteamNetworkingUtils Extends TSteamAPI
+	Const STEAMNETWORKINGUTILS_INTERFACE_VERSION:String = "SteamNetworkingUtils004"
+
+	Field listener:ISteamNetworkingUtilsListener
+	Field gameServer:Int
+
+	Function Create:TSteamNetworkingUtils(gameServer:Int = False)
+		Local native:Byte Ptr = bmx_SteamAPI_SteamNetworkingUtils()
+		If Not native Then Return Null
+		Local utils:TSteamNetworkingUtils = New TSteamNetworkingUtils
+		utils.instancePtr = native
+		utils.gameServer = gameServer
+		utils.callbackPtr = bmx_steamsdk_register_networkingutils(native, utils, gameServer)
+		Return utils
+	End Function
+
+	Method Delete()
+		If callbackPtr Then bmx_steamsdk_unregister_networkingutils(callbackPtr)
+		callbackPtr = Null
+	End Method
+
+	Method SetListener(listener:ISteamNetworkingUtilsListener)
+		Self.listener = listener
+	End Method
+
+	Rem
+	bbdoc: Dispatches the callback queue appropriate to this client or game-server interface.
+	End Rem
+	Method RunCallbacks()
+		If gameServer Then
+			SteamGameServerRunCallbacks()
+		Else
+			SteamRunCallbacks()
+		End If
+	End Method
+
+	Rem
+	bbdoc: Begins fetching relay configuration and measuring relay latency early.
+	End Rem
+	Method InitRelayNetworkAccess()
+		bmx_SteamAPI_ISteamNetworkingUtils_InitRelayNetworkAccess(instancePtr)
+	End Method
+
+	Rem
+	bbdoc: Returns current relay availability and fills its diagnostic details.
+	End Rem
+	Method GetRelayNetworkStatus:ESteamNetworkingAvailability(pingMeasurementInProgress:Int Var, networkConfig:ESteamNetworkingAvailability Var, anyRelay:ESteamNetworkingAvailability Var, debugMessage:String Var)
+		Return bmx_SteamAPI_ISteamNetworkingUtils_GetRelayNetworkStatus(instancePtr, pingMeasurementInProgress, networkConfig, anyRelay, debugMessage)
+	End Method
+
+	Rem
+	bbdoc: Returns the age in seconds of the local ping location, or a negative value when unavailable.
+	End Rem
+	Method GetLocalPingLocation:Float(location:String Var)
+		Return bmx_SteamAPI_ISteamNetworkingUtils_GetLocalPingLocation(instancePtr, location)
+	End Method
+
+	Method EstimatePingTimeBetweenLocations:Int(first:String, second:String)
+		Return bmx_SteamAPI_ISteamNetworkingUtils_EstimatePingTimeBetweenLocations(instancePtr, first, second)
+	End Method
+
+	Method EstimatePingTimeFromLocalHost:Int(remote:String)
+		Return bmx_SteamAPI_ISteamNetworkingUtils_EstimatePingTimeFromLocalHost(instancePtr, remote)
+	End Method
+
+	Method CheckPingDataUpToDate:Int(maxAgeSeconds:Float)
+		Return bmx_SteamAPI_ISteamNetworkingUtils_CheckPingDataUpToDate(instancePtr, maxAgeSeconds)
+	End Method
+
+	Method GetPingToDataCenter:Int(popID:UInt, viaRelayPOP:UInt Var)
+		Return bmx_SteamAPI_ISteamNetworkingUtils_GetPingToDataCenter(instancePtr, popID, viaRelayPOP)
+	End Method
+
+	Method GetDirectPingToPOP:Int(popID:UInt)
+		Return bmx_SteamAPI_ISteamNetworkingUtils_GetDirectPingToPOP(instancePtr, popID)
+	End Method
+
+	Method GetPOPCount:Int()
+		Return bmx_SteamAPI_ISteamNetworkingUtils_GetPOPCount(instancePtr)
+	End Method
+
+	Method GetPOPList:Int(popIDs:UInt Ptr, capacity:Int)
+		Return bmx_SteamAPI_ISteamNetworkingUtils_GetPOPList(instancePtr, popIDs, capacity)
+	End Method
+
+	Method GetLocalTimestamp:Long()
+		Return bmx_SteamAPI_ISteamNetworkingUtils_GetLocalTimestamp(instancePtr)
+	End Method
+
+	Method SetConfigInt32:Int(value:ESteamNetworkingConfigValue, scope:ESteamNetworkingConfigScope, scopeObject:Long, data:Int)
+		Return bmx_SteamAPI_ISteamNetworkingUtils_SetConfigInt32(instancePtr, value, scope, scopeObject, data)
+	End Method
+
+	Method SetConfigInt64:Int(value:ESteamNetworkingConfigValue, scope:ESteamNetworkingConfigScope, scopeObject:Long, data:Long)
+		Return bmx_SteamAPI_ISteamNetworkingUtils_SetConfigInt64(instancePtr, value, scope, scopeObject, data)
+	End Method
+
+	Method SetConfigFloat:Int(value:ESteamNetworkingConfigValue, scope:ESteamNetworkingConfigScope, scopeObject:Long, data:Float)
+		Return bmx_SteamAPI_ISteamNetworkingUtils_SetConfigFloat(instancePtr, value, scope, scopeObject, data)
+	End Method
+
+	Method SetConfigString:Int(value:ESteamNetworkingConfigValue, scope:ESteamNetworkingConfigScope, scopeObject:Long, data:String)
+		Return bmx_SteamAPI_ISteamNetworkingUtils_SetConfigString(instancePtr, value, scope, scopeObject, data)
+	End Method
+
+	Method ResetConfig:Int(value:ESteamNetworkingConfigValue, scope:ESteamNetworkingConfigScope, scopeObject:Long = 0)
+		Return bmx_SteamAPI_ISteamNetworkingUtils_ResetConfig(instancePtr, value, scope, scopeObject)
+	End Method
+
+	Method GetConfigInt32:ESteamNetworkingGetConfigValueResult(value:ESteamNetworkingConfigValue, scope:ESteamNetworkingConfigScope, scopeObject:Long, data:Int Var)
+		Return bmx_SteamAPI_ISteamNetworkingUtils_GetConfigInt32(instancePtr, value, scope, scopeObject, data)
+	End Method
+
+	Method GetConfigInt64:ESteamNetworkingGetConfigValueResult(value:ESteamNetworkingConfigValue, scope:ESteamNetworkingConfigScope, scopeObject:Long, data:Long Var)
+		Return bmx_SteamAPI_ISteamNetworkingUtils_GetConfigInt64(instancePtr, value, scope, scopeObject, data)
+	End Method
+
+	Method GetConfigFloat:ESteamNetworkingGetConfigValueResult(value:ESteamNetworkingConfigValue, scope:ESteamNetworkingConfigScope, scopeObject:Long, data:Float Var)
+		Return bmx_SteamAPI_ISteamNetworkingUtils_GetConfigFloat(instancePtr, value, scope, scopeObject, data)
+	End Method
+
+	Method GetConfigString:ESteamNetworkingGetConfigValueResult(value:ESteamNetworkingConfigValue, scope:ESteamNetworkingConfigScope, scopeObject:Long, data:String Var)
+		Return bmx_SteamAPI_ISteamNetworkingUtils_GetConfigString(instancePtr, value, scope, scopeObject, data)
+	End Method
+
+	Method GetConfigValueInfo:Int(value:ESteamNetworkingConfigValue, name:String Var, dataType:ESteamNetworkingConfigDataType Var, scope:ESteamNetworkingConfigScope Var)
+		Return bmx_SteamAPI_ISteamNetworkingUtils_GetConfigValueInfo(instancePtr, value, name, dataType, scope)
+	End Method
+
+	Method IterateGenericEditableConfigValues:ESteamNetworkingConfigValue(current:ESteamNetworkingConfigValue = ESteamNetworkingConfigValue.k_ESteamNetworkingConfig_Invalid, enumerateDevVars:Int = False)
+		Return bmx_SteamAPI_ISteamNetworkingUtils_IterateGenericEditableConfigValues(instancePtr, current, enumerateDevVars)
+	End Method
+
+	Private
+	Method OnRelayNetworkStatusChanged(availability:ESteamNetworkingAvailability, pingMeasurementInProgress:Int, networkConfig:ESteamNetworkingAvailability, anyRelay:ESteamNetworkingAvailability, debugMessage:String)
+		If listener Then listener.OnSteamRelayNetworkStatusChanged(availability, pingMeasurementInProgress, networkConfig, anyRelay, debugMessage)
+	End Method
+
+	Function _OnRelayNetworkStatusChanged(inst:TSteamNetworkingUtils, availability:ESteamNetworkingAvailability, pingMeasurementInProgress:Int, networkConfig:ESteamNetworkingAvailability, anyRelay:ESteamNetworkingAvailability, debugMessage:String) { nomangle }
+		inst.OnRelayNetworkStatusChanged(availability, pingMeasurementInProgress, networkConfig, anyRelay, debugMessage)
 	End Function
 End Type
 
