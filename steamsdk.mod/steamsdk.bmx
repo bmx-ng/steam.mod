@@ -1597,8 +1597,8 @@ Type TSteamGameServer Extends TSteamAPI
 		bmx_SteamAPI_ISteamGameServer_SetMapName(instancePtr, name)
 	End Method
 
-	Method SetPasswordProtected(protected:Int)
-		bmx_SteamAPI_ISteamGameServer_SetPasswordProtected(instancePtr, protected)
+	Method SetPasswordProtected(isProtected:Int)
+		bmx_SteamAPI_ISteamGameServer_SetPasswordProtected(instancePtr, isProtected)
 	End Method
 
 	Method ClearAllKeyValues()
