@@ -350,7 +350,7 @@ Extern
 	Function bmx_SteamAPI_ISteamGameServer_SetBotPlayerCount(inst:Byte Ptr, count:Int)
 	Function bmx_SteamAPI_ISteamGameServer_SetServerName(inst:Byte Ptr, name:String)
 	Function bmx_SteamAPI_ISteamGameServer_SetMapName(inst:Byte Ptr, name:String)
-	Function bmx_SteamAPI_ISteamGameServer_SetPasswordProtected(inst:Byte Ptr, protected:Int)
+	Function bmx_SteamAPI_ISteamGameServer_SetPasswordProtected(inst:Byte Ptr, isProtected:Int)
 	Function bmx_SteamAPI_ISteamGameServer_ClearAllKeyValues(inst:Byte Ptr)
 	Function bmx_SteamAPI_ISteamGameServer_SetKeyValue(inst:Byte Ptr, key:String, value:String)
 	Function bmx_SteamAPI_ISteamGameServer_SetGameTags(inst:Byte Ptr, tags:String)
